@@ -226,15 +226,20 @@ def motion_notify_callback(event):
                 barx.set_data(draw)
     # drag x borders
     pos1 = drag_axes.get_position()
+    save_aspect = drag_axes.get_adjustable() != "auto" and drag_axes.get_aspect() != "datalim"
+#        [a.get_adjustable() for a in [ax0, ax1, ax2, ax3]]
+#Out[35]: [u'box', u'datalim', u'box', u'box']
+#In[36]: [a.get_aspect() for a in [ax0, ax1, ax2, ax3]]
+#Out[36]: [u'auto', u'equal', u'equal', 20.0]
     if drag_dir & 1:
-        if len(drag_axes.get_images()):
+        if save_aspect:
             new_width = max(pos1.width+(pos1.x0-xfigure), 1e-2)
             new_height = new_width/pos1.width*pos1.height
             drag_axes.set_position([xfigure, pos1.y0, new_width, new_height])
         else:
             drag_axes.set_position([xfigure, pos1.y0, max(pos1.width+(pos1.x0-xfigure), 1e-2), pos1.height])
     elif drag_dir & 2:
-        if len(drag_axes.get_images()):
+        if save_aspect:
             new_width = max(pos1.width-(pos1.x1-xfigure), 1e-2)
             new_height = new_width/pos1.width*pos1.height
             drag_axes.set_position([pos1.x0, pos1.y0, new_width, new_height])
@@ -243,7 +248,7 @@ def motion_notify_callback(event):
     # drag y borders
     pos1 = drag_axes.get_position()
     if drag_dir & 4:
-        if len(drag_axes.get_images()):
+        if save_aspect:
             new_height = max(pos1.height+(pos1.y0-yfigure), 1e-2)
 
             new_width = new_height/pos1.height*pos1.width
@@ -251,7 +256,7 @@ def motion_notify_callback(event):
         else:
             drag_axes.set_position([pos1.x0, yfigure, pos1.width, max(pos1.height++(pos1.y0-yfigure), 1e-2)])
     elif drag_dir & 8:
-        if len(drag_axes.get_images()):
+        if save_aspect:
             new_height = max(pos1.height-(pos1.y0+pos1.height-yfigure), 1e-2)
             new_width = new_height/pos1.height*pos1.width
             drag_axes.set_position([pos1.x0, pos1.y0, new_width, new_height])
