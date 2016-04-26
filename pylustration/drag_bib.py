@@ -37,6 +37,11 @@ def add_axes(dim, unit="cm", *args, **kwargs):
     return plt.axes([x, y, w, h], *args, **kwargs)
 
 
+def add_image(filename):
+    plt.imshow(plt.imread(filename))
+    plt.xticks([])
+    plt.yticks([])
+
 def button_press_callback(event):
     global drag_axes, drag_dir, last_mouse_pos, last_axes, drag_offset, drag_text
     # only drag with left mouse button
@@ -227,6 +232,7 @@ def motion_notify_callback(event):
     # drag x borders
     pos1 = drag_axes.get_position()
     save_aspect = drag_axes.get_adjustable() != "auto" and drag_axes.get_aspect() != "datalim"
+    save_aspect = drag_axes.get_aspect() != "auto" and drag_axes.get_adjustable() != "datalim"
 #        [a.get_adjustable() for a in [ax0, ax1, ax2, ax3]]
 #Out[35]: [u'box', u'datalim', u'box', u'box']
 #In[36]: [a.get_aspect() for a in [ax0, ax1, ax2, ax3]]
@@ -418,7 +424,7 @@ def StartPylustration(xsnaps=None, ysnaps=None, unit="cm"):
     # get current figure and add callbacks
     barx, = plt.plot(0, 0, 'rs--', transform=fig.transFigure, clip_on=False, lw=4, zorder=100)
     bary, = plt.plot(0, 0, 'rs--', transform=fig.transFigure, clip_on=False, lw=4, zorder=100)
-    text = plt.text(0, 0, "test", transform=fig.transFigure, clip_on=False, zorder=100)
+    text = plt.text(0, 0, "", transform=fig.transFigure, clip_on=False, zorder=100)
     fig.canvas.mpl_connect("pick_event", on_pick_event)
     fig.canvas.mpl_connect('button_press_event', button_press_callback)
     fig.canvas.mpl_connect('motion_notify_event', motion_notify_callback)
