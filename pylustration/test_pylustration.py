@@ -47,6 +47,13 @@ plt.axis()
 fig_text(1, -1, "A", size=15)
 fig_text(5, -1, "B")
 
+plt.gcf().set_size_inches(18.000000/2.54, 15.000000/2.54, forward=True)
+plt.gcf().axes[0].set_position([0.055556, 0.604545, 0.132102, 0.210744])
+plt.gcf().axes[1].set_position([0.509083, 0.546780, 0.142409, 0.227187])
+plt.gcf().axes[2].set_position([0.055556, 0.339549, 0.261938, 0.130337])
+plt.gcf().axes[3].set_position([0.592279, 0.100000, 0.015225, 0.363636])
+plt.gcf().texts[0].set_position([0.064206, 0.933333])
+plt.gcf().texts[1].set_position([0.273356, 0.933333])
 
 StartPylustration(xsnaps=[1, 2, -0.5])
 
