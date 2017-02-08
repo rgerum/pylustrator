@@ -4,7 +4,7 @@ Enable picking on the legend to toggle the legended line on and off
 import numpy as np
 import matplotlib.pyplot as plt
 
-from drag_bib import StartPylustration, fig_text, add_axes
+from pylustration import StartPylustration, fig_text, add_axes
 #plt.ion()
 
 t = np.arange(0.0, 0.2, 0.1)
