@@ -1,0 +1,15 @@
+syntax: glob
+*.pyc
+*.db
+*.py.orig
+*.py~
+*.egg-info*
+.idea/*
+dist/*
+build/*
+
+# Python egg metadata, regenerated from source files by setuptools.
+
+syntax: regexp
+
+.directory
