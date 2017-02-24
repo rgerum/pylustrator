@@ -81,23 +81,27 @@ def button_press_callback(event):
 
 
 def motion_notify_callback(event):
-    global drag_axes, drag_dir, last_mouse_pos, drag_offset, displaying, text
+    global drag_axes, drag_dir, last_mouse_pos, drag_offset, displaying, text, pick_offset
     # if the mouse moves and no axis is dragged do nothing
     if displaying:
         return
     if drag_text is not None:
         displaying = True
         x, y = event.x, event.y
-        for ax in fig.axes+[fig]:
-            for txt in ax.texts:
-                if txt == drag_text:
-                    continue
-                tx, ty = txt.get_transform().transform(txt.get_position())
-                if abs(x-tx) < 10:
-                    x = tx
-                if abs(y-ty) < 10:
-                    y = ty
-        drag_text.set_position(drag_text.get_transform().inverted().transform([x, y]))
+        if not nosnap:
+            for ax in fig.axes+[fig]:
+                for txt in ax.texts:
+                    if txt == drag_text:
+                        continue
+                    tx, ty = txt.get_transform().transform(txt.get_position())
+                    if abs(x-tx) < 10:
+                        x = tx
+                    if abs(y-ty) < 10:
+                        y = ty
+        x, y = drag_text.get_transform().inverted().transform([x, y])
+        x -= pick_offset[0]
+        y -= pick_offset[1]
+        drag_text.set_position((x, y))
         #drag_text.set_position([xfigure, yfigure])
         fig.canvas.flush_events()
         fig.canvas.draw()
@@ -298,9 +302,28 @@ def button_release_callback(event):
     drag_axes = None
     fig.canvas.draw()
 
+def moveArtist(index, x1, y1, x2, y2):
+    positions = []
+    artists = []
+    for index2, artist in enumerate(plt.gcf().axes[index].get_children()):
+        if artist.pickable():
+            try:
+                positions.append(artist.original_pos)
+            except:
+                positions.append(artist.get_position())
+            artists.append(artist)
+    distance = np.linalg.norm(np.array([x1,y1])-np.array(positions), axis=1)
+    print(np.min(distance), np.array([x2,y2]), np.array(positions).shape)
+    index = np.argmin(distance)
+    try:
+        artists[index].original_pos
+    except:
+        artists[index].original_pos = [x1, y1]
+    print("########", artist)
+    artists[index].set_position([x2, y2])
 
 def key_press_callback(event):
-    global last_axes
+    global last_axes, nosnap
     # space: print code to restore current configuration
     if event.key == ' ':
         print("plt.gcf().set_size_inches(%f/2.54, %f/2.54, forward=True)" % ((fig.get_size_inches()[0]-inch_offset[0])*2.54, (fig.get_size_inches()[1]-inch_offset[1])*2.54))
@@ -309,11 +332,20 @@ def key_press_callback(event):
             print("plt.gcf().axes[%d].set_position([%f, %f, %f, %f])" % (index, pos.x0, pos.y0, pos.width, pos.height))
             if ax.get_zorder() != 0:
                 print("plt.gcf().axes[%d].set_zorder(%d)" % (index, ax.get_zorder()))
+            for index2, artist in enumerate(ax.get_children()):
+                if artist.pickable():
+                    try:
+                        pos0 = artist.original_pos
+                    except:
+                        continue
+                    pos = artist.get_position()
+                    print("pylustration.moveArtist(%d, %f, %f, %f, %f)" % (index, pos0[0], pos0[1], pos[0], pos[1]))
         for index, txt in enumerate(fig.texts):
             if txt.pickable():
                 pos = txt.get_position()
                 print("plt.gcf().texts[%d].set_position([%f, %f])" % (index, pos[0], pos[1]))
-
+    if event.key == 'control':
+        nosnap = True
     # move last axis in z order
     if event.key == 'pagedown' and last_axes is not None:
         last_axes.set_zorder(last_axes.get_zorder()-1)
@@ -339,13 +371,25 @@ def key_press_callback(event):
         fig.canvas.draw()
 
 
+def key_release_callback(event):
+    global nosnap
+    if event.key == 'control':
+        nosnap = False
+
+
 def on_pick_event(event):
-    global drag_text
+    global drag_text, pick_offset
     " Store which text object was picked and were the pick event occurs."
 
     if isinstance(event.artist, Text):
         drag_text = event.artist
+        try:
+            print(drag_text.original_pos)
+        except:
+            drag_text.original_pos = drag_text.get_position()
         pick_pos = (event.mouseevent.xdata, event.mouseevent.ydata)
+        pick_offset = (event.mouseevent.xdata-drag_text.get_position()[0], event.mouseevent.ydata-drag_text.get_position()[1])
+        print("pick_offset", event.mouseevent.xdata, drag_text.get_position()[0], event.mouseevent.xdata-drag_text.get_position()[0])
     return True
 
 
@@ -385,6 +429,8 @@ def StartPylustration(xsnaps=None, ysnaps=None, unit="cm"):
     global drag_axes, drag_text, last_axes, displaying
     global barx, bary, text, fig, fig_inch_size, first_resize
     global additional_xsnaps, additional_ysnaps
+    global nosnap
+    nosnap = False
 
     # init some variables
     drag_axes = None
@@ -429,6 +475,7 @@ def StartPylustration(xsnaps=None, ysnaps=None, unit="cm"):
     fig.canvas.mpl_connect('button_press_event', button_press_callback)
     fig.canvas.mpl_connect('motion_notify_event', motion_notify_callback)
     fig.canvas.mpl_connect('key_press_event', key_press_callback)
+    fig.canvas.mpl_connect('key_release_event', key_release_callback)
     fig.canvas.mpl_connect('button_release_event', button_release_callback)
     fig.canvas.mpl_connect('draw_event', draw_event)
     fig.canvas.mpl_connect('resize_event', resize_event)
