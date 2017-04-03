@@ -379,7 +379,7 @@ def key_release_callback(event):
 
 
 def on_pick_event(event):
-    global drag_text, pick_offset
+    global drag_text, pick_offset, pick_pos
     " Store which text object was picked and were the pick event occurs."
 
     if isinstance(event.artist, Text):
@@ -388,9 +388,10 @@ def on_pick_event(event):
             print(drag_text.original_pos)
         except:
             drag_text.original_pos = drag_text.get_position()
-        pick_pos = (event.mouseevent.xdata, event.mouseevent.ydata)
-        pick_offset = (event.mouseevent.xdata-drag_text.get_position()[0], event.mouseevent.ydata-drag_text.get_position()[1])
-        print("pick_offset", event.mouseevent.xdata, drag_text.get_position()[0], event.mouseevent.xdata-drag_text.get_position()[0])
+        if event.mouseevent.xdata is not None:
+            pick_pos = (event.mouseevent.xdata, event.mouseevent.ydata)
+            pick_offset = (event.mouseevent.xdata-drag_text.get_position()[0], event.mouseevent.ydata-drag_text.get_position()[1])
+            print("pick_offset", event.mouseevent.xdata, drag_text.get_position()[0], event.mouseevent.xdata-drag_text.get_position()[0])
     return True
 
 
@@ -431,6 +432,7 @@ def StartPylustration(xsnaps=None, ysnaps=None, unit="cm"):
     global barx, bary, text, fig, fig_inch_size, first_resize
     global additional_xsnaps, additional_ysnaps
     global nosnap
+    global pick_offset, pick_pos
     nosnap = False
 
     # init some variables
@@ -438,6 +440,8 @@ def StartPylustration(xsnaps=None, ysnaps=None, unit="cm"):
     drag_text = None
     last_axes = plt.gca()
     displaying = False
+    pick_offset = [0, 0]
+    pick_pos = [0, 0]
 
     fig = plt.gcf()
     fig_inch_size = fig.get_size_inches()
