@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.text import Text
 import numpy as np
 import imageio
+import traceback
 
 
 def fig_text(x, y, text, unit="cm", *args, **kwargs):
@@ -356,16 +357,54 @@ def moveArtist(index, x1, y1, x2, y2):
     print("########", artist)
     artists[index].set_position([x2, y2])
 
+def insertTextToFile(text, stack_pos):
+    block_active = False
+    block = ""
+    last_block = 0
+    with open(stack_pos.filename + ".tmp", 'w') as fp2:
+        with open(stack_pos.filename, 'r') as fp1:
+            for lineno, line in enumerate(fp1):
+                if block_active:
+                    block = block + line
+                    if line.strip().startswith("#% end:"):
+                        block_active = False
+                        last_block = lineno
+                        continue
+                elif line.strip().startswith("#% start:"):
+                    block = block + line
+                    block_active = True
+                if block_active:
+                    continue
+                #print(lineno, stack_pos.lineno, last_block)
+                if lineno == stack_pos.lineno - 1:
+                    for i in range(len(line)):
+                        if line[i] != " " and line[i] != "\t":
+                            break
+                    indent = line[:i]
+                    for line_text in text.split("\n"):
+                        fp2.write(indent + line_text + "\n")
+                elif last_block == lineno - 1:
+                    fp2.write(block)
+                fp2.write(line)
+
+    with open(stack_pos.filename + ".tmp", 'r') as fp2:
+        with open(stack_pos.filename, 'w') as fp1:
+            for line in fp2:
+                fp1.write(line)
+    print("Save to", stack_pos.filename, "line", stack_pos.lineno)
+
 def key_press_callback(event):
     global last_axes, nosnap
+    global stack_position
     # space: print code to restore current configuration
     if event.key == ' ':
-        print("plt.gcf().set_size_inches(%f/2.54, %f/2.54, forward=True)" % ((fig.get_size_inches()[0]-inch_offset[0])*2.54, (fig.get_size_inches()[1]-inch_offset[1])*2.54))
+        save_text = "#% start: automatic generated code from pylustration\n"
+        save_text += "plt.gcf().set_size_inches(%f/2.54, %f/2.54, forward=True)\n" % ((fig.get_size_inches()[0]-inch_offset[0])*2.54, (fig.get_size_inches()[1]-inch_offset[1])*2.54)
         for index, ax in enumerate(fig.axes):
             pos = ax.get_position()
-            print("plt.gcf().axes[%d].set_position([%f, %f, %f, %f])" % (index, pos.x0, pos.y0, pos.width, pos.height))
+            save_text += "plt.gcf().axes[%d].set_position([%f, %f, %f, %f])\n" % (index, pos.x0, pos.y0, pos.width, pos.height)
             if ax.get_zorder() != 0:
-                print("plt.gcf().axes[%d].set_zorder(%d)" % (index, ax.get_zorder()))
+                save_text += "plt.gcf().axes[%d].set_zorder(%d)" % (index, ax.get_zorder())
             for index2, artist in enumerate(ax.get_children()):
                 if artist.pickable():
                     try:
@@ -373,11 +412,14 @@ def key_press_callback(event):
                     except:
                         continue
                     pos = artist.get_position()
-                    print("pylustration.moveArtist(%d, %f, %f, %f, %f)" % (index, pos0[0], pos0[1], pos[0], pos[1]))
+                    save_text += "pylustration.moveArtist(%d, %f, %f, %f, %f)\n" % (index, pos0[0], pos0[1], pos[0], pos[1])
         for index, txt in enumerate(fig.texts):
             if txt.pickable():
                 pos = txt.get_position()
-                print("plt.gcf().texts[%d].set_position([%f, %f])" % (index, pos[0], pos[1]))
+                save_text += "plt.gcf().texts[%d].set_position([%f, %f])\n" % (index, pos[0], pos[1])
+        save_text += "#% end: automatic generated code from pylustration"
+        print(save_text)
+        insertTextToFile(save_text, stack_position)
     if event.key == 'control':
         nosnap = True
     # move last axis in z order
@@ -466,7 +508,12 @@ def StartPylustration(xsnaps=None, ysnaps=None, unit="cm"):
     global additional_xsnaps, additional_ysnaps
     global nosnap
     global pick_offset, pick_pos
+    global stack_position
     nosnap = False
+
+    # store the position where StartPylustration was called
+    stack_position = traceback.extract_stack()[-2]
+
 
     # init some variables
     drag_axes = None
