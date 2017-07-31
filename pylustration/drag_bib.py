@@ -43,6 +43,39 @@ def add_image(filename):
     plt.xticks([])
     plt.yticks([])
 
+def changeFigureSize(w, h, cut_from_top=False):
+    oldw, oldh = plt.gcf().get_size_inches()
+    fx = oldw / w
+    fy = oldh / h
+    for axe in plt.gcf().axes:
+        box = axe.get_position()
+        if cut_from_top:
+            axe.set_position([box.x0 * fx, box.y0 * fy, (box.x1 - box.x0) * fx, (box.y1 - box.y0) * fy])
+        else:
+            axe.set_position([box.x0 * fx, 1-(1-box.y0) * fy, (box.x1 - box.x0) * fx, (box.y1 - box.y0) * fy])
+    for text in plt.gcf().texts:
+        x0, y0 = text.get_position()
+        if cut_from_top:
+            text.set_position([x0 * fx, y0 * fy])
+        else:
+            text.set_position([x0 * fx, 1-(1-y0) * fy])
+    plt.gcf().set_size_inches(w, h, forward=True)
+
+def despine(ax=None, complete=False):
+    if not ax:
+        ax = plt.gca()
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+    if complete:
+        ax.spines['left'].set_visible(False)
+        ax.spines['bottom'].set_visible(False)
+        ax.set_xticks([])
+        ax.set_yticks([])
+    else:
+        # Only show ticks on the left and bottom spines
+        ax.yaxis.set_ticks_position('left')
+        ax.xaxis.set_ticks_position('bottom')
+
 def button_press_callback(event):
     global drag_axes, drag_dir, last_mouse_pos, last_axes, drag_offset, drag_text
     # only drag with left mouse button

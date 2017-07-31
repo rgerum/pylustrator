@@ -1,1 +1,1 @@
-from .drag_bib import StartPylustration, fig_text, add_axes, add_image, moveArtist
+from .drag_bib import StartPylustration, fig_text, add_axes, add_image, moveArtist, despine, changeFigureSize
