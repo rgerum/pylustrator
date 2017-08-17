@@ -62,6 +62,89 @@ def changeFigureSize(w, h, cut_from_top=False):
             text.set_position([x0 * fx, 1-(1-y0) * fy])
     plt.gcf().set_size_inches(w, h, forward=True)
 
+def mark_inset(parent_axes, inset_axes, loc1=1, loc2=2, **kwargs):
+    from mpl_toolkits.axes_grid1.inset_locator import TransformedBbox, BboxPatch, BboxConnector
+    try:
+        loc1a, loc1b = loc1
+    except:
+        loc1a = loc1
+        loc1b = loc1
+    try:
+        loc2a, loc2b = loc2
+    except:
+        loc2a = loc2
+        loc2b = loc2
+    rect = TransformedBbox(inset_axes.viewLim, parent_axes.transData)
+
+    pp = BboxPatch(rect, fill=False, **kwargs)
+    parent_axes.add_patch(pp)
+
+    p1 = BboxConnector(inset_axes.bbox, rect, loc1=loc1a, loc2=loc1b, **kwargs)
+    inset_axes.add_patch(p1)
+    p1.set_clip_on(False)
+    p2 = BboxConnector(inset_axes.bbox, rect, loc1=loc2a, loc2=loc2b, **kwargs)
+    inset_axes.add_patch(p2)
+    p2.set_clip_on(False)
+
+    return pp, p1, p2
+
+
+def VoronoiPlot(points, values, vmin=None, vmax=None, cmap=None):
+    from matplotlib.patches import Polygon
+    from matplotlib.collections import PatchCollection
+    from scipy.spatial import Voronoi, voronoi_plot_2d
+    from matplotlib import cm
+
+    if cmap is None:
+        cmap = cm.get_cmap('viridis')
+
+    vor = Voronoi(points)
+
+    # %%
+    patches = []
+    dist_list = []
+    for index, p in enumerate(points):
+        print(index)
+        reg = vor.regions[vor.point_region[index]]
+        if -1 in reg:
+            #plt.plot(p[0], p[1], 'ok', alpha=0.3, ms=1)
+            continue
+        distances = np.linalg.norm(np.array([vor.vertices[i] for i in reg])-p, axis=1)
+        if np.max(distances) > 2:
+            #plt.plot(p[0], p[1], 'ok', alpha=0.3, ms=1)
+            continue
+        region = np.array([vor.vertices[i] for i in reg])
+        polygon = Polygon(region, True)
+        patches.append(polygon)
+        dists = values[index]
+        dist_list.append(dists)
+        #plt.plot(p[0], p[1], 'ok', alpha=0.3, ms=1)
+
+    p = PatchCollection(patches, cmap=cmap)
+    p.set_clim([vmin, vmax])
+    p.set_array(np.array(dist_list))
+    p.set_linewidth(0)
+
+    plt.gca().add_collection(p)
+    plt.xticks([])
+    plt.yticks([])
+    return p
+
+def selectRectangle(axes=None):
+    if axes is None:
+        axes = plt.gca()
+
+    def onselect(eclick, erelease):
+        'eclick and erelease are matplotlib events at press and release'
+        print(' startposition : (%f, %f)' % (eclick.xdata, eclick.ydata))
+        print(' endposition   : (%f, %f)' % (erelease.xdata, erelease.ydata))
+        print(' used button   : ', eclick.button)
+
+    from matplotlib.widgets import RectangleSelector
+    rect_selector = RectangleSelector(axes, onselect)
+    return rect_selector
+
+
 def despine(ax=None, complete=False):
     if not ax:
         ax = plt.gca()
@@ -360,7 +443,8 @@ def moveArtist(index, x1, y1, x2, y2):
 def insertTextToFile(text, stack_pos):
     block_active = False
     block = ""
-    last_block = 0
+    last_block = -10
+    written = False
     with open(stack_pos.filename + ".tmp", 'w') as fp2:
         with open(stack_pos.filename, 'r') as fp1:
             for lineno, line in enumerate(fp1):
@@ -376,13 +460,17 @@ def insertTextToFile(text, stack_pos):
                 if block_active:
                     continue
                 #print(lineno, stack_pos.lineno, last_block)
-                if lineno == stack_pos.lineno - 1:
+                print(written, lineno == stack_pos.lineno - 1, last_block == lineno - 1)
+                if not written and (lineno == stack_pos.lineno - 1 or last_block == lineno - 1):
                     for i in range(len(line)):
                         if line[i] != " " and line[i] != "\t":
                             break
                     indent = line[:i]
                     for line_text in text.split("\n"):
                         fp2.write(indent + line_text + "\n")
+                    written = True
+                    last_block = -10
+                    block = ""
                 elif last_block == lineno - 1:
                     fp2.write(block)
                 fp2.write(line)
@@ -404,7 +492,7 @@ def key_press_callback(event):
             pos = ax.get_position()
             save_text += "plt.gcf().axes[%d].set_position([%f, %f, %f, %f])\n" % (index, pos.x0, pos.y0, pos.width, pos.height)
             if ax.get_zorder() != 0:
-                save_text += "plt.gcf().axes[%d].set_zorder(%d)" % (index, ax.get_zorder())
+                save_text += "plt.gcf().axes[%d].set_zorder(%d)\n" % (index, ax.get_zorder())
             for index2, artist in enumerate(ax.get_children()):
                 if artist.pickable():
                     try:
