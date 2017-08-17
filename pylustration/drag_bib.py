@@ -460,7 +460,6 @@ def insertTextToFile(text, stack_pos):
                 if block_active:
                     continue
                 #print(lineno, stack_pos.lineno, last_block)
-                print(written, lineno == stack_pos.lineno - 1, last_block == lineno - 1)
                 if not written and (lineno == stack_pos.lineno - 1 or last_block == lineno - 1):
                     for i in range(len(line)):
                         if line[i] != " " and line[i] != "\t":
