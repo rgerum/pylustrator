@@ -44,7 +44,7 @@ def add_image(filename):
     plt.xticks([])
     plt.yticks([])
 
-def changeFigureSize(w, h, cut_from_top=False):
+def changeFigureSize(w, h, cut_from_top=False, cut_from_left=False):
     oldw, oldh = plt.gcf().get_size_inches()
     fx = oldw / w
     fy = oldh / h
@@ -53,13 +53,19 @@ def changeFigureSize(w, h, cut_from_top=False):
         if cut_from_top:
             axe.set_position([box.x0 * fx, box.y0 * fy, (box.x1 - box.x0) * fx, (box.y1 - box.y0) * fy])
         else:
-            axe.set_position([box.x0 * fx, 1-(1-box.y0) * fy, (box.x1 - box.x0) * fx, (box.y1 - box.y0) * fy])
+            if cut_from_left:
+                axe.set_position([1 - (1- box.x0) * fx, 1 - (1 - box.y0) * fy, (box.x1 - box.x0) * fx, (box.y1 - box.y0) * fy])
+            else:
+                axe.set_position([box.x0 * fx, 1-(1-box.y0) * fy, (box.x1 - box.x0) * fx, (box.y1 - box.y0) * fy])
     for text in plt.gcf().texts:
         x0, y0 = text.get_position()
         if cut_from_top:
             text.set_position([x0 * fx, y0 * fy])
         else:
-            text.set_position([x0 * fx, 1-(1-y0) * fy])
+            if cut_from_left:
+                text.set_position([1 - (1 - x0) * fx, 1 - (1 - y0) * fy])
+            else:
+                text.set_position([x0 * fx, 1-(1-y0) * fy])
     plt.gcf().set_size_inches(w, h, forward=True)
 
 def mark_inset(parent_axes, inset_axes, loc1=1, loc2=2, **kwargs):
@@ -78,6 +84,7 @@ def mark_inset(parent_axes, inset_axes, loc1=1, loc2=2, **kwargs):
 
     pp = BboxPatch(rect, fill=False, **kwargs)
     parent_axes.add_patch(pp)
+    pp.set_clip_on(False)
 
     p1 = BboxConnector(inset_axes.bbox, rect, loc1=loc1a, loc2=loc1b, **kwargs)
     inset_axes.add_patch(p1)
@@ -87,6 +94,36 @@ def mark_inset(parent_axes, inset_axes, loc1=1, loc2=2, **kwargs):
     p2.set_clip_on(False)
 
     return pp, p1, p2
+
+def draw_from_point_to_bbox(parent_axes, insert_axes, point, loc=1, **kwargs):
+    from mpl_toolkits.axes_grid1.inset_locator import TransformedBbox, BboxConnector, Bbox
+    rect = TransformedBbox(Bbox([point, point]), parent_axes.transData)
+    #rect = TransformedBbox(Bbox([[1, 0], [1, 0]]), parent_axes.transData)
+    p1 = BboxConnector(rect, insert_axes.bbox, loc, **kwargs)
+    parent_axes.add_patch(p1)
+    p1.set_clip_on(False)
+    return p1
+
+def draw_from_point_to_point(parent_axes, insert_axes, point1, point2, **kwargs):
+    from mpl_toolkits.axes_grid1.inset_locator import TransformedBbox, BboxConnector, Bbox
+    rect = TransformedBbox(Bbox([point1, point1]), parent_axes.transData)
+    rect2 = TransformedBbox(Bbox([point2, point2]), insert_axes.transData)
+    #rect = TransformedBbox(Bbox([[1, 0], [1, 0]]), parent_axes.transData)
+    loc = 1
+    p1 = BboxConnector(rect, rect2, loc, **kwargs)
+    parent_axes.add_patch(p1)
+    p1.set_clip_on(False)
+    return p1
+
+def mark_inset_pos(parent_axes, inset_axes, loc1, loc2, point, **kwargs):
+    kwargs["lw"] = 0.8
+    ax_new = plt.axes(inset_axes.get_position())
+    ax_new.set_xlim(point[0], point[0])
+    ax_new.set_ylim(point[1], point[1])
+    mark_inset(parent_axes, ax_new, loc1, loc2, **kwargs)
+    plt.xticks([])
+    plt.yticks([])
+    ax_new.set_zorder(inset_axes.get_zorder() - 1)
 
 
 def VoronoiPlot(points, values, vmin=None, vmax=None, cmap=None):
@@ -103,15 +140,18 @@ def VoronoiPlot(points, values, vmin=None, vmax=None, cmap=None):
     # %%
     patches = []
     dist_list = []
+    excluded_indices = []
     for index, p in enumerate(points):
-        print(index)
+        #print(index)
         reg = vor.regions[vor.point_region[index]]
         if -1 in reg:
             #plt.plot(p[0], p[1], 'ok', alpha=0.3, ms=1)
+            excluded_indices.append(index)
             continue
         distances = np.linalg.norm(np.array([vor.vertices[i] for i in reg])-p, axis=1)
         if np.max(distances) > 2:
             #plt.plot(p[0], p[1], 'ok', alpha=0.3, ms=1)
+            excluded_indices.append(index)
             continue
         region = np.array([vor.vertices[i] for i in reg])
         polygon = Polygon(region, True)
@@ -123,12 +163,12 @@ def VoronoiPlot(points, values, vmin=None, vmax=None, cmap=None):
     p = PatchCollection(patches, cmap=cmap)
     p.set_clim([vmin, vmax])
     p.set_array(np.array(dist_list))
-    p.set_linewidth(0)
+    p.set_linewidth(10)
 
     plt.gca().add_collection(p)
     plt.xticks([])
     plt.yticks([])
-    return p
+    return p, excluded_indices
 
 def selectRectangle(axes=None):
     if axes is None:
@@ -217,8 +257,8 @@ def motion_notify_callback(event):
                     if abs(y-ty) < 10:
                         y = ty
         x, y = drag_text.get_transform().inverted().transform([x, y])
-        x -= pick_offset[0]
-        y -= pick_offset[1]
+        #x -= pick_offset[0]
+        #y -= pick_offset[1]
         drag_text.set_position((x, y))
         #drag_text.set_position([xfigure, yfigure])
         fig.canvas.flush_events()
