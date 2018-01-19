@@ -253,9 +253,10 @@ def motion_notify_callback(event):
     if displaying:
         return
     if drag_object is not None:
+        drag_object.movedEvent(event)
         displaying = True
-        x, y = event.x, event.y
-        drag_object.draggedTo(x, y)
+        #x, y = event.x, event.y
+        #drag_object.draggedTo(x, y)
         fig.canvas.flush_events()
         fig.canvas.draw()
         return
@@ -280,6 +281,7 @@ def motion_notify_callback(event):
         fig.canvas.flush_events()
         fig.canvas.draw()
         return
+    return
     if drag_axes is None:
         return
     displaying = True
@@ -479,7 +481,9 @@ def button_release_callback(event):
     if event.button != 1:
         return
     drag_text = None
-    drag_object = None
+    if drag_object is not None:
+        drag_object.releasedEvent(event)
+        drag_object = None
     # button up releases the dragged figure
     bary.set_data([[0, 0], [0, 0]])
     barx.set_data([[0, 0], [0, 0]])
@@ -618,23 +622,54 @@ def deselectArtist(artist):
         grabbers.remove(grabber)
         fig.patches.remove(grabber)
 
+from matplotlib.lines import Line2D
+
+class Snap(Line2D):
+    def __init__(self, x, y, draw_x, draw_y):
+        self.x, _ = plt.gcf().transFigure.transform((x, 1))
+        _, self.y = plt.gcf().transFigure.transform((1, y))
+        print(self.x, self.y, x, y)
+        self.draw_x = draw_x
+        self.draw_y = draw_y
+        Line2D.__init__(self, [], [], transform=plt.gcf().transFigure, clip_on=False, lw=2, zorder=100, linestyle="dashed", color="r", marker="o")
+        plt.gca().add_artist(self)
+        #barx, = plt.plot(0, 0, 'rs--', transform=fig.transFigure, clip_on=False, lw=4, zorder=100)
+        #bary, = plt.plot(0, 0, 'rs--', transform=fig.transFigure, clip_on=False, lw=4, zorder=100)
+
+    def checkSnap(self, x, y):
+        self.set_data((), ())
+        if self.x is not None and abs(x-self.x) < 10:
+            x = self.x
+            self.set_data((self.draw_x, self.draw_y))
+        if self.y is not None and abs(y-self.y) < 10:
+            y = self.y
+            self.set_data((self.draw_x, self.draw_y))
+        return x, y
+
+    def remove(self):
+        self.axes.artists.remove(self)
+
 from matplotlib.patches import Rectangle
 
 class Grabber(Rectangle):
+    w = 10
+    fig = None
+    target = None
+    dir = None
+    snaps = None
+
     def __init__(self, x, y, artist, dir):
-        w = 10
-        self.w = w
         self.axes_pos = (x, y)
-        fig = artist.figure
-        Rectangle.__init__(self, (0, 0), w, w, picker=True, figure=fig, edgecolor="k")
-        fig.patches.append(self)
+        self.fig = artist.figure
+        Rectangle.__init__(self, (0, 0), self.w, self.w, picker=True, figure=fig, edgecolor="k")
+        self.fig.patches.append(self)
         self.target = artist
         self.dir = dir
         self.updatePos()
 
     def getPos(self):
         x, y = self.get_xy()
-        return self.target.figure.transFigure.inverted().transform((x+self.w/2, y+self.w/2))
+        return self.fig.transFigure.inverted().transform((x+self.w/2, y+self.w/2))
 
     def updatePos(self):
         x, y = self.target.transAxes.transform(self.axes_pos)
@@ -645,8 +680,43 @@ class Grabber(Rectangle):
         for grabber in grabbers:
             grabber.updatePos()
 
-    def draggedTo(self, x, y):
-        self.set_xy((x, y))
+    def clickedEvent(self, event):
+        self.snaps = []
+        pos0 = self.target.get_position()
+        for axes in fig.axes:
+            if axes != self.target:
+                pos1 = axes.get_position()
+                self.snaps.append(Snap(pos1.x0, None, (pos1.x0, pos1.x0), (0, 1)))
+                self.snaps.append(Snap(pos1.x1, None, (pos1.x1, pos1.x1), (0, 1)))
+                self.snaps.append(Snap(None, pos1.y0, (0, 1), (pos1.y0, pos1.y0)))
+                self.snaps.append(Snap(None, pos1.y1, (0, 1), (pos1.y1, pos1.y1)))
+                if self.dir & DIR_X1:
+                    self.snaps.append(Snap(pos0.x0+pos1.width, None, (pos0.x0, pos0.x0+pos1.width, np.nan, pos1.x0, pos1.x1), (pos0.y0+pos0.height/2, pos0.y0+pos0.height/2, np.nan, pos1.y0+pos1.height/2, pos1.y0+pos1.height/2)))
+                if self.dir & DIR_X0:
+                    self.snaps.append(Snap(pos0.x1-pos1.width, None, (pos0.x1, pos0.x1-pos1.width, np.nan, pos1.x0, pos1.x1), (pos0.y0+pos0.height/2, pos0.y0+pos0.height/2, np.nan, pos1.y0+pos1.height/2, pos1.y0+pos1.height/2)))
+                if self.dir & DIR_Y1:
+                    self.snaps.append(Snap(None, pos0.y0+pos1.height, (pos0.x0+pos0.width/2, pos0.x0+pos0.width/2, np.nan, pos1.x0+pos1.width/2, pos1.x0+pos1.width/2), (pos0.y0, pos0.y0+pos1.height, np.nan, pos1.y0, pos1.y1)))
+                if self.dir & DIR_Y0:
+                    self.snaps.append(Snap(None, pos0.y1-pos1.height, (pos0.x0+pos0.width/2, pos0.x0+pos0.width/2, np.nan, pos1.x0+pos1.width/2, pos1.x0+pos1.width/2), (pos0.y1, pos0.y1-pos1.height, np.nan, pos1.y0, pos1.y1)))
+                for axes2 in fig.axes:
+                    if axes2 != axes and axes2 != self.target:
+                        pos2 = axes2.get_position()
+                        if pos1.x1 < pos2.x0:
+                            if self.dir & DIR_X0:
+                                self.snaps.append(Snap(pos2.x1+(pos2.x0-pos1.x1), None, (pos2.x1, pos2.x1+(pos2.x0-pos1.x1), np.nan, pos1.x1, pos2.x0), [pos0.y0+pos0.height/2]*5))
+                            if self.dir & DIR_X1:
+                                self.snaps.append(Snap(pos1.x0-(pos2.x0-pos1.x1), None, (pos1.x0, pos1.x0+(pos2.x0-pos1.x1), np.nan, pos1.x1, pos2.x0), [pos0.y0+pos0.height/2]*5))
+        pass
+
+    def releasedEvent(self, event):
+        for snap in self.snaps:
+            snap.remove()
+
+    def movedEvent(self, event):
+        x, y = event.x, event.y
+        for snap in self.snaps:
+            x, y = snap.checkSnap(x, y)
+        self.set_xy((x-self.w/2, y-self.w/2))
         x, y = self.getPos()
         axes = self.target
         pos = axes.get_position()
@@ -673,6 +743,7 @@ DIR_Y1 = 8
 
 active_object = None
 grabbers = []
+snaps = []
 def selectArtist(artist):
     global active_object, grabbers
     if active_object is not None:
@@ -720,6 +791,7 @@ def on_pick_event(event):
             selectArtist(event.artist)
         except AttributeError:
             drag_object = artist
+            artist.clickedEvent(event)
 
     #if isinstance(event.artist, )
 
