@@ -1,4 +1,6 @@
 from qtpy import QtCore, QtGui, QtWidgets
+import numpy as np
+import matplotlib as mpl
 """ Color Chooser """
 
 def AddQColorChoose(layout, text, value=None, strech=False):
