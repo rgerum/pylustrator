@@ -207,78 +207,266 @@ def despine(ax=None, complete=False):
         ax.yaxis.set_ticks_position('left')
         ax.xaxis.set_ticks_position('bottom')
 
-last_picked = False
-def button_press_callback(event):
-    global drag_axes, drag_dir, last_mouse_pos, last_axes, drag_offset, drag_text, last_picked, active_object
-    # only drag with left mouse button
-    if event.button != 1:
-        return
-    print(last_picked, active_object)
-    if last_picked is False and active_object:
-        deselectArtist(active_object)
-        fig.canvas.flush_events()
-        fig.canvas.draw()
+""" drag stuff """
+
+
+class FigureDragger:
     last_picked = False
-
-
-drag_object = None
-def motion_notify_callback(event):
-    global drag_axes, drag_dir, last_mouse_pos, drag_offset, displaying, text, pick_offset
-    # if the mouse moves and no axis is dragged do nothing
-    if displaying:
-        return
-    # move the dragged object
-    if drag_object is not None:
-        # callback
-        drag_object.movedEvent(event)
-        # draw the figure
-        displaying = True
-        fig.canvas.flush_events()
-        fig.canvas.draw()
-        return
-    if drag_text is not None:
-        displaying = True
-        x, y = event.x, event.y
-        if not nosnap:
-            for ax in fig.axes + [fig]:
-                for txt in ax.texts:
-                    if txt == drag_text:
-                        continue
-                    tx, ty = txt.get_transform().transform(txt.get_position())
-                    if abs(x - tx) < 10:
-                        x = tx
-                    if abs(y - ty) < 10:
-                        y = ty
-        x, y = drag_text.get_transform().inverted().transform([x, y])
-        # x -= pick_offset[0]
-        # y -= pick_offset[1]
-        drag_text.set_position((x, y))
-        # drag_text.set_position([xfigure, yfigure])
-        fig.canvas.flush_events()
-        fig.canvas.draw()
-        return
-    return
-
-
-def draw_event(event):
-    global displaying
+    active_object = None
+    drag_object = None
+    fig = None
+    first_resize = True
     displaying = False
 
+    def __init__(self, fig):
+        self.fig = fig
+        self.grabbers = []
 
-def button_release_callback(event):
-    global drag_object
-    # only react to left mouse button
-    if event.button != 1:
-        return
-    # release dragged object
-    if drag_object is not None:
-        # callback
-        drag_object.releasedEvent(event)
-        # set to none
-        drag_object = None
-        # draw figure
-        fig.canvas.flush_events()
-        fig.canvas.draw()
+        # store the position where StartPylustration was called
+        self.stack_position = traceback.extract_stack()[-3]
+
+        self.fig_inch_size = fig.get_size_inches()
+
+        """
+        additional_xsnaps = []
+        if xsnaps is not None:
+
+            for x in xsnaps:
+                if unit == "cm":
+                    x = x / 2.54 / fig.get_size_inches()[0]
+                if x < 0:
+                    print("minus", x)
+                    x = 1 + x
+                plt.plot([x, x], [0, 1], '-', color=[0.8, 0.8, 0.8], transform=fig.transFigure, clip_on=False, lw=1,
+                         zorder=-10)
+                additional_xsnaps.append(x)
+                print(additional_xsnaps)
+
+        additional_ysnaps = []
+        if ysnaps is not None:
+            for y in ysnaps:
+                if unit == "cm":
+                    y = y / 2.54 / fig.get_size_inches()[1]
+                if y < 0:
+                    y = 1 + y
+                plt.plot([0, 1], [y, y], '-', color=[0.8, 0.8, 0.8], transform=fig.transFigure, clip_on=False, lw=1,
+                         zorder=-10)
+                additional_ysnaps.append(y)
+        barx, = plt.plot(0, 0, 'rs--', transform=fig.transFigure, clip_on=False, lw=4, zorder=100)
+        bary, = plt.plot(0, 0, 'rs--', transform=fig.transFigure, clip_on=False, lw=4, zorder=100)
+        """
+
+        # add a text showing the figure size
+        self.text = plt.text(0, 0, "", transform=self.fig.transFigure, clip_on=False, zorder=100)
+
+        # connect event callbacks
+        fig.canvas.mpl_connect("pick_event", self.on_pick_event)
+        fig.canvas.mpl_connect('button_press_event', self.mouse_down_event)
+        fig.canvas.mpl_connect('motion_notify_event', self.mouse_move_event)
+        fig.canvas.mpl_connect('button_release_event', self.mouse_up_event)
+        fig.canvas.mpl_connect('key_press_event', self.key_press_event)
+        fig.canvas.mpl_connect('draw_event', self.draw_event)
+        fig.canvas.mpl_connect('resize_event', self.resize_event)
+        fig.canvas.mpl_connect('scroll_event', self.scroll_event)
+
+        # make all the subplots pickable
+        for axes in self.fig.axes:
+            axes.set_picker(True)
+
+    def draw(self):
+        # only draw if the canvas is not already drawing
+        if not self.displaying:
+            # store the drawing state
+            self.displaying = True
+            # remove events
+            self.fig.canvas.flush_events()
+            # draw the canvas
+            self.fig.canvas.draw()
+
+    def draw_event(self, event):
+        # set the drawing state back to false
+        self.displaying = False
+
+    def mouse_down_event(self, event):
+        # only drag with left mouse button
+        if event.button != 1:
+            return
+        if self.last_picked is False and self.active_object:
+            self.deselectArtist()
+            # draw the figure
+            self.draw()
+        self.last_picked = False
+
+    def mouse_move_event(self, event):
+        # if the mouse moves and no axis is dragged do nothing
+        if self.displaying:
+            return
+        # move the dragged object
+        if self.drag_object is not None:
+            # callback
+            self.drag_object.movedEvent(event)
+            # draw the figure
+            self.draw()
+
+    def mouse_up_event(self, event):
+        # only react to left mouse button
+        if event.button != 1:
+            return
+        # release dragged object
+        if self.drag_object is not None:
+            # callback
+            self.drag_object.releasedEvent(event)
+            # set to none
+            self.drag_object = None
+            # draw figure
+            self.draw()
+
+    def key_press_event(self, event):
+        global last_axes, nosnap
+        global stack_position
+        # space: print code to restore current configuration
+        if event.key == ' ':
+            save_text = "#% start: automatic generated code from pylustration\n"
+            save_text += "plt.gcf().set_size_inches(%f/2.54, %f/2.54, forward=True)\n" % (
+                (self.fig.get_size_inches()[0] - self.inch_offset[0]) * 2.54, (self.fig.get_size_inches()[1] - self.inch_offset[1]) * 2.54)
+            for index, ax in enumerate(self.fig.axes):
+                pos = ax.get_position()
+                save_text += "plt.gcf().axes[%d].set_position([%f, %f, %f, %f])\n" % (
+                    index, pos.x0, pos.y0, pos.width, pos.height)
+                if ax.get_zorder() != 0:
+                    save_text += "plt.gcf().axes[%d].set_zorder(%d)\n" % (index, ax.get_zorder())
+                for index2, artist in enumerate(ax.get_children()):
+                    if artist.pickable():
+                        try:
+                            pos0 = artist.original_pos
+                        except:
+                            continue
+                        pos = artist.get_position()
+                        save_text += "pylustration.moveArtist(%d, %f, %f, %f, %f)\n" % (
+                            index, pos0[0], pos0[1], pos[0], pos[1])
+            for index, txt in enumerate(self.fig.texts):
+                if txt.pickable():
+                    pos = txt.get_position()
+                    save_text += "plt.gcf().texts[%d].set_position([%f, %f])\n" % (index, pos[0], pos[1])
+            save_text += "#% end: automatic generated code from pylustration"
+            print(save_text)
+            insertTextToFile(save_text, self.stack_position)
+        if event.key == 'control':
+            nosnap = True
+        # move last axis in z order
+        if event.key == 'pagedown' and last_axes is not None:
+            last_axes.set_zorder(last_axes.get_zorder() - 1)
+            self.draw()
+        if event.key == 'pageup' and last_axes is not None:
+            last_axes.set_zorder(last_axes.get_zorder() + 1)
+            self.draw()
+        if event.key == 'left':
+            pos = last_axes.get_position()
+            last_axes.set_position([pos.x0 - 0.01, pos.y0, pos.width, pos.height])
+            self.draw()
+        if event.key == 'right':
+            pos = last_axes.get_position()
+            last_axes.set_position([pos.x0 + 0.01, pos.y0, pos.width, pos.height])
+            self.draw()
+        if event.key == 'down':
+            pos = last_axes.get_position()
+            last_axes.set_position([pos.x0, pos.y0 - 0.01, pos.width, pos.height])
+            self.draw()
+        if event.key == 'up':
+            pos = last_axes.get_position()
+            last_axes.set_position([pos.x0, pos.y0 + 0.01, pos.width, pos.height])
+            self.draw()
+
+    def addGrabber(self, x, y, artist, dir, GrabberClass):
+        # add a grabber object at the given coordinates
+        self.grabbers.append(GrabberClass(self, x, y, artist, dir))
+
+    def deselectArtist(self):
+        # remove all grabbers when an artist is deselected
+        for grabber in self.grabbers[::-1]:
+            # remove the grabber from the list
+            self.grabbers.remove(grabber)
+            # and from the figure (if it is drawn on the figure)
+            try:
+                self.fig.patches.remove(grabber)
+            except ValueError:
+                pass
+
+    def selectArtist(self, artist):
+        if self.active_object is not None:
+            self.deselectArtist()
+        self.active_object = artist
+
+        self.fig = plt.gcf()
+        self.addGrabber(0, 0, artist, DIR_X0 | DIR_Y0, GrabberRound)
+        self.addGrabber(0.5, 0, artist, DIR_Y0, GrabberRectangle)
+        self.addGrabber(1, 1, artist, DIR_X1 | DIR_Y1, GrabberRound)
+        self.addGrabber(1, 0.5, artist, DIR_X1, GrabberRectangle)
+        self.addGrabber(0, 1, artist, DIR_X0 | DIR_Y1, GrabberRound)
+        self.addGrabber(0.5, 1, artist, DIR_Y1, GrabberRectangle)
+        self.addGrabber(1, 0, artist, DIR_X1 | DIR_Y0, GrabberRound)
+        self.addGrabber(0, 0.5, artist, DIR_X0, GrabberRectangle)
+        self.addGrabber(0, 0, artist, 0, AxesGrabber)
+        self.draw()
+
+    def on_pick_event(self, event):
+        " Store which text object was picked and were the pick event occurs."
+
+        print("picker", event)
+
+        self.last_picked = True
+        artist = event.artist
+
+        if isinstance(event.artist, Text):
+            if self.active_object is not None:
+                self.deselectArtist()
+            self.active_object = event.artist
+            self.addGrabber(0, 0, event.artist, 0, TextGrabber)
+            self.drag_object = self.grabbers[-1]
+            self.grabbers[-1].clickedEvent(event)
+            return
+        # subplot
+        else:
+            try:
+                artist.transData
+                self.selectArtist(event.artist)
+                self.drag_object = self.grabbers[-1]
+                self.grabbers[-1].clickedEvent(event)
+            except AttributeError:
+                self.drag_object = artist
+                artist.clickedEvent(event)
+
+        return True
+
+    def resize_event(self, event):
+        # on the first resize (when the figure window plops up) store the additional size (edit toolbar and stuff)
+        if self.first_resize:
+            self.first_resize = False
+            # store the offset of the figuresize
+            self.inch_offset = np.array(self.fig.get_size_inches()) - np.array(self.fig_inch_size)
+        # draw the text with the figure size
+        offx, offy = self.fig.transFigure.inverted().transform([5, 5])
+        self.text.set_position([offx, offy])
+        self.text.set_text("%.2f x %.2f cm" % (
+            (self.fig.get_size_inches()[0] - self.inch_offset[0]) * 2.54, (self.fig.get_size_inches()[1] - self.inch_offset[1]) * 2.54))
+
+    def scroll_event(self, event):
+        inches = np.array(self.fig.get_size_inches()) - self.inch_offset
+        old_dpi = self.fig.get_dpi()
+        new_dpi = self.fig.get_dpi() + 10 * event.step
+        self.inch_offset /= old_dpi / new_dpi
+        self.fig.set_dpi(self.fig.get_dpi() + 10 * event.step)
+        self.fig.canvas.draw()
+        self.fig.set_size_inches(inches + self.inch_offset, forward=True)
+        print(self.fig_inch_size, self.fig.get_size_inches())
+        self.resize_event(None)
+        print(self.fig_inch_size, self.fig.get_size_inches())
+        print("---")
+        self.draw()
+        print(self.fig_inch_size, self.fig.get_size_inches())
+        self.resize_event(None)
+        print(self.fig_inch_size, self.fig.get_size_inches())
+        print("###")
 
 
 def moveArtist(index, x1, y1, x2, y2):
@@ -343,78 +531,7 @@ def insertTextToFile(text, stack_pos):
     print("Save to", stack_pos.filename, "line", stack_pos.lineno)
 
 
-def key_press_callback(event):
-    global last_axes, nosnap
-    global stack_position
-    # space: print code to restore current configuration
-    if event.key == ' ':
-        save_text = "#% start: automatic generated code from pylustration\n"
-        save_text += "plt.gcf().set_size_inches(%f/2.54, %f/2.54, forward=True)\n" % (
-        (fig.get_size_inches()[0] - inch_offset[0]) * 2.54, (fig.get_size_inches()[1] - inch_offset[1]) * 2.54)
-        for index, ax in enumerate(fig.axes):
-            pos = ax.get_position()
-            save_text += "plt.gcf().axes[%d].set_position([%f, %f, %f, %f])\n" % (
-            index, pos.x0, pos.y0, pos.width, pos.height)
-            if ax.get_zorder() != 0:
-                save_text += "plt.gcf().axes[%d].set_zorder(%d)\n" % (index, ax.get_zorder())
-            for index2, artist in enumerate(ax.get_children()):
-                if artist.pickable():
-                    try:
-                        pos0 = artist.original_pos
-                    except:
-                        continue
-                    pos = artist.get_position()
-                    save_text += "pylustration.moveArtist(%d, %f, %f, %f, %f)\n" % (
-                    index, pos0[0], pos0[1], pos[0], pos[1])
-        for index, txt in enumerate(fig.texts):
-            if txt.pickable():
-                pos = txt.get_position()
-                save_text += "plt.gcf().texts[%d].set_position([%f, %f])\n" % (index, pos[0], pos[1])
-        save_text += "#% end: automatic generated code from pylustration"
-        print(save_text)
-        insertTextToFile(save_text, stack_position)
-    if event.key == 'control':
-        nosnap = True
-    # move last axis in z order
-    if event.key == 'pagedown' and last_axes is not None:
-        last_axes.set_zorder(last_axes.get_zorder() - 1)
-        fig.canvas.draw()
-    if event.key == 'pageup' and last_axes is not None:
-        last_axes.set_zorder(last_axes.get_zorder() + 1)
-        fig.canvas.draw()
-    if event.key == 'left':
-        pos = last_axes.get_position()
-        last_axes.set_position([pos.x0 - 0.01, pos.y0, pos.width, pos.height])
-        fig.canvas.draw()
-    if event.key == 'right':
-        pos = last_axes.get_position()
-        last_axes.set_position([pos.x0 + 0.01, pos.y0, pos.width, pos.height])
-        fig.canvas.draw()
-    if event.key == 'down':
-        pos = last_axes.get_position()
-        last_axes.set_position([pos.x0, pos.y0 - 0.01, pos.width, pos.height])
-        fig.canvas.draw()
-    if event.key == 'up':
-        pos = last_axes.get_position()
-        last_axes.set_position([pos.x0, pos.y0 + 0.01, pos.width, pos.height])
-        fig.canvas.draw()
 
-
-def key_release_callback(event):
-    global nosnap
-    if event.key == 'control':
-        nosnap = False
-
-def deselectArtist(artist):
-    global grabbers
-    print("deselet",artist)
-    fig = plt.gcf()
-    for grabber in grabbers[::-1]:
-        grabbers.remove(grabber)
-        try:
-            fig.patches.remove(grabber)
-        except ValueError:
-            pass
 
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle, Ellipse
@@ -460,7 +577,8 @@ class Grabber():
     dir = None
     snaps = None
 
-    def __init__(self, x, y, artist, dir):
+    def __init__(self, parent, x, y, artist, dir):
+        self.parent = parent
         self.axes_pos = (x, y)
         self.fig = artist.figure
         self.target = artist
@@ -488,13 +606,13 @@ class Grabber():
 
     def updateGrabbers(self):
         global grabbers
-        for grabber in grabbers:
+        for grabber in self.parent.grabbers:
             grabber.updatePos()
 
     def clickedEvent(self, event):
         self.snaps = []
         pos0 = self.target.get_position()
-        for axes in fig.axes:
+        for axes in self.parent.fig.axes:
             if axes != self.target:
                 pos1 = axes.get_position()
                 self.snaps.append(Snap(pos1.x0, None, (pos1.x0, pos1.x0), (0, 1)))
@@ -509,7 +627,7 @@ class Grabber():
                     self.snaps.append(Snap(None, pos0.y0+pos1.height, (pos0.x0+pos0.width/2, pos0.x0+pos0.width/2, np.nan, pos1.x0+pos1.width/2, pos1.x0+pos1.width/2), (pos0.y0, pos0.y0+pos1.height, np.nan, pos1.y0, pos1.y1)))
                 if self.dir & DIR_Y0:
                     self.snaps.append(Snap(None, pos0.y1-pos1.height, (pos0.x0+pos0.width/2, pos0.x0+pos0.width/2, np.nan, pos1.x0+pos1.width/2, pos1.x0+pos1.width/2), (pos0.y1, pos0.y1-pos1.height, np.nan, pos1.y0, pos1.y1)))
-                for axes2 in fig.axes:
+                for axes2 in self.parent.fig.axes:
                     if axes2 != axes and axes2 != self.target:
                         pos2 = axes2.get_position()
                         if pos1.x1 < pos2.x0:
@@ -558,18 +676,18 @@ class Grabber():
 class GrabberRound(Ellipse, Grabber):
     w = 10
 
-    def __init__(self, x, y, artist, dir):
-        Grabber.__init__(self, x, y, artist, dir)
-        Ellipse.__init__(self, (0, 0), self.w, self.w, picker=True, figure=fig, edgecolor="k")
+    def __init__(self, parent, x, y, artist, dir):
+        Grabber.__init__(self, parent, x, y, artist, dir)
+        Ellipse.__init__(self, (0, 0), self.w, self.w, picker=True, figure=parent.fig, edgecolor="k")
         self.fig.patches.append(self)
         self.updatePos()
 
 class GrabberRectangle(Rectangle, Grabber):
     w = 10
 
-    def __init__(self, x, y, artist, dir):
-        Rectangle.__init__(self, (0, 0), self.w, self.w, picker=True, figure=fig, edgecolor="k")
-        Grabber.__init__(self, x, y, artist, dir)
+    def __init__(self, parent, x, y, artist, dir):
+        Rectangle.__init__(self, (0, 0), self.w, self.w, picker=True, figure=parent.fig, edgecolor="k")
+        Grabber.__init__(self, parent, x, y, artist, dir)
         self.fig.patches.append(self)
         self.updatePos()
 
@@ -612,7 +730,7 @@ class AxesGrabber(Grabber):
         self.updateGrabbers()
 
 class TextGrabber():
-    def __init__(self, x, y, artist, dir):
+    def __init__(self, parent, x, y, artist, dir):
         self.target = artist
         self.snaps = []
 
@@ -642,163 +760,18 @@ class TextGrabber():
         pos = self.target.get_position()
         self.target.set_position(self.target.get_transform().inverted().transform((x, y)))
 
-def addGrabber(x, y, artist, dir, GrabberClass):
-    global grabbers
-    grabbers.append(GrabberClass(x, y, artist, dir))
 
 DIR_X0 = 1
 DIR_Y0 = 2
 DIR_X1 = 4
 DIR_Y1 = 8
 
-active_object = None
-grabbers = []
-snaps = []
-def selectArtist(artist):
-    global active_object, grabbers
-    if active_object is not None:
-        deselectArtist(active_object)
-    active_object = artist
-
-    fig = plt.gcf()
-    addGrabber(0, 0, artist, DIR_X0 | DIR_Y0, GrabberRound)
-    addGrabber(0.5, 0, artist, DIR_Y0, GrabberRectangle)
-    addGrabber(1, 1, artist, DIR_X1 | DIR_Y1, GrabberRound)
-    addGrabber(1, 0.5, artist, DIR_X1, GrabberRectangle)
-    addGrabber(0, 1, artist, DIR_X0 | DIR_Y1, GrabberRound)
-    addGrabber(0.5, 1, artist, DIR_Y1, GrabberRectangle)
-    addGrabber(1, 0, artist, DIR_X1 | DIR_Y0, GrabberRound)
-    addGrabber(0, 0.5, artist, DIR_X0, GrabberRectangle)
-    addGrabber(0, 0, artist, 0, AxesGrabber)
-    fig.canvas.draw()
-
-
-def on_pick_event(event):
-    global drag_text, pick_offset, pick_pos, drag_object
-    global active_object, last_picked
-    " Store which text object was picked and were the pick event occurs."
-
-    last_picked = True
-
-    if isinstance(event.artist, Text):
-        if active_object is not None:
-            deselectArtist(active_object)
-        active_object = event.artist
-        addGrabber(0, 0, event.artist, 0, TextGrabber)
-        drag_object = grabbers[-1]
-        grabbers[-1].clickedEvent(event)
-        return
-    # subplot
-    else:
-        artist = event.artist
-        try:
-            artist.transData
-            selectArtist(event.artist)
-            drag_object = grabbers[-1]
-            grabbers[-1].clickedEvent(event)
-        except AttributeError:
-            drag_object = artist
-            artist.clickedEvent(event)
-
-    return True
-
-
-def resize_event(event):
-    global first_resize, fig_inch_size, inch_offset
-    if first_resize:
-        first_resize = False
-        print("###", fig_inch_size, fig.get_size_inches())
-        inch_offset = np.array(fig.get_size_inches()) - np.array(fig_inch_size)
-    offx, offy = fig.transFigure.inverted().transform([5, 5])
-    text.set_position([offx, offy])
-    text.set_text("%.2f x %.2f cm" % (
-    (fig.get_size_inches()[0] - inch_offset[0]) * 2.54, (fig.get_size_inches()[1] - inch_offset[1]) * 2.54))
-    print("Resize", fig.get_size_inches()[0] * 2.54, fig.get_size_inches()[1] * 2.54)
-
-
-def scroll_event(event):
-    global inch_offset
-    inches = np.array(fig.get_size_inches()) - inch_offset
-    old_dpi = fig.get_dpi()
-    new_dpi = fig.get_dpi() + 10 * event.step
-    inch_offset /= old_dpi / new_dpi
-    fig.set_dpi(fig.get_dpi() + 10 * event.step)
-    fig.canvas.draw()
-    fig.set_size_inches(inches + inch_offset, forward=True)
-    print(fig_inch_size, fig.get_size_inches())
-    resize_event(None)
-    print(fig_inch_size, fig.get_size_inches())
-    print("---")
-    fig.canvas.draw()
-    print(fig_inch_size, fig.get_size_inches())
-    resize_event(None)
-    print(fig_inch_size, fig.get_size_inches())
-    print("###")
-
 
 def StartPylustration(xsnaps=None, ysnaps=None, unit="cm"):
-    global drag_axes, drag_text, last_axes, displaying
-    global barx, bary, text, fig, fig_inch_size, first_resize
-    global additional_xsnaps, additional_ysnaps
-    global nosnap
-    global pick_offset, pick_pos
-    global stack_position
-    nosnap = False
+    global drags
 
-    # store the position where StartPylustration was called
-    stack_position = traceback.extract_stack()[-2]
-
-    # init some variables
-    drag_axes = None
-    drag_text = None
-    last_axes = plt.gca()
-    displaying = False
-    pick_offset = [0, 0]
-    pick_pos = [0, 0]
-
-    fig = plt.gcf()
-    fig_inch_size = fig.get_size_inches()
-    print(fig_inch_size)
-    first_resize = True
-
-    additional_xsnaps = []
-    if xsnaps is not None:
-
-        for x in xsnaps:
-            if unit == "cm":
-                x = x / 2.54 / fig.get_size_inches()[0]
-            if x < 0:
-                print("minus", x)
-                x = 1 + x
-            plt.plot([x, x], [0, 1], '-', color=[0.8, 0.8, 0.8], transform=fig.transFigure, clip_on=False, lw=1,
-                     zorder=-10)
-            additional_xsnaps.append(x)
-            print(additional_xsnaps)
-
-    additional_ysnaps = []
-    if ysnaps is not None:
-        for y in ysnaps:
-            if unit == "cm":
-                y = y / 2.54 / fig.get_size_inches()[1]
-            if y < 0:
-                y = 1 + y
-            plt.plot([0, 1], [y, y], '-', color=[0.8, 0.8, 0.8], transform=fig.transFigure, clip_on=False, lw=1,
-                     zorder=-10)
-            additional_ysnaps.append(y)
-
-    # get current figure and add callbacks
-    barx, = plt.plot(0, 0, 'rs--', transform=fig.transFigure, clip_on=False, lw=4, zorder=100)
-    bary, = plt.plot(0, 0, 'rs--', transform=fig.transFigure, clip_on=False, lw=4, zorder=100)
-    text = plt.text(0, 0, "", transform=fig.transFigure, clip_on=False, zorder=100)
-    fig.canvas.mpl_connect("pick_event", on_pick_event)
-    fig.canvas.mpl_connect('button_press_event', button_press_callback)
-    fig.canvas.mpl_connect('motion_notify_event', motion_notify_callback)
-    fig.canvas.mpl_connect('key_press_event', key_press_callback)
-    fig.canvas.mpl_connect('key_release_event', key_release_callback)
-    fig.canvas.mpl_connect('button_release_event', button_release_callback)
-    fig.canvas.mpl_connect('draw_event', draw_event)
-    fig.canvas.mpl_connect('resize_event', resize_event)
-    fig.canvas.mpl_connect('scroll_event', scroll_event)
-
-    for axes in fig.axes:
-        axes.set_picker(True)
+    drags = []
+    for i in plt.get_fignums():
+        fig = plt.figure(i)
+        drag = FigureDragger(fig)
+        drags.append(drag)
