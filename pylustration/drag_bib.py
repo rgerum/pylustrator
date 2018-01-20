@@ -207,43 +207,18 @@ def despine(ax=None, complete=False):
         ax.yaxis.set_ticks_position('left')
         ax.xaxis.set_ticks_position('bottom')
 
-
+last_picked = False
 def button_press_callback(event):
-    global drag_axes, drag_dir, last_mouse_pos, last_axes, drag_offset, drag_text
+    global drag_axes, drag_dir, last_mouse_pos, last_axes, drag_offset, drag_text, last_picked, active_object
     # only drag with left mouse button
     if event.button != 1:
         return
-    # if the user doesn't have clicked on an axis do nothing
-    if event.inaxes is None or drag_text:
-        return
-    # get the axis teh user clicked in
-    ax = event.inaxes
-    # transform the event coordinates to that axis
-    xaxes, yaxes = ax.transAxes.inverted().transform([event.x, event.y])
-    # determine which borders are dragged, dragged borders are stored as set bits in drag_dir
-    drag_dir = 0
-    xfigure, yfigure = fig.transFigure.inverted().transform([event.x, event.y])
-    pos1 = event.inaxes.get_position()
-    drag_offset = [xfigure - pos1.x0, yfigure - pos1.y0]
-    # smaller then 10% in x or larger then 90% drag left or right border
-    if xaxes < 0.1:
-        drag_dir |= 1
-    if xaxes > 0.9:
-        drag_dir |= 2
-        drag_offset[0] = xfigure - pos1.x0 - pos1.width
-    # smaller then 10% in y or larger then 90% drag bottom or top border
-    if yaxes < 0.1:
-        drag_dir |= 4
-    if yaxes > 0.9:
-        drag_dir |= 8
-        drag_offset[1] = yfigure - pos1.y0 - pos1.height
-    # no border selected? drag the whole axis
-    if drag_dir == 0:
-        drag_dir = 16
-    # remember the starting position and the axis
-    last_mouse_pos = [event.x, event.y]
-    drag_axes = event.inaxes
-    last_axes = drag_axes
+    print(last_picked, active_object)
+    if last_picked is False and active_object:
+        deselectArtist(active_object)
+        fig.canvas.flush_events()
+        fig.canvas.draw()
+    last_picked = False
 
 
 drag_object = None
@@ -252,11 +227,12 @@ def motion_notify_callback(event):
     # if the mouse moves and no axis is dragged do nothing
     if displaying:
         return
+    # move the dragged object
     if drag_object is not None:
+        # callback
         drag_object.movedEvent(event)
+        # draw the figure
         displaying = True
-        #x, y = event.x, event.y
-        #drag_object.draggedTo(x, y)
         fig.canvas.flush_events()
         fig.canvas.draw()
         return
@@ -282,192 +258,6 @@ def motion_notify_callback(event):
         fig.canvas.draw()
         return
     return
-    if drag_axes is None:
-        return
-    displaying = True
-    # transform event in figure coordinates and calculate offset from last mouse pos1ition
-    xfigure, yfigure = fig.transFigure.inverted().transform([event.x, event.y])
-    xfigure -= drag_offset[0]
-    yfigure -= drag_offset[1]
-    # xoff, yoff = fig.transFigure.inverted().transform([event.x-last_mouse_pos1[0], event.y-last_mouse_pos1[1]])
-    last_mouse_pos1 = [event.x, event.y]
-    # get pos1sible x and y snapping positions
-    pos = drag_axes.get_position()
-    snap_positions_y = additional_ysnaps + [y - pos.height for y in additional_ysnaps]
-    snap_positions_y_draw = [[[0, 1], [y, y]] for y in additional_ysnaps] * 2
-    snap_positions_x = additional_xsnaps + [x - pos.width for x in additional_xsnaps]
-    snap_positions_x_draw = [[[x, x], [0, 1]] for x in additional_xsnaps] * 2
-    for index, ax in enumerate(fig.axes):
-        if ax != drag_axes:
-            pos1 = ax.get_position()
-            if drag_dir & 4:
-                snap_positions_y.append(pos.y0 + pos.height - pos1.height)
-                snap_positions_y_draw.append([[pos1.x0 / 2 + pos1.x1 / 2, pos1.x0 / 2 + pos1.x1 / 2, np.nan,
-                                               pos.x0 / 2 + pos.x1 / 2, pos.x0 / 2 + pos.x1 / 2],
-                                              [pos1.y0, pos1.y1, np.nan, pos.y0, pos.y1]])
-            if drag_dir & 8:
-                snap_positions_y.extend([pos.y0 + pos1.height])
-                snap_positions_y_draw.append([[pos1.x0 / 2 + pos1.x1 / 2, pos1.x0 / 2 + pos1.x1 / 2, np.nan,
-                                               pos.x0 / 2 + pos.x1 / 2, pos.x0 / 2 + pos.x1 / 2],
-                                              [pos1.y0, pos1.y1, np.nan, pos.y0, pos.y1]])
-            if drag_dir & 16:
-                snap_positions_y.extend([pos1.y1 - pos.height, pos1.y0 - pos.height])
-                snap_positions_y_draw.extend([[[0, 1], [pos1.y1, pos1.y1]], [[0, 1], [pos1.y0, pos1.y0]]])
-            snap_positions_y.extend([pos1.y0, pos1.y1])
-            snap_positions_y_draw.extend(([[0, 1], [pos1.y0, pos1.y0]], [[0, 1], [pos1.y1, pos1.y1]]))
-
-            if drag_dir & 1:
-                snap_positions_x.extend([pos.x1 - pos1.width])
-                snap_positions_x_draw.append([[pos1.x0, pos1.x1, np.nan, pos.x0, pos.x1],
-                                              [pos1.y0 / 2 + pos1.y1 / 2, pos1.y0 / 2 + pos1.y1 / 2, np.nan,
-                                               pos.y0 / 2 + pos.y1 / 2, pos.y0 / 2 + pos.y1 / 2]])
-            if drag_dir & 2:
-                snap_positions_x.extend([pos.x0 + pos1.width])
-                snap_positions_x_draw.append([[pos1.x0, pos1.x1, np.nan, pos.x0, pos.x1],
-                                              [pos1.y0 / 2 + pos1.y1 / 2, pos1.y0 / 2 + pos1.y1 / 2, np.nan,
-                                               pos.y0 / 2 + pos.y1 / 2, pos.y0 / 2 + pos.y1 / 2]])
-            if drag_dir & 16:
-                snap_positions_x.extend([pos1.x0 - pos.width, pos1.x1 - pos.width])
-                snap_positions_x_draw.extend([[[pos1.x0, pos1.x0], [0, 1]], [[pos1.x1, pos1.x1], [0, 1]]])
-            snap_positions_x.extend([pos1.x0, pos1.x1])
-            snap_positions_x_draw.extend(([[pos1.x0, pos1.x0], [0, 1]], [[pos1.x1, pos1.x1], [0, 1]]))
-
-            def add_snap():
-                snap_positions_x.append(pos1.x1 + diff)
-                y_mean = np.mean((pos1.y0, pos1.y1))
-                snap_positions_x_draw.append([[pos1.x1, pos1.x1 + diff] + display[0], [y_mean, y_mean] + display[1]])
-
-                snap_positions_x.append(pos1.x0 - diff - pos.width)
-                y_mean = np.mean((pos1.y0, pos1.y1))
-                snap_positions_x_draw.append([[pos1.x0, pos1.x0 - diff] + display[0], [y_mean, y_mean] + display[1]])
-
-                snap_positions_y.append(pos1.y1 + diff)
-                x_mean = np.mean((pos1.x0, pos1.x1))
-                snap_positions_y_draw.append([[x_mean, x_mean] + display[0], [pos1.y1, pos1.y1 + diff] + display[1]])
-
-                snap_positions_y.append(pos1.y0 - diff - pos.height)
-                x_mean = np.mean((pos1.x0, pos1.x1))
-                snap_positions_y_draw.append([[x_mean, x_mean] + display[0], [pos1.y0, pos1.y0 - diff] + display[1]])
-
-            for index2, ax2 in enumerate(fig.axes):
-                if ax2 != drag_axes and ax2 != ax:
-                    pos2 = ax2.get_position()
-
-                    diff = pos2.x0 - pos1.x1
-                    if diff > 0:
-                        y_mean = np.mean((max(pos1.y0, pos2.y0), min(pos1.y1, pos2.y1)))
-                        display = [[np.nan, pos1.x1, pos2.x0], [np.nan, y_mean, y_mean]]
-                        add_snap()
-                    diff = pos1.x0 - pos2.x1
-                    if diff > 0:
-                        y_mean = np.mean((max(pos1.y0, pos2.y0), min(pos1.y1, pos2.y1)))
-                        display = [[np.nan, pos1.x0, pos2.x1], [np.nan, y_mean, y_mean]]
-                        add_snap()
-                    diff = pos2.y0 - pos1.y1
-                    if diff > 0:
-                        x_mean = np.mean((max(pos1.x0, pos2.x0), min(pos1.x1, pos2.x1)))
-                        display = [[np.nan, x_mean, x_mean], [np.nan, pos1.y1, pos2.y0]]
-                        add_snap()
-                    diff = pos1.y0 - pos2.y1
-                    if diff > 0:
-                        x_mean = np.mean((max(pos1.x0, pos2.x0), min(pos1.x1, pos2.x1)))
-                        display = [[np.nan, x_mean, x_mean], [np.nan, pos1.y0, pos2.y1]]
-                        add_snap()
-
-            """
-            for index2, ax2 in enumerate(fig.axes):
-                if ax2 != drag_axes and ax2 != ax:
-                    pos2 = ax2.get_position()
-                    diff = pos2.x0-(pos1.x1)
-                    if diff > 0:
-                        snap_positions_x.extend([pos2.x1+diff, pos1.x0-diff-pos.width])
-                        snap_positions_x_draw.append([[pos2.x1, pos2.x1+diff, np.nan, pos1.x1, pos1.x1+diff], [pos2.y0/2+pos2.y1/2, pos2.y0/2+pos2.y1/2, np.nan, pos2.y0/2+pos2.y1/2, pos2.y0/2+pos2.y1/2]])
-                        snap_positions_x_draw.append([[pos1.x0, pos1.x0-diff, np.nan, pos1.x1, pos1.x1+diff], [pos2.y0/2+pos2.y1/2, pos2.y0/2+pos2.y1/2, np.nan, pos2.y0/2+pos2.y1/2, pos2.y0/2+pos2.y1/2]])
-
-                        snap_positions_y.extend([pos2.y1+diff, pos1.y0-diff-pos.height])
-                        snap_positions_y_draw.append([[pos2.x0/2+pos2.x1/2, pos2.x0/2+pos2.x1/2, np.nan, pos1.x1, pos1.x1+diff], [pos2.y1, pos2.y1+diff, np.nan, pos2.y0/2+pos2.y1/2, pos2.y0/2+pos2.y1/2]])
-                        snap_positions_y_draw.append([[pos1.x0/2+pos1.x1/2]*5, [pos1.y0, pos1.y0-diff, np.nan, pos2.y0, pos2.y0-diff]])
-                    diff = pos2.y0-(pos1.y1)
-                    if diff > 0:
-                        snap_positions_y.extend([pos2.y1+diff, pos1.y0-diff-pos.height])
-                        snap_positions_y_draw.append([[pos2.x0/2+pos2.x1/2]*5, [pos2.y1, pos2.y1+diff, np.nan, pos1.y1, pos1.y1+diff]])
-                        snap_positions_y_draw.append([[pos1.x0/2+pos1.x1/2]*5, [pos1.y0, pos1.y0-diff, np.nan, pos2.y0, pos2.y0-diff]])
-
-                        snap_positions_x.extend([pos2.x1+diff, pos1.x0-diff-pos.width])
-                        snap_positions_x_draw.append([[pos2.x1, pos2.x1+diff, np.nan, pos2.x0/2+pos2.x1/2, pos2.x0/2+pos2.x1/2], [pos2.y0/2+pos2.y1/2, pos2.y0/2+pos2.y1/2, np.nan,  pos1.y1, pos1.y1+diff]])
-                        snap_positions_x_draw.append([[pos1.x0, pos1.x0-diff, np.nan, pos1.x0/2+pos1.x1/2, pos1.x0/2+pos1.x1/2], [pos2.y0/2+pos2.y1/2, pos2.y0/2+pos2.y1/2, np.nan, pos2.y0, pos2.y0-diff]])
-            """
-    # try to snap to these positions
-    if drag_dir & 4 or drag_dir & 8 or drag_dir & 16:
-        dist = 999
-        bary.set_data([[0, 0], [0, 0]])
-        for draw, y in zip(snap_positions_y_draw, snap_positions_y):
-            new_dist = fig.transFigure.transform([0, abs(yfigure - y)])[1]
-            if new_dist < 10 and new_dist < dist:
-                yfigure = y
-                dist = new_dist
-                bary.set_data(draw)
-    if drag_dir & 1 or drag_dir & 2 or drag_dir & 16:
-        dist = 999
-        barx.set_data([[0, 0], [0, 0]])
-        for draw, x in zip(snap_positions_x_draw, snap_positions_x):
-            new_dist = fig.transFigure.transform([abs(xfigure - x), 0])[0]
-            if new_dist < 10 and new_dist < dist:
-                xfigure = x
-                dist = new_dist
-                barx.set_data(draw)
-    # drag x borders
-    pos1 = drag_axes.get_position()
-    save_aspect = drag_axes.get_adjustable() != "auto" and drag_axes.get_aspect() != "datalim"
-    save_aspect = drag_axes.get_aspect() != "auto" and drag_axes.get_adjustable() != "datalim"
-    #        [a.get_adjustable() for a in [ax0, ax1, ax2, ax3]]
-    # Out[35]: [u'box', u'datalim', u'box', u'box']
-    # In[36]: [a.get_aspect() for a in [ax0, ax1, ax2, ax3]]
-    # Out[36]: [u'auto', u'equal', u'equal', 20.0]
-    if drag_dir & 1:
-        if save_aspect:
-            new_width = max(pos1.width + (pos1.x0 - xfigure), 1e-2)
-            new_height = new_width / pos1.width * pos1.height
-            drag_axes.set_position([xfigure, pos1.y0, new_width, new_height])
-        else:
-            drag_axes.set_position([xfigure, pos1.y0, max(pos1.width + (pos1.x0 - xfigure), 1e-2), pos1.height])
-    elif drag_dir & 2:
-        if save_aspect:
-            new_width = max(pos1.width - (pos1.x1 - xfigure), 1e-2)
-            new_height = new_width / pos1.width * pos1.height
-            drag_axes.set_position([pos1.x0, pos1.y0, new_width, new_height])
-        else:
-            drag_axes.set_position([pos1.x0, pos1.y0, max(pos1.width - (pos1.x1 - xfigure), 1e-2), pos1.height])
-    # drag y borders
-    pos1 = drag_axes.get_position()
-    if drag_dir & 4:
-        if save_aspect:
-            new_height = max(pos1.height + (pos1.y0 - yfigure), 1e-2)
-
-            new_width = new_height / pos1.height * pos1.width
-            drag_axes.set_position([pos1.x0, yfigure, new_width, new_height])
-        else:
-            drag_axes.set_position([pos1.x0, yfigure, pos1.width, max(pos1.height + +(pos1.y0 - yfigure), 1e-2)])
-    elif drag_dir & 8:
-        if save_aspect:
-            new_height = max(pos1.height - (pos1.y0 + pos1.height - yfigure), 1e-2)
-            new_width = new_height / pos1.height * pos1.width
-            drag_axes.set_position([pos1.x0, pos1.y0, new_width, new_height])
-        else:
-            drag_axes.set_position(
-                [pos1.x0, pos1.y0, pos1.width, max(pos1.height - (pos1.y0 + pos1.height - yfigure), 1e-2)])
-    # drag whole axis
-    if drag_dir & 16:
-        drag_axes.set_position([xfigure, yfigure, pos1.width, pos1.height])
-
-    pos1 = drag_axes.get_position()
-    offx, offy = fig.transFigure.inverted().transform([5, 5])
-    text.set_position([pos1.x0 + offx, pos1.y0 + offy])
-    text.set_text("%.2f x %.2f cm" % (
-    pos1.width * fig.get_size_inches()[0] * 2.54, pos1.height * fig.get_size_inches()[1] * 2.54))
-    # redraw figure
-    fig.canvas.flush_events()
-    fig.canvas.draw()
 
 
 def draw_event(event):
@@ -476,19 +266,19 @@ def draw_event(event):
 
 
 def button_release_callback(event):
-    global drag_axes, last_axes, drag_text, drag_object
+    global drag_object
     # only react to left mouse button
     if event.button != 1:
         return
-    drag_text = None
+    # release dragged object
     if drag_object is not None:
+        # callback
         drag_object.releasedEvent(event)
+        # set to none
         drag_object = None
-    # button up releases the dragged figure
-    bary.set_data([[0, 0], [0, 0]])
-    barx.set_data([[0, 0], [0, 0]])
-    drag_axes = None
-    fig.canvas.draw()
+        # draw figure
+        fig.canvas.flush_events()
+        fig.canvas.draw()
 
 
 def moveArtist(index, x1, y1, x2, y2):
@@ -617,42 +407,54 @@ def key_release_callback(event):
 
 def deselectArtist(artist):
     global grabbers
+    print("deselet",artist)
     fig = plt.gcf()
     for grabber in grabbers[::-1]:
         grabbers.remove(grabber)
-        fig.patches.remove(grabber)
+        try:
+            fig.patches.remove(grabber)
+        except ValueError:
+            pass
 
 from matplotlib.lines import Line2D
+from matplotlib.patches import Rectangle, Ellipse
 
 class Snap(Line2D):
-    def __init__(self, x, y, draw_x, draw_y):
-        self.x, _ = plt.gcf().transFigure.transform((x, 1))
-        _, self.y = plt.gcf().transFigure.transform((1, y))
-        print(self.x, self.y, x, y)
+    def __init__(self, x, y, draw_x, draw_y, transform=-1):
+        if transform == -1:
+            transform = plt.gcf().transFigure
+            self.x, _ = plt.gcf().transFigure.transform((x, 1))
+            _, self.y = plt.gcf().transFigure.transform((1, y))
+        else:
+            self.x, self.y = x, y
         self.draw_x = draw_x
         self.draw_y = draw_y
-        Line2D.__init__(self, [], [], transform=plt.gcf().transFigure, clip_on=False, lw=2, zorder=100, linestyle="dashed", color="r", marker="o")
+        Line2D.__init__(self, [], [], transform=transform, clip_on=False, lw=2, zorder=100, linestyle="dashed", color="r", marker="o")
         plt.gca().add_artist(self)
-        #barx, = plt.plot(0, 0, 'rs--', transform=fig.transFigure, clip_on=False, lw=4, zorder=100)
-        #bary, = plt.plot(0, 0, 'rs--', transform=fig.transFigure, clip_on=False, lw=4, zorder=100)
 
     def checkSnap(self, x, y):
-        self.set_data((), ())
         if self.x is not None and abs(x-self.x) < 10:
             x = self.x
-            self.set_data((self.draw_x, self.draw_y))
         if self.y is not None and abs(y-self.y) < 10:
             y = self.y
-            self.set_data((self.draw_x, self.draw_y))
         return x, y
 
+    def checkSnapActive(self, *args):
+        for x, y in args:
+            if self.x is not None and abs(x - self.x) < 1:
+                self.set_data((self.draw_x, self.draw_y))
+                break
+            if self.y is not None and abs(y - self.y) < 1:
+                self.set_data((self.draw_x, self.draw_y))
+                break
+        else:
+            self.set_data((), ())
+
     def remove(self):
+        self.set_data((), ())
         self.axes.artists.remove(self)
 
-from matplotlib.patches import Rectangle
-
-class Grabber(Rectangle):
-    w = 10
+class Grabber():
     fig = None
     target = None
     dir = None
@@ -661,19 +463,28 @@ class Grabber(Rectangle):
     def __init__(self, x, y, artist, dir):
         self.axes_pos = (x, y)
         self.fig = artist.figure
-        Rectangle.__init__(self, (0, 0), self.w, self.w, picker=True, figure=fig, edgecolor="k")
-        self.fig.patches.append(self)
         self.target = artist
         self.dir = dir
         self.updatePos()
+        pos = self.target.get_position()
+        self.aspect = pos.width/pos.height
+        self.height = pos.height
+        self.width = pos.width
+        self.fix_aspect = self.target.get_aspect() != "auto" and self.target.get_adjustable() != "datalim"
+
+    def get_xy(self):
+        return self.center
+
+    def set_xy(self, xy):
+        self.center = xy
 
     def getPos(self):
         x, y = self.get_xy()
-        return self.fig.transFigure.inverted().transform((x+self.w/2, y+self.w/2))
+        return self.fig.transFigure.inverted().transform((x, y))
 
     def updatePos(self):
         x, y = self.target.transAxes.transform(self.axes_pos)
-        self.set_xy((x - self.w / 2, y - self.w / 2))
+        self.set_xy((x, y))
 
     def updateGrabbers(self):
         global grabbers
@@ -706,7 +517,6 @@ class Grabber(Rectangle):
                                 self.snaps.append(Snap(pos2.x1+(pos2.x0-pos1.x1), None, (pos2.x1, pos2.x1+(pos2.x0-pos1.x1), np.nan, pos1.x1, pos2.x0), [pos0.y0+pos0.height/2]*5))
                             if self.dir & DIR_X1:
                                 self.snaps.append(Snap(pos1.x0-(pos2.x0-pos1.x1), None, (pos1.x0, pos1.x0+(pos2.x0-pos1.x1), np.nan, pos1.x1, pos2.x0), [pos0.y0+pos0.height/2]*5))
-        pass
 
     def releasedEvent(self, event):
         for snap in self.snaps:
@@ -716,10 +526,13 @@ class Grabber(Rectangle):
         x, y = event.x, event.y
         for snap in self.snaps:
             x, y = snap.checkSnap(x, y)
-        self.set_xy((x-self.w/2, y-self.w/2))
+        for snap in self.snaps:
+            snap.checkSnapActive((x, y))
+        self.set_xy((x, y))
         x, y = self.getPos()
         axes = self.target
         pos = axes.get_position()
+        modifier = "control" in event.key.split("+") if event.key is not None else False
         if self.dir & DIR_X0:
             pos.x0 = x
         if self.dir & DIR_Y0:
@@ -729,12 +542,109 @@ class Grabber(Rectangle):
         if self.dir & DIR_Y1:
             pos.y1 = y
 
+        if self.fix_aspect or modifier:
+            if self.dir & DIR_Y0 and not self.dir & DIR_X1 or (self.dir & DIR_X0 and self.dir & DIR_Y1):
+                pos.x0 = pos.x1 - pos.height * self.aspect
+            if self.dir & DIR_Y1 and not self.dir & DIR_X0:
+                pos.x1 = pos.x0 + pos.height * self.aspect
+            if self.dir & DIR_X0 and not self.dir & DIR_Y1 or (self.dir & DIR_X1 and self.dir & DIR_Y0):
+                pos.y0 = pos.y1 - pos.width / self.aspect
+            if self.dir & DIR_X1 and not self.dir & DIR_Y0:
+                pos.y1 = pos.y0 + pos.width / self.aspect
+
         axes.set_position(pos)
         self.updateGrabbers()
 
-def addGrabber(x, y, artist, dir):
+class GrabberRound(Ellipse, Grabber):
+    w = 10
+
+    def __init__(self, x, y, artist, dir):
+        Grabber.__init__(self, x, y, artist, dir)
+        Ellipse.__init__(self, (0, 0), self.w, self.w, picker=True, figure=fig, edgecolor="k")
+        self.fig.patches.append(self)
+        self.updatePos()
+
+class GrabberRectangle(Rectangle, Grabber):
+    w = 10
+
+    def __init__(self, x, y, artist, dir):
+        Rectangle.__init__(self, (0, 0), self.w, self.w, picker=True, figure=fig, edgecolor="k")
+        Grabber.__init__(self, x, y, artist, dir)
+        self.fig.patches.append(self)
+        self.updatePos()
+
+    def get_xy(self):
+        xy = Rectangle.get_xy(self)
+        return (xy[0] + self.w/2, xy[1] + self.w/2)
+
+    def set_xy(self, xy):
+        Rectangle.set_xy(self, (xy[0] - self.w/2, xy[1] - self.w/2))
+
+class AxesGrabber(Grabber):
+
+    def clickedEvent(self, event):
+        Grabber.clickedEvent(self, event)
+        axes = self.target
+        pos = axes.get_position()
+        x, y = self.fig.transFigure.transform((pos.x0, pos.y0))
+        self.drag_offset = (event.mouseevent.x-x, event.mouseevent.y-y)
+
+    def movedEvent(self, event):
+        x, y = event.x-self.drag_offset[0], event.y-self.drag_offset[1]
+        for snap in self.snaps:
+            x, y = snap.checkSnap(x, y)
+            w, h = self.fig.transFigure.transform((self.width, self.height))
+            x1, y1 = snap.checkSnap(x+w, y+h)
+            x, y = x1-w, y1-h
+        for snap in self.snaps:
+            snap.checkSnapActive((x, y), (x+w, y+h))
+        self.set_xy((x, y))
+        x, y = self.getPos()
+        axes = self.target
+        pos = axes.get_position()
+
+        pos.x0 = x
+        pos.y0 = y
+        pos.x1 = x + self.width
+        pos.y1 = y + self.height
+
+        axes.set_position(pos)
+        self.updateGrabbers()
+
+class TextGrabber():
+    def __init__(self, x, y, artist, dir):
+        self.target = artist
+        self.snaps = []
+
+    def releasedEvent(self, event):
+        for snap in self.snaps:
+            snap.remove()
+
+    def clickedEvent(self, event):
+        fig = plt.gcf()
+        for ax in fig.axes + [fig]:
+            for txt in ax.texts:
+                if txt == self:
+                    continue
+                x, y = txt.get_transform().transform(txt.get_position())
+                self.snaps.append(Snap(x, None, (x, x), (0, 1000), transform=None))
+                self.snaps.append(Snap(None, y, (0, 1000), (y, y), transform=None))
+        pos = self.target.get_position()
+        x, y = self.target.get_transform().transform(pos)
+        self.drag_offset = (event.mouseevent.x-x, event.mouseevent.y-y)
+
+    def movedEvent(self, event):
+        x, y = event.x-self.drag_offset[0], event.y-self.drag_offset[1]
+        for snap in self.snaps:
+            x, y = snap.checkSnap(x, y)
+        for snap in self.snaps:
+            snap.checkSnapActive((x, y))
+        pos = self.target.get_position()
+        self.target.set_position(self.target.get_transform().inverted().transform((x, y)))
+
+def addGrabber(x, y, artist, dir, GrabberClass):
     global grabbers
-    grabbers.append(Grabber(x, y, artist, dir))
+    grabbers.append(GrabberClass(x, y, artist, dir))
 
 DIR_X0 = 1
 DIR_Y0 = 2
@@ -751,49 +661,44 @@ def selectArtist(artist):
     active_object = artist
 
     fig = plt.gcf()
-    #pos = fig.transFigure.transform(artist.get_position())
-    addGrabber(0, 0, artist, DIR_X0 | DIR_Y0)
-    addGrabber(0.5, 0, artist, DIR_Y0)
-    addGrabber(1, 1, artist, DIR_X1 | DIR_Y1)
-    addGrabber(1, 0.5, artist, DIR_X1)
-    addGrabber(0, 1, artist, DIR_X0 | DIR_Y1)
-    addGrabber(0.5, 1, artist, DIR_Y1)
-    addGrabber(1, 0, artist, DIR_X1 | DIR_Y0)
-    addGrabber(0, 0.5, artist, DIR_X0)
+    addGrabber(0, 0, artist, DIR_X0 | DIR_Y0, GrabberRound)
+    addGrabber(0.5, 0, artist, DIR_Y0, GrabberRectangle)
+    addGrabber(1, 1, artist, DIR_X1 | DIR_Y1, GrabberRound)
+    addGrabber(1, 0.5, artist, DIR_X1, GrabberRectangle)
+    addGrabber(0, 1, artist, DIR_X0 | DIR_Y1, GrabberRound)
+    addGrabber(0.5, 1, artist, DIR_Y1, GrabberRectangle)
+    addGrabber(1, 0, artist, DIR_X1 | DIR_Y0, GrabberRound)
+    addGrabber(0, 0.5, artist, DIR_X0, GrabberRectangle)
+    addGrabber(0, 0, artist, 0, AxesGrabber)
     fig.canvas.draw()
 
 
 def on_pick_event(event):
     global drag_text, pick_offset, pick_pos, drag_object
-    global active_object
+    global active_object, last_picked
     " Store which text object was picked and were the pick event occurs."
 
-    print("pick event", event)
+    last_picked = True
 
     if isinstance(event.artist, Text):
-        drag_text = event.artist
-        try:
-            print(drag_text.original_pos)
-        except:
-            drag_text.original_pos = drag_text.get_position()
-        if event.mouseevent.xdata is not None:
-            pick_pos = (event.mouseevent.xdata, event.mouseevent.ydata)
-            pick_offset = (
-            event.mouseevent.xdata - drag_text.get_position()[0], event.mouseevent.ydata - drag_text.get_position()[1])
-            print("pick_offset", event.mouseevent.xdata, drag_text.get_position()[0],
-                  event.mouseevent.xdata - drag_text.get_position()[0])
-
+        if active_object is not None:
+            deselectArtist(active_object)
+        active_object = event.artist
+        addGrabber(0, 0, event.artist, 0, TextGrabber)
+        drag_object = grabbers[-1]
+        grabbers[-1].clickedEvent(event)
+        return
     # subplot
     else:
         artist = event.artist
         try:
             artist.transData
             selectArtist(event.artist)
+            drag_object = grabbers[-1]
+            grabbers[-1].clickedEvent(event)
         except AttributeError:
             drag_object = artist
             artist.clickedEvent(event)
-
-    #if isinstance(event.artist, )
 
     return True
 
@@ -897,5 +802,3 @@ def StartPylustration(xsnaps=None, ysnaps=None, unit="cm"):
 
     for axes in fig.axes:
         axes.set_picker(True)
-
-    selectArtist(fig.axes[0])
