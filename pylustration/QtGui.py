@@ -9,7 +9,7 @@ from matplotlib import _pylab_helpers
 import matplotlib as mpl
 import qtawesome as qta
 
-from .QtShortCuts import AddQColorChoose
+from .QtShortCuts import AddQColorChoose, QDragableColor
 
 import sys
 
@@ -99,8 +99,12 @@ class PlotWindow(QtWidgets.QWidget):
         self.color_artists = {}
 
         # add color chooser layout
+        self.layout_right = QtWidgets.QVBoxLayout()
         self.layout_colors = QtWidgets.QVBoxLayout()
-        self.layout_main.addLayout(self.layout_colors)
+        self.layout_right.addLayout(self.layout_colors)
+        self.layout_colors2 = QtWidgets.QVBoxLayout()
+        self.layout_right.addLayout(self.layout_colors2)
+        self.layout_main.addLayout(self.layout_right)
 
     def addChildren(self, parent):
         for artist in parent.get_children():
@@ -128,6 +132,9 @@ class PlotWindow(QtWidgets.QWidget):
                 # convert to array
                 if not (isinstance(colors, np.ndarray) and len(colors.shape) > 1):
                     colors = [colors]
+
+                if mpl.colors.to_hex(colors[0]) == "#000000" or mpl.colors.to_hex(colors[0]) == "#FFFFFF":
+                    continue
 
                 # omit black texts. spines and lines
                 if (isinstance(artist, mpl.text.Text) or
@@ -169,41 +176,52 @@ class PlotWindow(QtWidgets.QWidget):
                         # add the artist
                         self.color_artists[color].append([color_type_name, artist, None, None, None])
 
+    def addColorButton(self, color, basecolor=None):
+        button = QDragableColor(mpl.colors.to_hex(color))
+        self.layout_colors.addWidget(button)
+        button.color_changed.connect(lambda c, color_base=basecolor: self.color_selected(c, color_base))
+        if basecolor:
+            self.color_buttons[basecolor] = button
+        self.color_buttons_list.append(button)
+
     def updateColors(self):
         # add recursively all artists of the figure
         self.addChildren(self.canvas.figure)
 
         # iterate over all colors
         self.color_buttons = {}
+        self.color_buttons_list = []
+
         for color in self.color_artists:
-            # create a color chooser button
-            button = AddQColorChoose(self.layout_colors, "Color", value=mpl.colors.to_hex(color))
-            button.color_changed = lambda c, color_base=color: self.color_selected(c, color_base)
-            self.color_buttons[color] = button
+            self.addColorButton(color, color)
 
         # add a text widget to allow easy copy and paste
         self.colors_text_widget = QtWidgets.QTextEdit()
         self.colors_text_widget.setAcceptRichText(False)
-        self.layout_colors.addWidget(self.colors_text_widget)
+        self.layout_colors2.addWidget(self.colors_text_widget)
         self.colors_text_widget.setText("\n".join([mpl.colors.to_hex(color) for color in self.color_artists]))
         self.colors_text_widget.textChanged.connect(self.colors_changed)
 
         # add a stretch
-        self.layout_colors.addStretch()
+        #self.layout_colors.addStretch()
 
         # update the canvas dimensions
         self.canvas.updateGeometry()
 
     def colors_changed(self):
         # when the colors in the text edit changed
-        for color, base in zip(self.colors_text_widget.toPlainText().split("\n"), self.color_artists):
+        for index, color in enumerate(self.colors_text_widget.toPlainText().split("\n")):
             try:
-                color = mpl.colors.to_hex(color)
+                color = mpl.colors.to_hex(color.strip())
             except ValueError:
                 continue
-            self.color_buttons[base].setColor(color)
+            if len(self.color_buttons_list) <= index:
+                self.addColorButton(color)
+            self.color_buttons_list[index].setColor(color)
 
     def color_selected(self, new_color, color_base):
+        if color_base is None:
+            return
         # iterate over all artist entices associated with this color
         for data in self.color_artists[color_base]:
             # get the data
