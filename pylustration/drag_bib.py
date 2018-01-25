@@ -37,7 +37,7 @@ class FigureDragger:
                 dragger = DraggableText(text, use_blit=True)
                 text._draggable = dragger
 
-            dragger = DraggableAxes(axes, use_blit=False)
+            dragger = DraggableAxes(axes, use_blit=True)
             axes._draggable = dragger
 
         # store the position where StartPylustration was called
@@ -336,6 +336,7 @@ class Grabber(object):
         self.fig = artist.figure
         self.target = artist
         self.dir = dir
+        self.snaps = []
         self.updatePos()
         pos = self.target.get_position()
         self.aspect = pos.width / pos.height
@@ -350,7 +351,12 @@ class Grabber(object):
 
     def on_motion(self, evt):
         if self.got_artist:
+            if self.parent.blit_initialized is False:
+                self.parent.initBlit()
+
             self.movedEvent(evt)
+
+            self.parent.doBlit()
 
     def on_pick(self, evt):
         if evt.artist == self:
@@ -422,7 +428,7 @@ class Grabber(object):
 
         axes.set_position(pos)
         self.parent.updateGrabbers()
-        self.fig.canvas.draw()
+        #self.fig.canvas.draw()
 
     def keyPressEvent(self, event):
         pass
@@ -523,12 +529,94 @@ DraggableBase.on_pick = on_pick_wrap(DraggableBase.on_pick)
 
 class DraggableAxes(DraggableBase):
     selected = False
+    blit_initialized = False
 
     def __init__(self, axes, use_blit=False):
         DraggableBase.__init__(self, axes, use_blit=use_blit)
         self.axes = axes
         self.cids.append(self.canvas.mpl_connect('key_press_event', self.keyPressEvent))
         self.grabbers = []
+
+    def initBlit(self):
+        self.blit_initialized = True
+
+        self.ref_artist.set_animated(True)
+        for grabber in self.grabbers:
+            grabber.set_animated(True)
+            for snap in grabber.snaps:
+                snap.set_animated(True)
+        for snaps in self.snaps:
+            for snap in snaps:
+                snap.set_animated(True)
+
+        self.canvas.draw()
+        self.background = self.canvas.copy_from_bbox(self.ref_artist.figure.bbox)
+
+    def finishBlit(self):
+        self.blit_initialized = False
+        self.ref_artist.set_animated(False)
+        for grabber in self.grabbers:
+            grabber.set_animated(False)
+            for snap in grabber.snaps:
+                snap.hide()
+                snap.set_animated(False)
+        self.canvas.draw()
+
+    def doBlit(self):
+        self.canvas.restore_region(self.background)
+        self.ref_artist.draw(self.ref_artist.figure._cachedRenderer)
+        for grabber in self.grabbers:
+            grabber.draw(self.ref_artist.figure._cachedRenderer)
+            for snap in grabber.snaps:
+                snap.draw(self.ref_artist.figure._cachedRenderer)
+        for snaps in self.snaps:
+            for snap in snaps:
+                snap.draw(self.ref_artist.figure._cachedRenderer)
+        self.canvas.blit(self.ref_artist.figure.bbox)
+
+    def on_motion_blit(self, evt):
+        if self.got_artist:
+            if self.blit_initialized is False:
+                self.initBlit()
+
+            dx = evt.x - self.mouse_x
+            dy = evt.y - self.mouse_y
+            self.update_offset(dx, dy)
+            self.doBlit()
+
+    def on_pick(self, evt):
+        if evt.artist == self.ref_artist:
+
+            self.mouse_x = evt.mouseevent.x
+            self.mouse_y = evt.mouseevent.y
+            self.got_artist = True
+
+            if self._use_blit:
+                self._c1 = self.canvas.mpl_connect('motion_notify_event',
+                                                   self.on_motion_blit)
+            else:
+                self._c1 = self.canvas.mpl_connect('motion_notify_event',
+                                                   self.on_motion)
+            self.save_offset()
+        if evt.artist != self.ref_artist:
+            self.on_release(evt)
+
+    def on_release(self, event):
+        if self.got_artist:
+            self.finalize_offset()
+            self.got_artist = False
+            self.canvas.mpl_disconnect(self._c1)
+
+        if self._use_blit and self.blit_initialized:
+            self.finishBlit()
+
+        if getattr(event, "inaxes", 0) is None and self.selected:
+            self.deselectArtist()
+
+        new_artist = getattr(event, "artist", None)
+        if new_artist and new_artist != self.axes and self.selected:
+            if getattr(new_artist, "parent", None) != self:
+                self.deselectArtist()
 
     def addGrabber(self, x, y, artist, dir, GrabberClass):
         # add a grabber object at the given coordinates
@@ -538,7 +626,7 @@ class DraggableAxes(DraggableBase):
         for grabber in self.grabbers:
             grabber.updatePos()
 
-    def on_release(self, event):
+    def on_releasexxx(self, event):
         DraggableBase.on_release(self, event)
         new_artist = getattr(event, "artist", None)
         if new_artist and new_artist != self.axes and self.selected:
@@ -632,10 +720,12 @@ class DraggableAxes(DraggableBase):
     def moveAxes(self, x, y):
         pos = self.axes.get_position()
         self.axes.set_position([pos.x0 + x, pos.y0 + y, pos.width, pos.height])
-        #self.updateGrabbers()
+        self.updateGrabbers()
         self.axes.figure.canvas.draw()
 
     def keyPressEvent(self, event):
+        if not self.selected:
+            return
         # move last axis in z order
         if event.key == 'pagedown':
             self.axes.set_zorder(self.axes.get_zorder() - 1)
@@ -651,6 +741,9 @@ class DraggableAxes(DraggableBase):
             self.moveAxes(0, -0.01)
         if event.key == 'up':
             self.moveAxes(0, +0.01)
+        if event.key == "escape":
+            self.deselectArtist()
+
 
 class DraggableText(DraggableBase):
     def __init__(self, text, use_blit=False):
