@@ -39,6 +39,9 @@ class FigureDragger:
 
             dragger = DraggableAxes(axes, use_blit=True)
             axes._draggable = dragger
+        for text in self.fig.texts:
+            dragger = DraggableText(text, use_blit=True)
+            text._draggable = dragger
 
         # store the position where StartPylustration was called
         self.stack_position = traceback.extract_stack()[-3]
