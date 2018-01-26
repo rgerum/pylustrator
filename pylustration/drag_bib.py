@@ -250,11 +250,13 @@ class Snap(Line2D):
         plt.gca().add_artist(self)
 
     def checkSnap(self, x, y):
+        dx = None
+        dy = None
         if self.x is not None and abs(x - self.x) < 10:
-            x = self.x
+            dx = x - self.x
         if self.y is not None and abs(y - self.y) < 10:
-            y = self.y
-        return x, y
+            dy = y - self.y
+        return dx, dy
 
     def checkSnapActive(self, *args):
         for x, y in args:
@@ -278,17 +280,185 @@ class Snap(Line2D):
             pass
 
 
+def absmin(*args):
+    return args[np.argmin(np.abs(args))]
+
+class Snap2(Line2D):
+    def __init__(self, index, value, draw_x, draw_y, transform=-1):
+        if transform == -1:
+            transform = plt.gcf().transFigure
+            self.value = plt.gcf().transFigure.transform((value, value))[index]
+        else:
+            self.value = value
+        self.index = index
+        self.draw_x = draw_x
+        self.draw_y = draw_y
+        Line2D.__init__(self, [], [], transform=transform, clip_on=False, lw=1, zorder=100, linestyle="dashed",
+                        color="r", marker="o", ms=1)
+        plt.gca().add_artist(self)
+
+    def getDistance(self, pos):
+        if len(pos) == 4:
+            return absmin(pos[self.index] - self.value, pos[self.index+2] - self.value)
+        value = pos[self.index]
+        return value - self.value
+
+    def checkSnap(self, pos):
+        distance = self.getDistance(pos)
+        if abs(distance) < 10:
+            return distance
+        return None
+
+    def checkSnapActive(self):
+        distance = min([self.getDistance(index) for index in [0, 1]])
+        if abs(distance) < 1:
+            self.show()
+        else:
+            self.hide()
+
+    def show(self):
+        self.set_data((self.draw_x, self.draw_y))
+
+    def hide(self):
+        self.set_data((), ())
+
+    def remove(self):
+        self.hide()
+        try:
+            self.axes.artists.remove(self)
+        except ValueError:
+            pass
+
+class snapBase(Line2D):
+    def __init__(self, ax_source, ax_target, edge):
+        self.ax_source = ax_source
+        self.ax_target = ax_target
+        self.edge = edge
+        Line2D.__init__(self, [], [], transform=None, clip_on=False, lw=1, zorder=100, linestyle="dashed",
+                        color="r", marker="o", ms=1)
+        plt.gca().add_artist(self)
+
+    def getPosition(self, axes):
+        return np.array(axes.figure.transFigure.transform(axes.get_position())).flatten()
+
+    def getDistance(self, p1):
+        p2 = self.getPosition(self.ax_target)
+        return p1[self.edge] - p2[self.edge]
+
+    def checkSnap(self, index):
+        distance = self.getDistance(index)
+        if abs(distance) < 1:
+            self.show()
+        else:
+            self.hide()
+        if abs(distance) < 10:
+            return distance
+        return None
+
+    def checkSnapActive(self):
+        distance = min([self.getDistance(index) for index in [0, 1]])
+        if abs(distance) < 1:
+            self.show()
+        else:
+            self.hide()
+
+    def show(self):
+        p1 = self.getPosition(self.ax_source)
+        p2 = self.getPosition(self.ax_target)
+        if self.edge % 2 == 0:
+            self.set_data((p1[self.edge], p1[self.edge], p2[self.edge], p2[self.edge]), (p1[self.edge-1], p1[self.edge+1], p2[self.edge-1], p2[self.edge+1]))
+        else:
+            self.set_data((p1[self.edge-1], p1[self.edge-3], p2[self.edge-1], p2[self.edge-3]), (p1[self.edge], p1[self.edge], p2[self.edge], p2[self.edge]))
+
+    def hide(self):
+        self.set_data((), ())
+
+    def remove(self):
+        self.hide()
+        try:
+            self.axes.artists.remove(self)
+        except ValueError:
+            pass
+
+class snapSameEdge(snapBase):
+
+    def getDistance(self, index):
+        if self.edge % 2 != index:
+            return np.inf
+        p1 = self.getPosition(self.ax_source)
+        p2 = self.getPosition(self.ax_target)
+        return p1[self.edge] - p2[self.edge]
+
+    def show(self):
+        p1 = self.getPosition(self.ax_source)
+        p2 = self.getPosition(self.ax_target)
+        if self.edge % 2 == 0:
+            self.set_data((p1[self.edge], p1[self.edge], p2[self.edge], p2[self.edge]), (p1[self.edge-1], p1[self.edge+1], p2[self.edge-1], p2[self.edge+1]))
+        else:
+            self.set_data((p1[self.edge-1], p1[self.edge-3], p2[self.edge-1], p2[self.edge-3]), (p1[self.edge], p1[self.edge], p2[self.edge], p2[self.edge]))
+
+
+class snapSameDimension(snapBase):
+    def getDistance(self, index):
+        if self.edge % 2 != index:
+            return np.inf
+        p1 = self.getPosition(self.ax_source)
+        p2 = self.getPosition(self.ax_target)
+        return (p1[self.edge+2]-p1[self.edge]) - (p2[self.edge+2]-p2[self.edge])
+
+    def show(self):
+        p1 = self.getPosition(self.ax_source)
+        p2 = self.getPosition(self.ax_target)
+        if self.edge % 2 == 0:
+            self.set_data((p1[0], p1[2], np.nan, p2[0], p2[2]),
+                          (p1[1] * 0.5 + p1[3] * 0.5, p1[1] * 0.5 + p1[3] * 0.5, np.nan, p2[1] * 0.5 + p2[3] * 0.5,
+                           p2[1] * 0.5 + p2[3] * 0.5))
+        else:
+            self.set_data((p1[0] * 0.5 + p1[2] * 0.5, p1[0] * 0.5 + p1[2] * 0.5, np.nan, p2[0] * 0.5 + p2[2] * 0.5,
+                           p2[0] * 0.5 + p2[2] * 0.5),
+                          (p1[1], p1[3], np.nan, p2[1], p2[3]))
+
+
+def checkSnaps(snaps):
+    result = [0, 0]
+    for index in range(2):
+        best = np.inf
+        for snap in snaps:
+            delta = snap.checkSnap(index)
+            if delta is not None and abs(delta) < abs(best):
+                best = delta
+        if best < np.inf:
+            result[index] = best
+    return result
+
+def checkSnapsActive(snaps):
+    for snap in snaps:
+        snap.checkSnapActive()
+
 def getSnaps(target, dir, no_height=False):
     snaps = []
-    pos0 = target.get_position()
     for axes in target.figure.axes:
         if axes != target:
-            pos1 = axes.get_position()
             # axes edged
-            snaps.append(Snap(pos1.x0, None, (pos1.x0, pos1.x0), (0, 1)))
-            snaps.append(Snap(pos1.x1, None, (pos1.x1, pos1.x1), (0, 1)))
-            snaps.append(Snap(None, pos1.y0, (0, 1), (pos1.y0, pos1.y0)))
-            snaps.append(Snap(None, pos1.y1, (0, 1), (pos1.y1, pos1.y1)))
+            if dir & DIR_X0:
+                snaps.append(snapSameEdge(target, axes, 0))
+            if dir & DIR_Y0:
+                snaps.append(snapSameEdge(target, axes, 1))
+            if dir & DIR_X1:
+                snaps.append(snapSameEdge(target, axes, 2))
+            if dir & DIR_Y1:
+                snaps.append(snapSameEdge(target, axes, 3))
+
+            if not no_height:
+                if dir & DIR_X0 or dir & DIR_X1:
+                    snaps.append(snapSameDimension(target, axes, 0))
+                if dir & DIR_Y0 or dir & DIR_Y1:
+                    snaps.append(snapSameDimension(target, axes, 1))
+            #snaps.append(Snap2(0, pos1.x0, (pos1.x0, pos1.x0), (0, 1)))
+            #snaps.append(Snap2(0, pos1.x1, (pos1.x1, pos1.x1), (0, 1)))
+            #snaps.append(Snap2(1, pos1.y0, (0, 1), (pos1.y0, pos1.y0)))
+            #snaps.append(Snap2(1, pos1.y1, (0, 1), (pos1.y1, pos1.y1)))
+            continue
             # same height or width
             if not no_height:
                 if dir & DIR_X1:
@@ -394,18 +564,22 @@ class Grabber(object):
         self.snap_index_offset = 0#len(self.snaps)
         self.snaps.extend(getSnaps(self.target, self.dir))
 
+        self.mouse_x = event.mouseevent.x
+        self.mouse_y = event.mouseevent.y
+
+        pos = self.target.get_position()
+        self.ox, self.oy = self.get_xy()
+
+        pos = self.target.get_position()
+        self.w, self.h = self.target.figure.transFigure.transform((pos.width, pos.height))
+
     def releasedEvent(self, event):
         for snap in self.snaps[self.snap_index_offset:]:
             snap.remove()
         self.snaps = self.snaps[self.snap_index_offset:]
 
-    def movedEvent(self, event):
-        x, y = event.x, event.y
-        for snap in self.snaps:
-            x, y = snap.checkSnap(x, y)
-        for snap in self.snaps:
-            snap.checkSnapActive((x, y))
-        self.set_xy((x, y))
+    def applyOffset(self, pos, event):
+        self.set_xy((self.ox+pos[0], self.oy+pos[1]))
         x, y = self.getPos()
         axes = self.target
         pos = axes.get_position()
@@ -430,38 +604,51 @@ class Grabber(object):
                 pos.y1 = pos.y0 + pos.width / self.aspect
 
         axes.set_position(pos)
+
+        pos = self.target.get_position()
+        self.w, self.h = self.target.figure.transFigure.transform((pos.width, pos.height))
+
+    def movedEvent(self, event):
+        dx = event.x - self.mouse_x
+        dy = event.y - self.mouse_y
+
+        self.applyOffset((dx, dy), event)
+        offx, offy = checkSnaps(self.snaps)
+
+        self.applyOffset((dx - offx, dy - offy), event)
+
+        checkSnapsActive(self.snaps)
         self.parent.updateGrabbers()
-        #self.fig.canvas.draw()
 
     def keyPressEvent(self, event):
         pass
 
 
 class GrabberRound(Ellipse, Grabber):
-    w = 10
+    d = 10
 
     def __init__(self, parent, x, y, artist, dir):
         Grabber.__init__(self, parent, x, y, artist, dir)
-        Ellipse.__init__(self, (0, 0), self.w, self.w, picker=True, figure=artist.figure, edgecolor="k", zorder=1000)
+        Ellipse.__init__(self, (0, 0), self.d, self.d, picker=True, figure=artist.figure, edgecolor="k", zorder=1000)
         self.fig.patches.append(self)
         self.updatePos()
 
 
 class GrabberRectangle(Rectangle, Grabber):
-    w = 10
+    d = 10
 
     def __init__(self, parent, x, y, artist, dir):
-        Rectangle.__init__(self, (0, 0), self.w, self.w, picker=True, figure=artist.figure, edgecolor="k", zorder=1000)
+        Rectangle.__init__(self, (0, 0), self.d, self.d, picker=True, figure=artist.figure, edgecolor="k", zorder=1000)
         Grabber.__init__(self, parent, x, y, artist, dir)
         self.fig.patches.append(self)
         self.updatePos()
 
     def get_xy(self):
         xy = Rectangle.get_xy(self)
-        return xy[0] + self.w / 2, xy[1] + self.w / 2
+        return xy[0] + self.d / 2, xy[1] + self.d / 2
 
     def set_xy(self, xy):
-        Rectangle.set_xy(self, (xy[0] - self.w / 2, xy[1] - self.w / 2))
+        Rectangle.set_xy(self, (xy[0] - self.d / 2, xy[1] - self.d / 2))
 
 
 class AxesGrabber(Grabber):
@@ -548,9 +735,8 @@ class DraggableAxes(DraggableBase):
             grabber.set_animated(True)
             for snap in grabber.snaps:
                 snap.set_animated(True)
-        for snaps in self.snaps:
-            for snap in snaps:
-                snap.set_animated(True)
+        for snap in self.snaps:
+            snap.set_animated(True)
 
         self.canvas.draw()
         self.background = self.canvas.copy_from_bbox(self.ref_artist.figure.bbox)
@@ -572,9 +758,8 @@ class DraggableAxes(DraggableBase):
             grabber.draw(self.ref_artist.figure._cachedRenderer)
             for snap in grabber.snaps:
                 snap.draw(self.ref_artist.figure._cachedRenderer)
-        for snaps in self.snaps:
-            for snap in snaps:
-                snap.draw(self.ref_artist.figure._cachedRenderer)
+        for snap in self.snaps:
+            snap.draw(self.ref_artist.figure._cachedRenderer)
         self.canvas.blit(self.ref_artist.figure.bbox)
 
     def on_motion_blit(self, evt):
@@ -667,7 +852,8 @@ class DraggableAxes(DraggableBase):
         self.snaps = []
         # self.snaps.extend(self.parent.snaps)
         self.snap_index_offset = 0  # len(self.snaps)
-        self.snaps = [getSnaps(self.axes, DIR_X0, no_height=True), getSnaps(self.axes, DIR_X1, no_height=True), getSnaps(self.axes, DIR_Y0, no_height=True), getSnaps(self.axes, DIR_Y1, no_height=True)]
+        #self.snaps = [getSnaps(self.axes, DIR_X0, no_height=True), getSnaps(self.axes, DIR_X1, no_height=True), getSnaps(self.axes, DIR_Y0, no_height=True), getSnaps(self.axes, DIR_Y1, no_height=True)]
+        self.snaps = getSnaps(self.axes, DIR_X0 | DIR_X1 | DIR_Y0 | DIR_Y1, no_height=True)
 
     def save_offset(self):
         self.selectArtist()
@@ -678,28 +864,8 @@ class DraggableAxes(DraggableBase):
         self.height = pos.height
         self.w, self.h = self.axes.figure.transFigure.transform((pos.width, pos.height))
 
-    def update_offset(self, dx, dy):
-        # get new position
+    def applyOffset(self, dx, dy):
         x, y = self.ox + dx, self.oy + dy
-
-        for snap in self.snaps[0]:
-            x = snap.checkSnap(x, 0)[0]
-        for snap in self.snaps[1]:
-            x = snap.checkSnap(x+self.w, 0)[0]-self.w
-        for snap in self.snaps[2]:
-            y = snap.checkSnap(0, y)[1]
-        for snap in self.snaps[3]:
-            y = snap.checkSnap(0, y+self.h)[1]-self.h
-
-        for snap in self.snaps[0]:
-            snap.checkSnapActive((x, 0))
-        for snap in self.snaps[1]:
-            snap.checkSnapActive((x+self.w, 0))
-        for snap in self.snaps[2]:
-            snap.checkSnapActive((0, y))
-        for snap in self.snaps[3]:
-            snap.checkSnapActive((0, y+self.h))
-
         x, y = self.axes.figure.transFigure.inverted().transform((x, y))
 
         pos = self.axes.get_position()
@@ -712,12 +878,18 @@ class DraggableAxes(DraggableBase):
         # set the new position for the text
         self.axes.set_position(pos)
 
+    def update_offset(self, dx, dy):
+        self.applyOffset(dx, dy)
+        offx, offy = checkSnaps(self.snaps)
+
+        self.applyOffset(dx - offx, dy - offy)
+
+        checkSnapsActive(self.snaps)
         self.updateGrabbers()
 
     def finalize_offset(self):
-        for snaps in self.snaps:
-            for snap in snaps:
-                snap.hide()
+        for snap in self.snaps:
+            snap.hide()
         self.axes.figure.canvas.draw()
 
     def moveAxes(self, x, y):
