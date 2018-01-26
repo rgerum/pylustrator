@@ -32,7 +32,8 @@ class FigureDragger:
             axes.set_picker(True)
             leg = axes.get_legend()
             if leg:
-                leg.draggable(use_blit=True)
+                dragger = DraggableLegend(leg, use_blit=True)
+                leg._draggable = dragger
             for text in axes.texts:
                 dragger = DraggableText(text, use_blit=True)
                 text._draggable = dragger
@@ -48,6 +49,7 @@ class FigureDragger:
 
         self.fig_inch_size = fig.get_size_inches()
 
+        """
         self.snaps = []
         if xsnaps is not None:
             for x in xsnaps:
@@ -67,7 +69,7 @@ class FigureDragger:
                 plt.plot([0, 1], [y, y], '-', color=[0.8, 0.8, 0.8], transform=fig.transFigure, clip_on=False, lw=1,
                          zorder=-10)
                 self.snaps.append(Snap(None, y, [0, 1], [y, y]))
-
+        """
         # add a text showing the figure size
         self.text = plt.text(0, 0, "", transform=self.fig.transFigure, clip_on=False, zorder=100)
 
@@ -235,100 +237,6 @@ def insertTextToFile(text, stack_pos):
     print("Save to", stack_pos.filename, "line", stack_pos.lineno)
 
 
-class Snap(Line2D):
-    def __init__(self, x, y, draw_x, draw_y, transform=-1):
-        if transform == -1:
-            transform = plt.gcf().transFigure
-            self.x, _ = plt.gcf().transFigure.transform((x, 1))
-            _, self.y = plt.gcf().transFigure.transform((1, y))
-        else:
-            self.x, self.y = x, y
-        self.draw_x = draw_x
-        self.draw_y = draw_y
-        Line2D.__init__(self, [], [], transform=transform, clip_on=False, lw=1, zorder=100, linestyle="dashed",
-                        color="r", marker="o", ms=1)
-        plt.gca().add_artist(self)
-
-    def checkSnap(self, x, y):
-        dx = None
-        dy = None
-        if self.x is not None and abs(x - self.x) < 10:
-            dx = x - self.x
-        if self.y is not None and abs(y - self.y) < 10:
-            dy = y - self.y
-        return dx, dy
-
-    def checkSnapActive(self, *args):
-        for x, y in args:
-            if self.x is not None and abs(x - self.x) < 1:
-                self.set_data((self.draw_x, self.draw_y))
-                break
-            if self.y is not None and abs(y - self.y) < 1:
-                self.set_data((self.draw_x, self.draw_y))
-                break
-        else:
-            self.set_data((), ())
-
-    def hide(self):
-        self.set_data((), ())
-
-    def remove(self):
-        self.set_data((), ())
-        try:
-            self.axes.artists.remove(self)
-        except ValueError:
-            pass
-
-
-def absmin(*args):
-    return args[np.argmin(np.abs(args))]
-
-class Snap2(Line2D):
-    def __init__(self, index, value, draw_x, draw_y, transform=-1):
-        if transform == -1:
-            transform = plt.gcf().transFigure
-            self.value = plt.gcf().transFigure.transform((value, value))[index]
-        else:
-            self.value = value
-        self.index = index
-        self.draw_x = draw_x
-        self.draw_y = draw_y
-        Line2D.__init__(self, [], [], transform=transform, clip_on=False, lw=1, zorder=100, linestyle="dashed",
-                        color="r", marker="o", ms=1)
-        plt.gca().add_artist(self)
-
-    def getDistance(self, pos):
-        if len(pos) == 4:
-            return absmin(pos[self.index] - self.value, pos[self.index+2] - self.value)
-        value = pos[self.index]
-        return value - self.value
-
-    def checkSnap(self, pos):
-        distance = self.getDistance(pos)
-        if abs(distance) < 10:
-            return distance
-        return None
-
-    def checkSnapActive(self):
-        distance = min([self.getDistance(index) for index in [0, 1]])
-        if abs(distance) < 1:
-            self.show()
-        else:
-            self.hide()
-
-    def show(self):
-        self.set_data((self.draw_x, self.draw_y))
-
-    def hide(self):
-        self.set_data((), ())
-
-    def remove(self):
-        self.hide()
-        try:
-            self.axes.artists.remove(self)
-        except ValueError:
-            pass
-
 class snapBase(Line2D):
     def __init__(self, ax_source, ax_target, edge):
         self.ax_source = ax_source
@@ -342,15 +250,10 @@ class snapBase(Line2D):
         return np.array(axes.figure.transFigure.transform(axes.get_position())).flatten()
 
     def getDistance(self, p1):
-        p2 = self.getPosition(self.ax_target)
-        return p1[self.edge] - p2[self.edge]
+        pass
 
     def checkSnap(self, index):
         distance = self.getDistance(index)
-        if abs(distance) < 1:
-            self.show()
-        else:
-            self.hide()
         if abs(distance) < 10:
             return distance
         return None
@@ -363,12 +266,7 @@ class snapBase(Line2D):
             self.hide()
 
     def show(self):
-        p1 = self.getPosition(self.ax_source)
-        p2 = self.getPosition(self.ax_target)
-        if self.edge % 2 == 0:
-            self.set_data((p1[self.edge], p1[self.edge], p2[self.edge], p2[self.edge]), (p1[self.edge-1], p1[self.edge+1], p2[self.edge-1], p2[self.edge+1]))
-        else:
-            self.set_data((p1[self.edge-1], p1[self.edge-3], p2[self.edge-1], p2[self.edge-3]), (p1[self.edge], p1[self.edge], p2[self.edge], p2[self.edge]))
+        pass
 
     def hide(self):
         self.set_data((), ())
@@ -419,6 +317,23 @@ class snapSameDimension(snapBase):
                           (p1[1], p1[3], np.nan, p2[1], p2[3]))
 
 
+class snapSamePos(snapBase):
+    def getPosition(self, text):
+        return np.array(text.get_transform().transform(text.get_position()))
+
+    def getDistance(self, index):
+        if self.edge % 2 != index:
+            return np.inf
+        p1 = self.getPosition(self.ax_source)
+        p2 = self.getPosition(self.ax_target)
+        return p1[self.edge] - p2[self.edge]
+
+    def show(self):
+        p1 = self.getPosition(self.ax_source)
+        p2 = self.getPosition(self.ax_target)
+        self.set_data((p1[0], p2[0]), (p1[1], p2[1]))
+
+
 def checkSnaps(snaps):
     result = [0, 0]
     for index in range(2):
@@ -454,31 +369,7 @@ def getSnaps(target, dir, no_height=False):
                     snaps.append(snapSameDimension(target, axes, 0))
                 if dir & DIR_Y0 or dir & DIR_Y1:
                     snaps.append(snapSameDimension(target, axes, 1))
-            #snaps.append(Snap2(0, pos1.x0, (pos1.x0, pos1.x0), (0, 1)))
-            #snaps.append(Snap2(0, pos1.x1, (pos1.x1, pos1.x1), (0, 1)))
-            #snaps.append(Snap2(1, pos1.y0, (0, 1), (pos1.y0, pos1.y0)))
-            #snaps.append(Snap2(1, pos1.y1, (0, 1), (pos1.y1, pos1.y1)))
             continue
-            # same height or width
-            if not no_height:
-                if dir & DIR_X1:
-                    snaps.append(
-                        Snap(pos0.x0 + pos1.width, None, (pos0.x0, pos0.x0 + pos1.width, np.nan, pos1.x0, pos1.x1), (
-                            pos0.y0 + pos0.height / 2, pos0.y0 + pos0.height / 2, np.nan, pos1.y0 + pos1.height / 2,
-                            pos1.y0 + pos1.height / 2)))
-                if dir & DIR_X0:
-                    snaps.append(
-                        Snap(pos0.x1 - pos1.width, None, (pos0.x1, pos0.x1 - pos1.width, np.nan, pos1.x0, pos1.x1), (
-                            pos0.y0 + pos0.height / 2, pos0.y0 + pos0.height / 2, np.nan, pos1.y0 + pos1.height / 2,
-                            pos1.y0 + pos1.height / 2)))
-                if dir & DIR_Y1:
-                    snaps.append(Snap(None, pos0.y0 + pos1.height, (
-                        pos0.x0 + pos0.width / 2, pos0.x0 + pos0.width / 2, np.nan, pos1.x0 + pos1.width / 2,
-                        pos1.x0 + pos1.width / 2), (pos0.y0, pos0.y0 + pos1.height, np.nan, pos1.y0, pos1.y1)))
-                if dir & DIR_Y0:
-                    snaps.append(Snap(None, pos0.y1 - pos1.height, (
-                        pos0.x0 + pos0.width / 2, pos0.x0 + pos0.width / 2, np.nan, pos1.x0 + pos1.width / 2,
-                        pos1.x0 + pos1.width / 2), (pos0.y1, pos0.y1 - pos1.height, np.nan, pos1.y0, pos1.y1)))
             # same distances
             for axes2 in target.figure.axes:
                 if axes2 != axes and axes2 != target:
@@ -651,62 +542,9 @@ class GrabberRectangle(Rectangle, Grabber):
         Rectangle.set_xy(self, (xy[0] - self.d / 2, xy[1] - self.d / 2))
 
 
-class AxesGrabber(Grabber):
-
-    def clickedEvent(self, event):
-        Grabber.clickedEvent(self, event)
-        axes = self.target
-        pos = axes.get_position()
-        x, y = self.fig.transFigure.transform((pos.x0, pos.y0))
-        self.drag_offset = (event.mouseevent.x - x, event.mouseevent.y - y)
-
-    def movedEvent(self, event):
-        x, y = event.x - self.drag_offset[0], event.y - self.drag_offset[1]
-        w, h = self.fig.transFigure.transform((self.width, self.height))
-        for snap in self.snaps:
-            x, y = snap.checkSnap(x, y)
-            x1, y1 = snap.checkSnap(x + w, y + h)
-            x, y = x1 - w, y1 - h
-        for snap in self.snaps:
-            snap.checkSnapActive((x, y), (x + w, y + h))
-        self.set_xy((x, y))
-        x, y = self.getPos()
-        axes = self.target
-        pos = axes.get_position()
-
-        pos.x0 = x
-        pos.y0 = y
-        pos.x1 = x + self.width
-        pos.y1 = y + self.height
-
-        axes.set_position(pos)
-        self.updateGrabbers()
-
-    def moveAxes(self, x, y):
-        pos = self.target.get_position()
-        self.target.set_position([pos.x0 + x, pos.y0 + y, pos.width, pos.height])
-        self.updateGrabbers()
-        self.parent.draw()
-
-    def keyPressEvent(self, event):
-        # move last axis in z order
-        if event.key == 'pagedown':
-            self.target.set_zorder(self.target.get_zorder() - 1)
-            self.parent.draw()
-        if event.key == 'pageup':
-            self.target.set_zorder(self.target.get_zorder() + 1)
-            self.parent.draw()
-        if event.key == 'left':
-            self.moveAxes(-0.01, 0)
-        if event.key == 'right':
-            self.moveAxes(+0.01, 0)
-        if event.key == 'down':
-            self.moveAxes(0, -0.01)
-        if event.key == 'up':
-            self.moveAxes(0, +0.01)
-
 
 from matplotlib.offsetbox import DraggableBase
+from matplotlib.transforms import BboxTransformFrom
 
 def on_pick_wrap(func):
     def on_pick(self, evt):
@@ -717,15 +555,25 @@ def on_pick_wrap(func):
 
 DraggableBase.on_pick = on_pick_wrap(DraggableBase.on_pick)
 
-class DraggableAxes(DraggableBase):
+class DraggableBase(object):
     selected = False
     blit_initialized = False
 
-    def __init__(self, axes, use_blit=False):
-        DraggableBase.__init__(self, axes, use_blit=use_blit)
-        self.axes = axes
-        self.cids.append(self.canvas.mpl_connect('key_press_event', self.keyPressEvent))
+    def __init__(self, ref_artist, use_blit=False):
+        self.ref_artist = ref_artist
+        self.got_artist = False
+
+        self.canvas = self.ref_artist.figure.canvas
+        self._use_blit = use_blit and self.canvas.supports_blit
+
+        c2 = self.canvas.mpl_connect('pick_event', self.on_pick)
+        c3 = self.canvas.mpl_connect('button_release_event', self.on_release)
+
+        ref_artist.set_picker(self.artist_picker)
+        self.cids = [c2, c3]
+
         self.grabbers = []
+        self.snaps = []
 
     def initBlit(self):
         self.blit_initialized = True
@@ -762,6 +610,13 @@ class DraggableAxes(DraggableBase):
             snap.draw(self.ref_artist.figure._cachedRenderer)
         self.canvas.blit(self.ref_artist.figure.bbox)
 
+    def on_motion(self, evt):
+        if self.got_artist:
+            dx = evt.x - self.mouse_x
+            dy = evt.y - self.mouse_y
+            self.update_offset(dx, dy)
+            self.canvas.draw()
+
     def on_motion_blit(self, evt):
         if self.got_artist:
             if self.blit_initialized is False:
@@ -780,11 +635,9 @@ class DraggableAxes(DraggableBase):
             self.got_artist = True
 
             if self._use_blit:
-                self._c1 = self.canvas.mpl_connect('motion_notify_event',
-                                                   self.on_motion_blit)
+                self._c1 = self.canvas.mpl_connect('motion_notify_event', self.on_motion_blit)
             else:
-                self._c1 = self.canvas.mpl_connect('motion_notify_event',
-                                                   self.on_motion)
+                self._c1 = self.canvas.mpl_connect('motion_notify_event', self.on_motion)
             self.save_offset()
         if evt.artist != self.ref_artist:
             self.on_release(evt)
@@ -799,12 +652,41 @@ class DraggableAxes(DraggableBase):
             self.finishBlit()
 
         if getattr(event, "inaxes", 0) is None and self.selected:
+            self.selected = False
             self.deselectArtist()
 
         new_artist = getattr(event, "artist", None)
-        if new_artist and new_artist != self.axes and self.selected:
+        if new_artist and new_artist != self.ref_artist and self.selected:
             if getattr(new_artist, "parent", None) != self:
+                self.selected = False
                 self.deselectArtist()
+
+    def disconnect(self):
+        """disconnect the callbacks"""
+        for cid in self.cids:
+            self.canvas.mpl_disconnect(cid)
+
+    def artist_picker(self, artist, evt):
+        return self.ref_artist.contains(evt)
+
+    def deselectArtist(self):
+        pass
+
+    def save_offset(self):
+        pass
+
+    def update_offset(self, dx, dy):
+        pass
+
+    def finalize_offset(self):
+        pass
+
+class DraggableAxes(DraggableBase):
+
+    def __init__(self, axes, use_blit=False):
+        DraggableBase.__init__(self, axes, use_blit=use_blit)
+        self.axes = axes
+        self.cids.append(self.canvas.mpl_connect('key_press_event', self.keyPressEvent))
 
     def addGrabber(self, x, y, artist, dir, GrabberClass):
         # add a grabber object at the given coordinates
@@ -822,7 +704,6 @@ class DraggableAxes(DraggableBase):
                 self.deselectArtist()
 
     def deselectArtist(self):
-        self.selected = False
         # remove all grabbers when an artist is deselected
         for grabber in self.grabbers[::-1]:
             # remove the grabber from the list
@@ -938,25 +819,111 @@ class DraggableText(DraggableBase):
                     continue
                 # snap to the x and the y coordinate
                 x, y = txt.get_transform().transform(txt.get_position())
-                self.snaps.append(Snap(x, None, (x, x), (0, 1000), transform=None))
-                self.snaps.append(Snap(None, y, (0, 1000), (y, y), transform=None))
+                self.snaps.append(snapSamePos(self.text, txt, 0))
+                self.snaps.append(snapSamePos(self.text, txt, 1))
+
+
+    def applyOffset(self, dx, dy):
+        x, y = self.ox + dx, self.oy + dy
+        self.text.set_position(self.text.get_transform().inverted().transform((x, y)))
 
     def update_offset(self, dx, dy):
-        # get new position
-        x, y = self.ox + dx, self.oy + dy
-        # check snaps
-        for snap in self.snaps:
-            x, y = snap.checkSnap(x, y)
-        # display active snaps
-        for snap in self.snaps:
-            snap.checkSnapActive((x, y))
-        # set the new position for the text
-        self.text.set_position(self.text.get_transform().inverted().transform((x, y)))
+        self.applyOffset(dx, dy)
+        offx, offy = checkSnaps(self.snaps)
+
+        self.applyOffset(dx - offx, dy - offy)
+
+        checkSnapsActive(self.snaps)
 
     def finalize_offset(self):
         # remove all snaps when the dragger is released
         for snap in self.snaps:
             snap.remove()
+
+
+class DraggableOffsetBox(DraggableBase):
+    def __init__(self, ref_artist, offsetbox, use_blit=False):
+        DraggableBase.__init__(self, ref_artist, use_blit=use_blit)
+        self.offsetbox = offsetbox
+
+    def save_offset(self):
+        offsetbox = self.offsetbox
+        renderer = offsetbox.figure._cachedRenderer
+        w, h, xd, yd = offsetbox.get_extent(renderer)
+        offset = offsetbox.get_offset(w, h, xd, yd, renderer)
+        self.offsetbox_x, self.offsetbox_y = offset
+        self.offsetbox.set_offset(offset)
+
+    def update_offset(self, dx, dy):
+        loc_in_canvas = self.offsetbox_x + dx, self.offsetbox_y + dy
+        self.offsetbox.set_offset(loc_in_canvas)
+
+    def get_loc_in_canvas(self):
+
+        offsetbox = self.offsetbox
+        renderer = offsetbox.figure._cachedRenderer
+        w, h, xd, yd = offsetbox.get_extent(renderer)
+        ox, oy = offsetbox._offset
+        loc_in_canvas = (ox - xd, oy - yd)
+
+        return loc_in_canvas
+
+
+class DraggableLegend(DraggableOffsetBox):
+    def __init__(self, legend, use_blit=False, update="loc"):
+        """
+        update : If "loc", update *loc* parameter of
+                 legend upon finalizing. If "bbox", update
+                 *bbox_to_anchor* parameter.
+        """
+        self.legend = legend
+
+        if update in ["loc", "bbox"]:
+            self._update = update
+        else:
+            raise ValueError("update parameter '%s' is not supported." %
+                             update)
+
+        DraggableOffsetBox.__init__(self, legend, legend._legend_box,
+                                    use_blit=use_blit)
+
+    def artist_picker(self, legend, evt):
+        return self.legend.contains(evt)
+
+    def finalize_offset(self):
+        loc_in_canvas = self.get_loc_in_canvas()
+
+        if self._update == "loc":
+            self._update_loc(loc_in_canvas)
+        elif self._update == "bbox":
+            self._update_bbox_to_anchor(loc_in_canvas)
+        else:
+            raise RuntimeError("update parameter '%s' is not supported." %
+                               self.update)
+
+    def _update_loc(self, loc_in_canvas):
+        bbox = self.legend.get_bbox_to_anchor()
+
+        # if bbox has zero width or height, the transformation is
+        # ill-defined. Fall back to the defaul bbox_to_anchor.
+        if bbox.width == 0 or bbox.height == 0:
+            self.legend.set_bbox_to_anchor(None)
+            bbox = self.legend.get_bbox_to_anchor()
+
+        _bbox_transform = BboxTransformFrom(bbox)
+        self.legend._loc = tuple(
+            _bbox_transform.transform_point(loc_in_canvas)
+        )
+        print(tuple(
+            _bbox_transform.transform_point(loc_in_canvas)
+        ))
+
+    def _update_bbox_to_anchor(self, loc_in_canvas):
+
+        tr = self.legend.axes.transAxes
+        loc_in_bbox = tr.transform_point(loc_in_canvas)
+
+        self.legend.set_bbox_to_anchor(loc_in_bbox)
 
 
 def StartPylustration(xsnaps=None, ysnaps=None, unit="cm"):
