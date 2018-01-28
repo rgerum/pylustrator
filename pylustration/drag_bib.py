@@ -26,6 +26,8 @@ class FigureDragger:
         # store dragger, so that it is not eaten by the garbage collector
         fig.figure_dragger = self
         self.grabbers = []
+        self.edits = []
+        self.last_edit = -1
 
         # make all the subplots pickable
         for axes in self.fig.axes:
@@ -82,6 +84,28 @@ class FigureDragger:
         #fig.canvas.mpl_connect('draw_event', self.draw_event)
         fig.canvas.mpl_connect('resize_event', self.resize_event)
         #fig.canvas.mpl_connect('scroll_event', self.scroll_event)
+
+    def addEdit(self, edit):
+        if self.last_edit < len(self.edits)-1:
+            self.edits = self.edits[:self.last_edit+1]
+        self.edits.append(edit)
+        self.last_edit = len(self.edits)-1
+
+    def backEdit(self):
+        if self.last_edit < 0:
+            return
+        edit = self.edits[self.last_edit]
+        edit[0]()
+        self.last_edit -= 1
+        self.fig.canvas.draw()
+
+    def forwardEdit(self):
+        if self.last_edit >= len(self.edits)-1:
+            return
+        edit = self.edits[self.last_edit+1]
+        edit[1]()
+        self.last_edit += 1
+        self.fig.canvas.draw()
 
     def draw(self):
         # only draw if the canvas is not already drawing
@@ -142,6 +166,10 @@ class FigureDragger:
             save_text += "#% end: automatic generated code from pylustration"
             print(save_text)
             insertTextToFile(save_text, self.stack_position)
+        if event.key == "ctrl+z":
+            self.backEdit()
+        if event.key == "ctrl+y":
+            self.forwardEdit()
 
     def resize_event(self, event):
         # on the first resize (when the figure window plops up) store the additional size (edit toolbar and stuff)
@@ -391,6 +419,7 @@ class Grabber(object):
     target = None
     dir = None
     snaps = None
+    moved = False
 
     got_artist = False
 
@@ -419,12 +448,14 @@ class Grabber(object):
                 self.parent.initBlit()
 
             self.movedEvent(evt)
+            self.moved = True
 
             self.parent.doBlit()
 
     def on_pick(self, evt):
         if evt.artist == self:
             self.got_artist = True
+            self.moved = False
 
             self._c1 = self.fig.canvas.mpl_connect('motion_notify_event', self.on_motion)
             self.clickedEvent(evt)
@@ -458,13 +489,16 @@ class Grabber(object):
         self.mouse_x = event.mouseevent.x
         self.mouse_y = event.mouseevent.y
 
-        pos = self.target.get_position()
+        self.old_pos = self.target.get_position()
         self.ox, self.oy = self.get_xy()
 
         pos = self.target.get_position()
         self.w, self.h = self.target.figure.transFigure.transform((pos.width, pos.height))
 
     def releasedEvent(self, event):
+        pos = self.target.get_position()
+        if self.moved:
+            self.target.figure.figure_dragger.addEdit([lambda pos=self.old_pos: self.parent.redoPos(pos), lambda pos=pos: self.parent.redoPos(pos)])
         for snap in self.snaps[self.snap_index_offset:]:
             snap.remove()
         self.snaps = self.snaps[self.snap_index_offset:]
@@ -558,6 +592,7 @@ DraggableBase.on_pick = on_pick_wrap(DraggableBase.on_pick)
 class DraggableBase(object):
     selected = False
     blit_initialized = False
+    moved = False
 
     def __init__(self, ref_artist, use_blit=False):
         self.ref_artist = ref_artist
@@ -615,6 +650,7 @@ class DraggableBase(object):
             dx = evt.x - self.mouse_x
             dy = evt.y - self.mouse_y
             self.update_offset(dx, dy)
+            self.moved = True
             self.canvas.draw()
 
     def on_motion_blit(self, evt):
@@ -625,6 +661,7 @@ class DraggableBase(object):
             dx = evt.x - self.mouse_x
             dy = evt.y - self.mouse_y
             self.update_offset(dx, dy)
+            self.moved = True
             self.doBlit()
 
     def on_pick(self, evt):
@@ -633,6 +670,7 @@ class DraggableBase(object):
             self.mouse_x = evt.mouseevent.x
             self.mouse_y = evt.mouseevent.y
             self.got_artist = True
+            self.moved = False
 
             if self._use_blit:
                 self._c1 = self.canvas.mpl_connect('motion_notify_event', self.on_motion_blit)
@@ -644,7 +682,8 @@ class DraggableBase(object):
 
     def on_release(self, event):
         if self.got_artist:
-            self.finalize_offset()
+            if self.moved:
+                self.finalize_offset()
             self.got_artist = False
             self.canvas.mpl_disconnect(self._c1)
 
@@ -652,8 +691,12 @@ class DraggableBase(object):
             self.finishBlit()
 
         if getattr(event, "inaxes", 0) is None and self.selected:
-            self.selected = False
-            self.deselectArtist()
+            for grabber in self.grabbers:
+                if grabber.got_artist:
+                    break
+            else:
+                self.selected = False
+                self.deselectArtist()
 
         new_artist = getattr(event, "artist", None)
         if new_artist and new_artist != self.ref_artist and self.selected:
@@ -714,6 +757,7 @@ class DraggableAxes(DraggableBase):
             except ValueError:
                 pass
         self.axes.figure.canvas.draw()
+        self.selected = False
 
     def selectArtist(self):
         if self.selected:
@@ -740,6 +784,7 @@ class DraggableAxes(DraggableBase):
         self.selectArtist()
         # get current position of the text
         pos = self.axes.get_position()
+        self.old_pos = pos
         self.ox, self.oy = self.axes.figure.transFigure.transform((pos.x0, pos.y0))
         self.width = pos.width
         self.height = pos.height
@@ -768,7 +813,13 @@ class DraggableAxes(DraggableBase):
         checkSnapsActive(self.snaps)
         self.updateGrabbers()
 
+    def redoPos(self, pos):
+        self.ref_artist.set_position(pos)
+        self.deselectArtist()
+
     def finalize_offset(self):
+        pos = self.ref_artist.get_position()
+        self.ref_artist.figure.figure_dragger.addEdit([lambda pos=self.old_pos: self.redoPos(pos), lambda pos=pos: self.redoPos(pos)])
         for snap in self.snaps:
             snap.hide()
         self.axes.figure.canvas.draw()
@@ -808,6 +859,7 @@ class DraggableText(DraggableBase):
 
     def save_offset(self):
         # get current position of the text
+        self.old_pos = self.text.get_position()
         self.ox, self.oy = self.text.get_transform().transform(self.text.get_position())
         # add snaps
         self.snaps = []
@@ -835,7 +887,14 @@ class DraggableText(DraggableBase):
 
         checkSnapsActive(self.snaps)
 
+    def redoPos(self, pos):
+        self.ref_artist.set_position(pos)
+        self.deselectArtist()
+
     def finalize_offset(self):
+        pos = self.ref_artist.get_position()
+        self.ref_artist.figure.figure_dragger.addEdit(
+            [lambda pos=self.old_pos: self.redoPos(pos), lambda pos=pos: self.redoPos(pos)])
         # remove all snaps when the dragger is released
         for snap in self.snaps:
             snap.remove()
@@ -853,6 +912,7 @@ class DraggableOffsetBox(DraggableBase):
         offset = offsetbox.get_offset(w, h, xd, yd, renderer)
         self.offsetbox_x, self.offsetbox_y = offset
         self.offsetbox.set_offset(offset)
+        self.old_pos = self.get_loc_in_canvas()
 
     def update_offset(self, dx, dy):
         loc_in_canvas = self.offsetbox_x + dx, self.offsetbox_y + dy
@@ -890,8 +950,13 @@ class DraggableLegend(DraggableOffsetBox):
     def artist_picker(self, legend, evt):
         return self.legend.contains(evt)
 
+    def redoPos(self, loc_in_canvas):
+        self.offsetbox.set_offset(loc_in_canvas)
+
     def finalize_offset(self):
         loc_in_canvas = self.get_loc_in_canvas()
+        self.ref_artist.figure.figure_dragger.addEdit(
+            [lambda pos=self.old_pos: self.redoPos(pos), lambda pos=loc_in_canvas: self.redoPos(pos)])
 
         if self._update == "loc":
             self._update_loc(loc_in_canvas)
