@@ -330,7 +330,7 @@ class snapSameDimension(snapBase):
             return np.inf
         p1 = self.getPosition(self.ax_source)
         p2 = self.getPosition(self.ax_target)
-        return (p1[self.edge+2]-p1[self.edge]) - (p2[self.edge+2]-p2[self.edge])
+        return (p2[self.edge-2]-p2[self.edge]) - (p1[self.edge-2]-p1[self.edge])
 
     def show(self):
         p1 = self.getPosition(self.ax_source)
@@ -362,6 +362,65 @@ class snapSamePos(snapBase):
         self.set_data((p1[0], p2[0]), (p1[1], p2[1]))
 
 
+class snapSameBorder(snapBase):
+    def overlap(self, p1, p2, dir):
+        if p1[dir + 2] < p2[dir] or p1[dir] > p2[dir + 2]:
+            return False
+        return True
+
+    def getBorders(self, p1, p2):
+        borders = []
+        for edge in [0, 1]:
+            if self.overlap(p1, p2, 1-edge):
+                if p1[edge + 2] < p2[edge]:
+                    dist = p2[edge] - p1[edge + 2]
+                    borders.append([edge*2+0, dist])
+                if p1[edge] > p2[edge + 2]:
+                    dist = p1[edge] - p2[edge + 2]
+                    borders.append([edge*2+1, dist])
+        return np.array(borders)
+
+    def getDistance(self, index):
+        self.ax_target2 = self.edge
+        p1 = self.getPosition(self.ax_source)
+        p2 = self.getPosition(self.ax_target)
+        p3 = self.getPosition(self.ax_target2)
+        for edge in [index]:
+            if (p1[edge+2] < p2[edge] or p1[edge] > p2[edge+2]) and self.overlap(p1, p2, 1-edge):
+                distances = np.array([p2[edge]-p1[edge + 2], p1[edge] - p2[edge + 2]])
+                index1 = np.argmax(distances)
+                distance = distances[index1]
+                borders = self.getBorders(p2, p3)
+                if len(borders):
+                    deltas = distance - borders[:, 1]
+                    index2 = np.argmin(np.abs(deltas))
+                    self.dir2 = borders[index2, 0]
+                    self.dir1 = edge*2+index1
+                    return deltas[index2]*(-1+2*index1)
+        return np.inf
+
+    def getConnection(self, p1, p2, dir):
+        edge, order = dir//2, dir%2
+        if order == 1:
+            p1, p2 = p2, p1
+        if edge == 0:
+            y = np.mean([max(p1[1], p2[1]), min(p1[3], p2[3])])
+            return [[p1[2], p2[0], np.nan], [y, y, np.nan]]
+        x = np.mean([max(p1[0], p2[0]), min(p1[2], p2[2])])
+        return [[x, x, np.nan], [p1[3], p2[1], np.nan]]
+
+    def show(self):
+        p1 = self.getPosition(self.ax_source)
+        p2 = self.getPosition(self.ax_target)
+        p3 = self.getPosition(self.edge)
+        x1, y1 = self.getConnection(p1, p2, self.dir1)
+        x2, y2 = self.getConnection(p2, p3, self.dir2)
+        x1.extend(x2)
+        y1.extend(y2)
+        self.set_data((x1, y1))
+
+
+
 def checkSnaps(snaps):
     result = [0, 0]
     for index in range(2):
@@ -380,7 +439,7 @@ def checkSnapsActive(snaps):
 
 def getSnaps(target, dir, no_height=False):
     snaps = []
-    for axes in target.figure.axes:
+    for index, axes in enumerate(target.figure.axes):
         if axes != target:
             # axes edged
             if dir & DIR_X0:
@@ -392,25 +451,21 @@ def getSnaps(target, dir, no_height=False):
             if dir & DIR_Y1:
                 snaps.append(snapSameEdge(target, axes, 3))
 
+            # snap same dimensions
             if not no_height:
-                if dir & DIR_X0 or dir & DIR_X1:
+                if dir & DIR_X0:
                     snaps.append(snapSameDimension(target, axes, 0))
-                if dir & DIR_Y0 or dir & DIR_Y1:
+                if dir & DIR_X1:
+                    snaps.append(snapSameDimension(target, axes, 2))
+                if dir & DIR_Y0:
                     snaps.append(snapSameDimension(target, axes, 1))
-            continue
-            # same distances
+                if dir & DIR_Y1:
+                    snaps.append(snapSameDimension(target, axes, 3))
+                pass
+
             for axes2 in target.figure.axes:
                 if axes2 != axes and axes2 != target:
-                    pos2 = axes2.get_position()
-                    if pos1.x1 < pos2.x0:
-                        if dir & DIR_X0:
-                            snaps.append(Snap(pos2.x1 + (pos2.x0 - pos1.x1), None, (
-                                pos2.x1, pos2.x1 + (pos2.x0 - pos1.x1), np.nan, pos1.x1, pos2.x0),
-                                                   [pos0.y0 + pos0.height / 2] * 5))
-                        if dir & DIR_X1:
-                            snaps.append(Snap(pos1.x0 - (pos2.x0 - pos1.x1), None, (
-                                pos1.x0, pos1.x0 - (pos2.x0 - pos1.x1), np.nan, pos1.x1, pos2.x0),
-                                                   [pos0.y0 + pos0.height / 2] * 5))
+                    snaps.append(snapSameBorder(target, axes, axes2))
     return snaps
 
 
