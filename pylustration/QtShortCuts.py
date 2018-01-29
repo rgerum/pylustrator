@@ -1,6 +1,16 @@
 from qtpy import QtCore, QtGui, QtWidgets
 import numpy as np
 import matplotlib as mpl
+
+
+def getColorFromCoordinates(p):
+    desktop = QtWidgets.QApplication.desktop()
+    pixmap = QtWidgets.QGuiApplication.screens().at(desktop.screenNumber()).grabWindow(desktop.winId(),
+                                                                                         p.x(), p.y(), 1, 1)
+    i = pixmap.toImage()
+    return i.pixel(0, 0)
+
+
 """ Color Chooser """
 
 class QDragableColor(QtWidgets.QLineEdit):

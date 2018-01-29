@@ -67,6 +67,84 @@ def figure(num=None, size=None, *args, **kwargs):
     # return the figure
     return canvas.figure
 
+""" Figure list functions """
+
+
+def addChildren(color_artists, parent):
+    for artist in parent.get_children():
+        # ignore empty texts
+        if isinstance(artist, mpl.text.Text) and artist.get_text() == "":
+            continue
+
+        # add the children of the item (not for text or ticks)
+        if not isinstance(artist, (mpl.text.Text, mpl.axis.XTick, mpl.axis.YTick)):
+            addChildren(color_artists, artist)
+
+        # iterate over the elements
+        for color_type_name in ["edgecolor", "facecolor", "color"]:
+            colors = getattr(artist, "get_" + color_type_name, lambda: None)()
+            # ignore colors that are not set
+            if colors is None:
+                continue
+            # test if it is a colormap
+            try:
+                cmap = colors.cmap
+                value = colors.value
+            except AttributeError:
+                cmap = None
+
+            # convert to array
+            if not (isinstance(colors, np.ndarray) and len(colors.shape) > 1):
+                colors = [colors]
+
+            # omit blacks and whites
+            if mpl.colors.to_hex(colors[0]) == "#000000" or mpl.colors.to_hex(colors[0]) == "#ffffff":
+                continue
+
+            # if we have a colormap
+            if cmap:
+                # iterate over the colors of the colormap
+                for index, color in enumerate(cmap.get_color()):
+                    # convert to hex
+                    color = mpl.colors.to_hex(color)
+                    # check if it is already in the dictionary
+                    if color not in color_artists:
+                        color_artists[color] = []
+                    # add the artist
+                    color_artists[color].append([color_type_name, artist, value, cmap, index])
+            else:
+                # iterate over the colors
+                for color in colors:
+                    # ignore transparent colors
+                    if mpl.colors.to_rgba(color)[3] == 0:
+                        continue
+                    # convert to hey
+                    color = mpl.colors.to_hex(color)
+                    # check if it is already in the dictionary
+                    if color not in color_artists:
+                        color_artists[color] = []
+                    # add the artist
+                    color_artists[color].append([color_type_name, artist, None, None, None])
+
+def figureListColors(figure):
+    figure.color_artists = {}
+    addChildren(figure.color_artists, figure)
+
+def figureSwapColor(figure, new_color, color_base):
+    if getattr(figure, "color_artists", None) is None:
+        figureListColors(figure)
+    for data in figure.color_artists[color_base]:
+        # get the data
+        color_type_name, artist, value, cmap, index = data
+        # if the color is part of a colormap, update the colormap
+        if cmap:
+            # update colormap
+            cmap.set_color(new_color, index)
+            # use the attributes setter method
+            getattr(artist, "set_" + color_type_name)(cmap(value))
+        else:
+            # use the attributes setter method
+            getattr(artist, "set_" + color_type_name)(new_color)
 
 """ Window """
 
@@ -106,75 +184,7 @@ class PlotWindow(QtWidgets.QWidget):
         self.layout_right.addLayout(self.layout_colors2)
         self.layout_main.addLayout(self.layout_right)
 
-    def addChildren(self, parent):
-        for artist in parent.get_children():
-            # ignore empty texts
-            if isinstance(artist, mpl.text.Text) and artist.get_text() == "":
-                continue
 
-            # add the children of the item (not for text or ticks)
-            if not isinstance(artist, (mpl.text.Text, mpl.axis.XTick, mpl.axis.YTick)):
-                self.addChildren(artist)
-
-            # iterate over the elements
-            for color_type_name in ["edgecolor", "facecolor", "color"]:
-                colors = getattr(artist, "get_" + color_type_name, lambda: None)()
-                # ignore colors that are not set
-                if colors is None:
-                    continue
-                # test if it is a colormap
-                try:
-                    cmap = colors.cmap
-                    value = colors.value
-                except AttributeError:
-                    cmap = None
-
-                # convert to array
-                if not (isinstance(colors, np.ndarray) and len(colors.shape) > 1):
-                    colors = [colors]
-
-                if mpl.colors.to_hex(colors[0]) == "#000000" or mpl.colors.to_hex(colors[0]) == "#FFFFFF":
-                    continue
-
-                # omit black texts. spines and lines
-                if (isinstance(artist, mpl.text.Text) or
-                        isinstance(artist, mpl.lines.Line2D) or
-                        isinstance(artist, mpl.spines.Spine)) and mpl.colors.to_hex(colors[0]) == "#000000":
-                    continue
-
-                # omit background color
-                if isinstance(artist, mpl.patches.Rectangle) and artist.get_xy() == (
-                        0, 0) and artist.get_width() == 1 and artist.get_height() == 1:
-                    continue
-
-                # omit white faces
-                if mpl.colors.to_hex(colors[0]) == "#ffffff":
-                    continue
-
-                # if we have a colormap
-                if cmap:
-                    # iterate over the colors of the colormap
-                    for index, color in enumerate(cmap.get_color()):
-                        # convert to hex
-                        color = mpl.colors.to_hex(color)
-                        # check if it is already in the dictionary
-                        if color not in self.color_artists:
-                            self.color_artists[color] = []
-                        # add the artist
-                        self.color_artists[color].append([color_type_name, artist, value, cmap, index])
-                else:
-                    # iterate over the colors
-                    for color in colors:
-                        # ignore transparent colors
-                        if mpl.colors.to_rgba(color)[3] == 0:
-                            continue
-                        # convert to hey
-                        color = mpl.colors.to_hex(color)
-                        # check if it is already in the dictionary
-                        if color not in self.color_artists:
-                            self.color_artists[color] = []
-                        # add the artist
-                        self.color_artists[color].append([color_type_name, artist, None, None, None])
 
     def addColorButton(self, color, basecolor=None):
         button = QDragableColor(mpl.colors.to_hex(color))
@@ -186,7 +196,8 @@ class PlotWindow(QtWidgets.QWidget):
 
     def updateColors(self):
         # add recursively all artists of the figure
-        self.addChildren(self.canvas.figure)
+        figureListColors(self.canvas.figure)
+        self.color_artists = self.canvas.figure.color_artists
 
         # iterate over all colors
         self.color_buttons = {}
@@ -201,9 +212,6 @@ class PlotWindow(QtWidgets.QWidget):
         self.layout_colors2.addWidget(self.colors_text_widget)
         self.colors_text_widget.setText("\n".join([mpl.colors.to_hex(color) for color in self.color_artists]))
         self.colors_text_widget.textChanged.connect(self.colors_changed)
-
-        # add a stretch
-        #self.layout_colors.addStretch()
 
         # update the canvas dimensions
         self.canvas.updateGeometry()
@@ -222,18 +230,6 @@ class PlotWindow(QtWidgets.QWidget):
     def color_selected(self, new_color, color_base):
         if color_base is None:
             return
-        # iterate over all artist entices associated with this color
-        for data in self.color_artists[color_base]:
-            # get the data
-            color_type_name, artist, value, cmap, index = data
-            # if the color is part of a colormap, update the colormap
-            if cmap:
-                # update colormap
-                cmap.set_color(new_color, index)
-                # use the attributes setter method
-                getattr(artist, "set_" + color_type_name)(cmap(value))
-            else:
-                # use the attributes setter method
-                getattr(artist, "set_" + color_type_name)(new_color)
+        figureSwapColor(self.canvas.figure, new_color, color_base)
         # redraw the plot
         self.canvas.draw()
