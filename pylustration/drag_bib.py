@@ -461,7 +461,6 @@ def getSnaps(target, dir, no_height=False):
                     snaps.append(snapSameDimension(target, axes, 1))
                 if dir & DIR_Y1:
                     snaps.append(snapSameDimension(target, axes, 3))
-                pass
 
             for axes2 in target.figure.axes:
                 if axes2 != axes and axes2 != target:
@@ -593,9 +592,10 @@ class Grabber(object):
         dy = event.y - self.mouse_y
 
         self.applyOffset((dx, dy), event)
-        offx, offy = checkSnaps(self.snaps)
 
-        self.applyOffset((dx - offx, dy - offy), event)
+        if not ("shift" in event.key.split("+") if event.key is not None else False):
+            offx, offy = checkSnaps(self.snaps)
+            self.applyOffset((dx - offx, dy - offy), event)
 
         checkSnapsActive(self.snaps)
         self.parent.updateGrabbers()
@@ -715,7 +715,7 @@ class DraggableBase(object):
 
             dx = evt.x - self.mouse_x
             dy = evt.y - self.mouse_y
-            self.update_offset(dx, dy)
+            self.update_offset(dx, dy, evt)
             self.moved = True
             self.doBlit()
 
@@ -773,7 +773,7 @@ class DraggableBase(object):
     def save_offset(self):
         pass
 
-    def update_offset(self, dx, dy):
+    def update_offset(self, dx, dy, event):
         pass
 
     def finalize_offset(self):
@@ -859,11 +859,12 @@ class DraggableAxes(DraggableBase):
         # set the new position for the text
         self.axes.set_position(pos)
 
-    def update_offset(self, dx, dy):
+    def update_offset(self, dx, dy, event):
         self.applyOffset(dx, dy)
-        offx, offy = checkSnaps(self.snaps)
 
-        self.applyOffset(dx - offx, dy - offy)
+        if not ("shift" in event.key.split("+") if event.key is not None else False):
+            offx, offy = checkSnaps(self.snaps)
+            self.applyOffset(dx - offx, dy - offy)
 
         checkSnapsActive(self.snaps)
         self.updateGrabbers()
@@ -934,11 +935,12 @@ class DraggableText(DraggableBase):
         x, y = self.ox + dx, self.oy + dy
         self.text.set_position(self.text.get_transform().inverted().transform((x, y)))
 
-    def update_offset(self, dx, dy):
+    def update_offset(self, dx, dy, event):
         self.applyOffset(dx, dy)
-        offx, offy = checkSnaps(self.snaps)
 
-        self.applyOffset(dx - offx, dy - offy)
+        if not ("shift" in event.key.split("+") if event.key is not None else False):
+            offx, offy = checkSnaps(self.snaps)
+            self.applyOffset(dx - offx, dy - offy)
 
         checkSnapsActive(self.snaps)
 
@@ -969,7 +971,7 @@ class DraggableOffsetBox(DraggableBase):
         self.offsetbox.set_offset(offset)
         self.old_pos = self.get_loc_in_canvas()
 
-    def update_offset(self, dx, dy):
+    def update_offset(self, dx, dy, event):
         loc_in_canvas = self.offsetbox_x + dx, self.offsetbox_y + dy
         self.offsetbox.set_offset(loc_in_canvas)
 
