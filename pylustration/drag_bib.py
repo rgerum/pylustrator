@@ -158,11 +158,11 @@ class FigureDragger:
                     if txt.pickable():
                         # ...store its position
                         pos = txt.get_position()
-                        save_text += "fig.axes[%d].texts[%d].set_position([%f, %f])\n" % (index, index2, pos[0], pos[1])
+                        save_text += "fig.axes[%d].texts[%d].set_position([%f, %f])  # Text: \"%s\"\n" % (index, index2, pos[0], pos[1], txt.get_text())
             for index, txt in enumerate(self.fig.texts):
                 if txt.pickable():
                     pos = txt.get_position()
-                    save_text += "fig.texts[%d].set_position([%f, %f])\n" % (index, pos[0], pos[1])
+                    save_text += "fig.texts[%d].set_position([%f, %f])  # Text: \"%s\"\n" % (index, pos[0], pos[1], txt.get_text())
             save_text += "#% end: automatic generated code from pylustration"
             print(save_text)
             insertTextToFile(save_text, self.stack_position)
