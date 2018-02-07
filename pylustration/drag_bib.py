@@ -30,8 +30,11 @@ class FigureDragger:
         self.last_edit = -1
 
         # make all the subplots pickable
-        for axes in self.fig.axes:
+        for index, axes in enumerate(self.fig.axes):
+            axes.set_title(index)
+            axes.number = index
             axes.set_picker(True)
+            print("set picker", axes)
             leg = axes.get_legend()
             if leg:
                 dragger = DraggableLegend(leg, use_blit=True)
@@ -1055,4 +1058,5 @@ def StartPylustration(xsnaps=None, ysnaps=None, unit="cm"):
 
     # add a dragger for each figure
     for i in plt.get_fignums():
+        print("add difgure dragger", plt.figure(i))
         FigureDragger(plt.figure(i), xsnaps, ysnaps, unit)
