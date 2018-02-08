@@ -651,6 +651,7 @@ class DraggableBase(object):
     selected = False
     blit_initialized = False
     moved = False
+    connected = False
 
     def __init__(self, ref_artist, use_blit=False):
         self.ref_artist = ref_artist
@@ -659,14 +660,17 @@ class DraggableBase(object):
         self.canvas = self.ref_artist.figure.canvas
         self._use_blit = use_blit and self.canvas.supports_blit
 
-        c2 = self.canvas.mpl_connect('pick_event', self.on_pick)
-        c3 = self.canvas.mpl_connect('button_release_event', self.on_release)
-
         ref_artist.set_picker(self.artist_picker)
-        self.cids = [c2, c3]
+        self.connect()
 
         self.grabbers = []
         self.snaps = []
+
+    def connect(self):
+        c2 = self.canvas.mpl_connect('pick_event', self.on_pick)
+        c3 = self.canvas.mpl_connect('button_release_event', self.on_release)
+        self.cids = [c2, c3]
+        self.connected = True
 
     def initBlit(self):
         self.blit_initialized = True
@@ -766,6 +770,7 @@ class DraggableBase(object):
         """disconnect the callbacks"""
         for cid in self.cids:
             self.canvas.mpl_disconnect(cid)
+        self.connected = False
 
     def artist_picker(self, artist, evt):
         return self.ref_artist.contains(evt)
