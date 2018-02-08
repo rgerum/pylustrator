@@ -304,7 +304,7 @@ class MyTreeView(QtWidgets.QTreeView):
         return entry.get_children()
 
     def getParentEntry(self, entry):
-        return None
+        return entry.parent
         if isinstance(entry, self.data_file.table_markertype):
             return None
         if isinstance(entry, self.data_file.table_marker):
@@ -331,6 +331,9 @@ class MyTreeView(QtWidgets.QTreeView):
         return "nix"
 
     def getIconOfEntry(self, entry):
+        if getattr(entry, "_draggable", None):
+            if entry._draggable.connected:
+                return qta.icon("fa.hand-paper-o")
         return QtGui.QIcon()
         if isinstance(entry, self.data_file.table_markertype):
             if entry.mode == TYPE_Normal:
@@ -368,6 +371,7 @@ class MyTreeView(QtWidgets.QTreeView):
     def expand(self, entry, force_reload=True):
         query = self.queryToExpandEntry(entry)
         parent_item = self.getItemFromEntry(entry)
+        parent_entry = entry
 
         if parent_item:
             if parent_item.expanded is False:
@@ -384,6 +388,7 @@ class MyTreeView(QtWidgets.QTreeView):
         # add all marker types
         row = -1
         for row, entry in enumerate(query):
+            entry.parent = parent_entry
             self.addChild(parent_item, entry)
 
         """
@@ -546,10 +551,11 @@ class QItemProperties(QtWidgets.QWidget):
     element = None
     transform = None
 
-    def __init__(self, layout, fig):
+    def __init__(self, layout, fig, tree):
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
         self.layout = QtWidgets.QVBoxLayout(self)
+        self.tree = tree
 
         self.label = QtWidgets.QLabel()
         self.layout.addWidget(self.label)
@@ -605,6 +611,7 @@ class QItemProperties(QtWidgets.QWidget):
             self.element._draggable.connect()
         else:
             self.element._draggable.disconnect()
+        self.tree.updateEntry(self.element)
 
     def setElement(self, element):
         self.label.setText(str(element))
@@ -675,7 +682,7 @@ class PlotWindow(QtWidgets.QWidget):
         self.treeView = MyTreeView(self, self.layout_tools, self.fig)
         self.treeView.item_selected = self.elementSelected
 
-        self.input_properties = QItemProperties(self.layout_tools, self.fig)
+        self.input_properties = QItemProperties(self.layout_tools, self.fig, self.treeView)
 
         # add plot layout
         self.layout_plot = QtWidgets.QVBoxLayout()
