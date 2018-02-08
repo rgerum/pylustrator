@@ -177,9 +177,9 @@ class CheckWidget(QtWidgets.QWidget):
         if not self.noSignal:
             self.stateChanged.emit(self.input1.isChecked())
 
-    def setCheckState(self, state):
+    def setChecked(self, state):
         self.noSignal = True
-        self.input1.setCheckState(state)
+        self.input1.setChecked(state)
         self.noSignal = False
 
     def isChecked(self):
@@ -601,7 +601,10 @@ class QItemProperties(QtWidgets.QWidget):
         self.fig.canvas.draw()
 
     def changePickable(self):
-        self.element.set_picker(self.input_picker.isChecked())
+        if self.input_picker.isChecked():
+            self.element._draggable.connect()
+        else:
+            self.element._draggable.disconnect()
 
     def setElement(self, element):
         self.label.setText(str(element))
@@ -610,7 +613,7 @@ class QItemProperties(QtWidgets.QWidget):
         try:
             element._draggable
             print(element.get_picker())
-            self.input_picker.setCheckState(element.pickable())
+            self.input_picker.setChecked(element._draggable.connected)
             self.input_picker.show()
         except AttributeError:
             self.input_picker.hide()
