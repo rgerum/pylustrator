@@ -21,6 +21,8 @@ class FigureDragger:
     displaying = False
     snaps = None
 
+    changes = None
+
     def __init__(self, fig, xsnaps=None, ysnaps=None, unit="cm"):
         self.fig = fig
         # store dragger, so that it is not eaten by the garbage collector
@@ -28,6 +30,7 @@ class FigureDragger:
         self.grabbers = []
         self.edits = []
         self.last_edit = -1
+        self.changes = {}
 
         # make all the subplots pickable
         for index, axes in enumerate(self.fig.axes):
@@ -88,6 +91,10 @@ class FigureDragger:
         fig.canvas.mpl_connect('resize_event', self.resize_event)
         #fig.canvas.mpl_connect('scroll_event', self.scroll_event)
 
+    def addChange(self, change_key, change):
+        self.changes[change_key] = change
+        print(self.changes)
+
     def addEdit(self, edit):
         if self.last_edit < len(self.edits)-1:
             self.edits = self.edits[:self.last_edit+1]
@@ -127,6 +134,27 @@ class FigureDragger:
     def key_press_event(self, event):
         # space: print code to restore current configuration
         if event.key == ' ':
+            figure = "fig = plt.figure(%s)\n" % self.fig.number
+            block = getTextFromFile(figure, self.stack_position).split("\n")
+            output = "#% start: automatic generated code from pylustration\n"
+            output += figure
+            for line in block[1:]:
+                line = line.strip()
+                if line == "":
+                    continue
+                for key in self.changes:
+                    if line.startswith(key):
+                        break
+                else:
+                    output += line + "\n"
+            for key in self.changes:
+                output += self.changes[key] + "\n"
+            output += "#% end: automatic generated code from pylustration"
+            print(output)
+            insertTextToFile(output, self.stack_position)
+
+            return
+
             # print comment that the block starts
             save_text = "#% start: automatic generated code from pylustration\n"
             # get the figure by its name
@@ -225,6 +253,28 @@ def moveArtist(index, x1, y1, x2, y2):
         artists[index].original_pos = [x1, y1]
     print("########", artist)
     artists[index].set_position([x2, y2])
+
+def getTextFromFile(marker, stack_pos):
+    block_active = False
+    block = ""
+    last_block = -10
+    written = False
+    with open(stack_pos.filename, 'r') as fp1:
+        for lineno, line in enumerate(fp1):
+            if block_active:
+                if line.strip().startswith("#% end:"):
+                    block_active = False
+                    last_block = lineno
+                    if block.split("\n", 1)[0] == marker[:-1]:
+                        break
+                    block = ""
+                block = block + line
+            elif line.strip().startswith("#% start:"):
+                #block = block + line
+                block_active = True
+            if block_active:
+                continue
+    return block
 
 
 def insertTextToFile(text, stack_pos):
@@ -556,6 +606,8 @@ class Grabber(object):
         pos = self.target.get_position()
         if self.moved:
             self.target.figure.figure_dragger.addEdit([lambda pos=self.old_pos: self.parent.redoPos(pos), lambda pos=pos: self.parent.redoPos(pos)])
+            key = "fig.axes[%d].set_position" % self.target.number
+            self.target.figure.figure_dragger.addChange(key, key + "([%f, %f, %f, %f])" % (pos.x0, pos.y0, pos.width, pos.height))
         for snap in self.snaps[self.snap_index_offset:]:
             snap.remove()
         self.snaps = self.snaps[self.snap_index_offset:]
@@ -660,7 +712,6 @@ class DraggableBase(object):
         self.canvas = self.ref_artist.figure.canvas
         self._use_blit = use_blit and self.canvas.supports_blit
 
-        ref_artist.set_picker(self.artist_picker)
         self.connect()
 
         self.grabbers = []
@@ -671,6 +722,7 @@ class DraggableBase(object):
         c3 = self.canvas.mpl_connect('button_release_event', self.on_release)
         self.cids = [c2, c3]
         self.connected = True
+        self.ref_artist.set_picker(self.artist_picker)
 
     def initBlit(self):
         self.blit_initialized = True
@@ -771,6 +823,7 @@ class DraggableBase(object):
         for cid in self.cids:
             self.canvas.mpl_disconnect(cid)
         self.connected = False
+        self.ref_artist.set_picker(None)
 
     def artist_picker(self, artist, evt):
         return self.ref_artist.contains(evt)
@@ -884,6 +937,8 @@ class DraggableAxes(DraggableBase):
     def finalize_offset(self):
         pos = self.ref_artist.get_position()
         self.ref_artist.figure.figure_dragger.addEdit([lambda pos=self.old_pos: self.redoPos(pos), lambda pos=pos: self.redoPos(pos)])
+        key = "fig.axes[%d].set_position" % self.ref_artist.number
+        self.ref_artist.figure.figure_dragger.addChange(key, key+"([%f, %f, %f, %f])" % (pos.x0, pos.y0, pos.width, pos.height))
         for snap in self.snaps:
             snap.hide()
         self.axes.figure.canvas.draw()
@@ -960,6 +1015,14 @@ class DraggableText(DraggableBase):
         pos = self.ref_artist.get_position()
         self.ref_artist.figure.figure_dragger.addEdit(
             [lambda pos=self.old_pos: self.redoPos(pos), lambda pos=pos: self.redoPos(pos)])
+        if self.ref_artist.axes:
+            index0 = self.ref_artist.axes.number
+            index1 = self.ref_artist.axes.texts.index(self.ref_artist)
+            key = "fig.axes[%d].texts[%d].set_position" % (index0, index1)
+        else:
+            index1 = self.ref_artist.figure.texts.index(self.ref_artist)
+            key = "fig.texts[%d].set_position" % (index1)
+        self.ref_artist.figure.figure_dragger.addChange(key, key + "([%f, %f])  # Text: \"%s\"" % (pos[0], pos[1], self.ref_artist.get_text()))
         # remove all snaps when the dragger is released
         for snap in self.snaps:
             snap.remove()
@@ -1030,6 +1093,12 @@ class DraggableLegend(DraggableOffsetBox):
         else:
             raise RuntimeError("update parameter '%s' is not supported." %
                                self.update)
+
+        loc = self.ref_artist._get_loc()
+        index1 = self.ref_artist.axes.number
+        key = "fig.axes[%d].get_legend()._set_loc" % (index1)
+        self.ref_artist.figure.figure_dragger.addChange(key, key + "(%s)" % (loc,))
+        #save_text += "fig.axes[%d].get_legend()._set_loc(%s)\n" % (index, loc)
 
     def _update_loc(self, loc_in_canvas):
         bbox = self.legend.get_bbox_to_anchor()
