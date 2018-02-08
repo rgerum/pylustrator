@@ -353,7 +353,7 @@ class MyTreeView(QtWidgets.QTreeView):
         return None
 
     def getKey(self, entry):
-        return type(entry).__name__ + str(entry)  # TODO id
+        return entry
 
     def getItemFromEntry(self, entry):
         if entry is None:
@@ -546,6 +546,23 @@ class MyTreeView(QtWidgets.QTreeView):
                 parent_item.setText(name)
 
 
+def getReference(element):
+    import matplotlib
+    if isinstance(element, Figure):
+        return "fig"
+    if isinstance(element, matplotlib.text.Text):
+        if element.axes:
+            index0 = element.axes.number
+            index1 = element.axes.texts.index(element)
+            return "fig.axes[%d].texts[%d]" % (index0, index1)
+        index1 = element.figure.texts.index(element)
+        return "fig.texts[%d]" % (index1)
+    if isinstance(element, matplotlib.axes.Subplot):
+        return "fig.axes[%d]" % element.number
+    if isinstance(element, matplotlib.legend.Legend):
+        return "fig.axes[%d].get_legend()" % element.axes.number
+
+
 class QItemProperties(QtWidgets.QWidget):
     valueChanged = QtCore.Signal(tuple)
     element = None
@@ -585,14 +602,24 @@ class QItemProperties(QtWidgets.QWidget):
             pos.y0 = value[1]
             pos.x1 = value[0]+w
             pos.y1 = value[1]+h
+
+            key = getReference(self.element) + ".set_position"
+            self.fig.figure_dragger.addChange(key, key + "([%f, %f, %f, %f])" % (pos.x0, pos.y0, pos.width, pos.height))
         except AttributeError:
             pos = value
+
+            key = getReference(self.element) + ".set_position"
+            self.fig.figure_dragger.addChange(key, key + "([%f, %f])" % (pos[0], pos[1]))
         self.element.set_position(pos)
         self.fig.canvas.draw()
 
     def changeSize(self, value):
         if isinstance(self.element, Figure):
             self.fig.set_size_inches(value)
+
+            key = getReference(self.element)+".set_size_inches"
+            self.fig.figure_dragger.addChange(key, key + "(%f/2.54, %f/2.54)" % (value[0]*2.54, value[1]*2.54))
+
             self.fig.canvas.draw()
             self.fig.widget.updateGeometry()
         else:
@@ -600,10 +627,16 @@ class QItemProperties(QtWidgets.QWidget):
             pos.x1 = pos.x0 + value[0]
             pos.y1 = pos.y0 + value[1]
             self.element.set_position(pos)
+
+            key = getReference(self.element) + ".set_position"
+            self.fig.figure_dragger.addChange(key, key + "([%f, %f, %f, %f])" % (pos.x0, pos.y0, pos.width, pos.height))
+
             self.fig.canvas.draw()
 
     def changeText(self):
         self.element.set_text(self.input_text.text())
+        key = getReference(self.element)+".set_text"
+        self.fig.figure_dragger.addChange(key, key + "(\"%s\")" % (self.element.get_text()))
         self.fig.canvas.draw()
 
     def changePickable(self):
@@ -699,12 +732,10 @@ class PlotWindow(QtWidgets.QWidget):
         self.layout_plot.addStretch()
 
     def changedFigureSize(self, tuple):
-        print("figure changed", tuple)
         self.fig.set_size_inches(np.array(tuple)/2.54)
         self.fig.canvas.draw()
 
     def elementSelected(self, element):
-        print(element)
         self.input_properties.setElement(element)
 
     def update(self):
