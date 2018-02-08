@@ -31,7 +31,7 @@ class FigureDragger:
 
         # make all the subplots pickable
         for index, axes in enumerate(self.fig.axes):
-            axes.set_title(index)
+            #axes.set_title(index)
             axes.number = index
             axes.set_picker(True)
             print("set picker", axes)
