@@ -14,6 +14,7 @@ import matplotlib.transforms as transforms
 
 from .QtShortCuts import AddQColorChoose, QDragableColor
 from .drag_bib import FigureDragger
+from .helper_functions import changeFigureSize
 
 import sys
 
@@ -187,6 +188,44 @@ class CheckWidget(QtWidgets.QWidget):
 
     def isChecked(self):
         return self.input1.isChecked()
+
+
+class RadioWidget(QtWidgets.QWidget):
+    stateChanged = QtCore.Signal(int, str)
+    noSignal = False
+
+    def __init__(self, layout, texts):
+        QtWidgets.QWidget.__init__(self)
+        layout.addWidget(self)
+        self.layout = QtWidgets.QHBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+
+        self.radio_buttons = []
+
+        self.texts = texts
+
+        for name in texts:
+            radio = QtWidgets.QRadioButton(name)
+            radio.toggled.connect(self.onToggled)
+            self.layout.addWidget(radio)
+            self.radio_buttons.append(radio)
+        self.radio_buttons[0].setChecked(True)
+
+    def onToggled(self, checked):
+        if checked:
+            self.checked = np.argmax([radio.isChecked() for radio in self.radio_buttons])
+            if not self.noSignal:
+                self.stateChanged.emit(self.checked, self.texts[self.checked])
+
+    def setState(self, state):
+        self.noSignal = True
+        for index, radio in enumerate(self.radio_buttons):
+            radio.setChecked(state == index)
+        self.checked = state
+        self.noSignal = False
+
+    def getState(self):
+        return self.checked
 
 
 class myTreeWidgetItem(QtGui.QStandardItem):
@@ -529,6 +568,7 @@ class QItemProperties(QtWidgets.QWidget):
     element = None
     transform = None
     transform_index = 0
+    scale_type = 0
 
     def __init__(self, layout, fig, tree):
         QtWidgets.QWidget.__init__(self)
@@ -539,16 +579,8 @@ class QItemProperties(QtWidgets.QWidget):
         self.label = QtWidgets.QLabel()
         self.layout.addWidget(self.label)
 
-        layout = QtWidgets.QHBoxLayout()
-        self.layout.addLayout(layout)
-
-        self.transforms = ["cm", "in", "px", "none"]
-        self.radio_buttons = []
-        for transform in self.transforms:
-            radio = QtWidgets.QRadioButton(transform)
-            radio.toggled.connect(self.changeTransform)
-            layout.addWidget(radio)
-            self.radio_buttons.append(radio)
+        self.input_transform = RadioWidget(self.layout, ["cm", "in", "px", "none"])
+        self.input_transform.stateChanged.connect(self.changeTransform)
 
         self.input_picker = CheckWidget(self.layout, "Pickable:")
         self.input_picker.stateChanged.connect(self.changePickable)
@@ -559,33 +591,29 @@ class QItemProperties(QtWidgets.QWidget):
         self.input_shape = DimensionsWidget(self.layout, "Size:", "x", "cm")
         self.input_shape.valueChanged.connect(self.changeSize)
 
+        self.input_shape_transform = RadioWidget(self.layout, ["scale", "bottom right", "top left"])
+        self.input_shape_transform.stateChanged.connect(self.changeTransform2)
+
         self.input_text = TextWidget(self.layout, "Text:")
         self.input_text.editingFinished.connect(self.changeText)
 
         #self.input_xlabel = TextWidget(self.layout, ":")
         #self.input_xlabel.editingFinished.connect(self.changeText)
 
-        self.radio_buttons[0].setChecked(True)
+        #self.radio_buttons[0].setChecked(True)
 
         self.fig = fig
 
-    def changeTransform(self, state):
-        if state:
-            transform_index = np.argmax([radio.isChecked() for radio in self.radio_buttons])
-            self.transform_index = transform_index
-            if transform_index == 0:
-                self.input_shape.setUnit("cm")
-                self.input_position.setUnit("cm")
-            if transform_index == 1:
-                self.input_shape.setUnit("in")
-                self.input_position.setUnit("in")
-            if transform_index == 2:
-                self.input_shape.setUnit("px")
-                self.input_position.setUnit("px")
-            if transform_index == 3:
-                self.input_shape.setUnit("")
-                self.input_position.setUnit("")
-            self.setElement(self.element)
+    def changeTransform(self, transform_index, name):
+        self.transform_index = transform_index
+        if name == "none":
+            name = ""
+        self.input_shape.setUnit(name)
+        self.input_position.setUnit(name)
+        self.setElement(self.element)
+
+    def changeTransform2(self, state, name):
+        self.scale_type = state
 
     def changePos(self, value):
         pos = self.element.get_position()
@@ -608,10 +636,19 @@ class QItemProperties(QtWidgets.QWidget):
 
     def changeSize(self, value):
         if isinstance(self.element, Figure):
-            self.fig.set_size_inches(value)
 
-            key = getReference(self.element)+".set_size_inches"
-            self.fig.figure_dragger.addChange(key, key + "(%f/2.54, %f/2.54)" % (value[0]*2.54, value[1]*2.54))
+            print("self.scale_type", self.scale_type)
+            if self.scale_type == 0:
+                self.fig.set_size_inches(value)
+                key = getReference(self.element)+".set_size_inches"
+                self.fig.figure_dragger.addChange(key, key + "(%f/2.54, %f/2.54)" % (value[0]*2.54, value[1]*2.54))
+            else:
+                if self.scale_type == 1:
+                    print(value)
+                    changeFigureSize(value[0], value[1], fig=self.fig)
+                elif self.scale_type == 2:
+                    changeFigureSize(value[0], value[1], cut_from_top=True, cut_from_left=True, fig=self.fig)
+
 
             self.fig.canvas.draw()
             self.fig.widget.updateGeometry()
@@ -672,15 +709,20 @@ class QItemProperties(QtWidgets.QWidget):
         except AttributeError:
             self.input_picker.hide()
 
+        self.input_shape_transform.hide()
+        self.input_transform.hide()
         if isinstance(element, Figure):
             pos = element.get_size_inches()
             self.input_shape.setTransform(self.getTransform(element))
             self.input_shape.setValue((pos[0], pos[1]))
             self.input_shape.show()
+            self.input_transform.show()
+            self.input_shape_transform.show()
         elif isinstance(element, Axes):
             pos = element.get_position()
             self.input_shape.setTransform(self.getTransform(element))
             self.input_shape.setValue((pos.width, pos.height))
+            self.input_transform.show()
             self.input_shape.show()
         else:
             self.input_shape.hide()
@@ -692,6 +734,7 @@ class QItemProperties(QtWidgets.QWidget):
                 self.input_position.setValue(pos)
             except Exception as err:
                 self.input_position.setValue((pos.x0, pos.y0))
+            self.input_transform.show()
             self.input_position.show()
         except:
             self.input_position.hide()
@@ -719,7 +762,14 @@ class PlotWindow(QtWidgets.QWidget):
 
         #
         self.layout_tools = QtWidgets.QVBoxLayout()
+        self.layout_tools.setContentsMargins(0, 0, 0, 0)
         self.layout_main.addLayout(self.layout_tools)
+        widget = QtWidgets.QWidget()
+        self.layout_tools.addWidget(widget)
+        self.layout_tools = QtWidgets.QVBoxLayout(widget)
+        widget.setMaximumWidth(300)
+        widget.setMinimumWidth(300)
+
 
         self.treeView = MyTreeView(self, self.layout_tools, self.fig)
         self.treeView.item_selected = self.elementSelected
