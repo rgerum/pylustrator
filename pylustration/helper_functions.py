@@ -44,14 +44,21 @@ def add_image(filename):
     plt.yticks([])
 
 
-def changeFigureSize(w, h, cut_from_top=False, cut_from_left=False):
-    oldw, oldh = plt.gcf().get_size_inches()
+def changeFigureSize(w, h, cut_from_top=False, cut_from_left=False, fig=None):
+    if fig is None:
+        fig = plt.gcf()
+    oldw, oldh = fig.get_size_inches()
     fx = oldw / w
     fy = oldh / h
+    print("fx", fx, oldw, w)
+    print("fy", fy, oldh, h)
     for axe in plt.gcf().axes:
         box = axe.get_position()
         if cut_from_top:
-            axe.set_position([box.x0 * fx, box.y0 * fy, (box.x1 - box.x0) * fx, (box.y1 - box.y0) * fy])
+            if cut_from_left:
+                axe.set_position([1 - (1 - box.x0) * fx, box.y0 * fy, (box.x1 - box.x0) * fx, (box.y1 - box.y0) * fy])
+            else:
+                axe.set_position([box.x0 * fx, box.y0 * fy, (box.x1 - box.x0) * fx, (box.y1 - box.y0) * fy])
         else:
             if cut_from_left:
                 axe.set_position(
@@ -61,13 +68,16 @@ def changeFigureSize(w, h, cut_from_top=False, cut_from_left=False):
     for text in plt.gcf().texts:
         x0, y0 = text.get_position()
         if cut_from_top:
-            text.set_position([x0 * fx, y0 * fy])
+            if cut_from_left:
+                text.set_position([1 - (1- x0) * fx, y0 * fy])
+            else:
+                text.set_position([x0 * fx, y0 * fy])
         else:
             if cut_from_left:
                 text.set_position([1 - (1 - x0) * fx, 1 - (1 - y0) * fy])
             else:
                 text.set_position([x0 * fx, 1 - (1 - y0) * fy])
-    plt.gcf().set_size_inches(w, h, forward=True)
+    fig.set_size_inches(w, h, forward=True)
 
 
 def mark_inset(parent_axes, inset_axes, loc1=1, loc2=2, **kwargs):
