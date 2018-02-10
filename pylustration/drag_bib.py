@@ -103,20 +103,27 @@ class FigureDragger:
             dragger = DraggableAxes(element, use_blit=True)
             element._draggable = dragger
 
-    def get_picked_element(self, event, element=None, picked_element=None):
+    def get_picked_element(self, event, element=None, picked_element=None, last_selected=None):
         # start with the figure
         if element is None:
             element = self.fig
+        finished = False
         # iterate over all children
         for child in sorted(element.get_children(), key=lambda x: x.get_zorder()):
             # check if the element is contained in the event and has an active dragger
             if child.contains(event)[0] and ((getattr(child, "_draggable", None) and getattr(child, "_draggable",
                                                                                            None).connected) or isinstance(child, Grabber)):
+                # if the element is the las selected, finish the search
+                if child == last_selected:
+                    return picked_element, True
                 # use this element as the current best matching element
                 picked_element = child
             # iterate over the children's children
-            picked_element = self.get_picked_element(event, child, picked_element)
-        return picked_element
+            picked_element, finished = self.get_picked_element(event, child, picked_element, last_selected=last_selected)
+            # if the subcall wants to finish, just break the loop
+            if finished:
+                break
+        return picked_element, finished
 
     def button_release_event(self, event):
         # release the grabber
@@ -129,13 +136,13 @@ class FigureDragger:
 
     def button_press_event(self, event):
         # recursively iterate over all elements
-        picked_element = self.get_picked_element(event)
+        picked_element, _ = self.get_picked_element(event, last_selected=self.selected_element if event.dblclick else None)
 
         # if the element is a grabber, store it
         if isinstance(picked_element, Grabber):
             self.grab_element = picked_element
         # if not, we want to keep our selected element, if the click was in the area of the selected element
-        elif self.selected_element is None or not self.selected_element.contains(event)[0]:
+        elif self.selected_element is None or not self.selected_element.contains(event)[0] or event.dblclick:
                 self.select_element(picked_element)
 
         # if we have a grabber, notify it
