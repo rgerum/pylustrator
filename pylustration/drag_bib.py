@@ -158,6 +158,7 @@ class FigureDragger:
         if element is not None:
             element._draggable.on_select(event)
             self.selected_element = element
+        self.fig.canvas.draw()
 
     def addChange(self, change_key, change):
         self.changes[change_key] = change
@@ -713,6 +714,20 @@ class GrabberRectangle(Rectangle, Grabber):
         Rectangle.set_xy(self, (xy[0] - self.d / 2, xy[1] - self.d / 2))
 
 
+class GrabberAnnotation(Ellipse, Grabber):
+    d = 10
+
+    def __init__(self, parent, x, y, artist, dir):
+        Grabber.__init__(self, parent, x, y, artist, dir)
+        Ellipse.__init__(self, (0, 0), self.d, self.d, picker=True, figure=artist.figure, edgecolor="k", zorder=1000)
+        self.fig.patches.append(self)
+        self.updatePos()
+
+    def updatePos(self):
+        x, y = self.target.transAxes.transform(self.axes_pos)
+        self.set_xy((x, y))
+
+
 
 from matplotlib.offsetbox import DraggableBase
 from matplotlib.transforms import BboxTransformFrom
@@ -1094,6 +1109,23 @@ class DraggableLegend(DraggableOffsetBox):
 
         DraggableOffsetBox.__init__(self, legend, legend._legend_box,
                                     use_blit=use_blit)
+
+
+    def on_deselect(self, evt):
+        self.ref_artist.set_frame_on(self.old_frameon)
+        self.ref_artist.get_frame().set_edgecolor(self.old_color)
+        self.selected = False
+
+    def on_select(self, evt):
+        if self.selected:
+            return
+        self.selected = True
+
+        self.old_color = self.ref_artist.get_frame().get_edgecolor()
+        self.old_frameon = self.ref_artist.get_frame_on()
+
+        self.ref_artist.set_frame_on(True)
+        self.ref_artist.get_frame().set_edgecolor("red")
 
     def artist_picker(self, legend, evt):
         return self.legend.contains(evt)
