@@ -601,6 +601,10 @@ class QItemProperties(QtWidgets.QWidget):
         self.layout.addWidget(self.button_add_text)
         self.button_add_text.clicked.connect(self.buttonAddTextClicked)
 
+        self.button_add_annotation = QtWidgets.QPushButton("add annotation")
+        self.layout.addWidget(self.button_add_annotation)
+        self.button_add_annotation.clicked.connect(self.buttonAddAnnotationClicked)
+
         #self.input_xlabel = TextWidget(self.layout, ":")
         #self.input_xlabel.editingFinished.connect(self.changeText)
 
@@ -617,6 +621,19 @@ class QItemProperties(QtWidgets.QWidget):
             text = self.element.text(0.5, 0.5, "New Text", transform=self.element.transFigure)
             self.fig.figure_dragger.addChange(key,
                                               key + "(0.5, 0.5, 'New Text', transform=%s.transFigure)" % getReference(self.element))
+        self.tree.updateEntry(self.element, update_children=True)
+        self.fig.figure_dragger.make_dragable(text)
+        self.fig.figure_dragger.select_element(text)
+        self.fig.canvas.draw()
+        self.setElement(text)
+        self.input_text.input1.selectAll()
+        self.input_text.input1.setFocus()
+
+    def buttonAddAnnotationClicked(self):
+        key = getReference(self.element)+".annotate"
+        text = self.element.annotate("New Annotation", (self.element.get_xlim()[0], self.element.get_ylim()[0]), (np.mean(self.element.get_xlim()), np.mean(self.element.get_ylim())), arrowprops=dict(arrowstyle="->"))
+        self.fig.figure_dragger.addChange(key, key+"('New Annotation', %s, %s, arrowprops=dict(arrowstyle='->'))" % (text.xy, text.get_position()))
+
         self.tree.updateEntry(self.element, update_children=True)
         self.fig.figure_dragger.make_dragable(text)
         self.fig.figure_dragger.select_element(text)
@@ -741,6 +758,7 @@ class QItemProperties(QtWidgets.QWidget):
 
         self.input_shape_transform.hide()
         self.input_transform.hide()
+        self.button_add_annotation.hide()
         if isinstance(element, Figure):
             pos = element.get_size_inches()
             self.input_shape.setTransform(self.getTransform(element))
@@ -756,6 +774,7 @@ class QItemProperties(QtWidgets.QWidget):
             self.input_transform.show()
             self.input_shape.show()
             self.button_add_text.show()
+            self.button_add_annotation.show()
         else:
             self.input_shape.hide()
             self.button_add_text.hide()
@@ -849,4 +868,4 @@ class PlotWindow(QtWidgets.QWidget):
             self.treeView.setCurrentIndex(self.fig)
         else:
             self.treeView.setCurrentIndex(element)
-
+        self.input_properties.setElement(element)
