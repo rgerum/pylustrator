@@ -228,6 +228,105 @@ class RadioWidget(QtWidgets.QWidget):
         return self.checked
 
 
+class TextPropertiesWidget(QtWidgets.QWidget):
+    stateChanged = QtCore.Signal(int, str)
+    noSignal = False
+
+    def __init__(self, layout):
+        QtWidgets.QWidget.__init__(self)
+        layout.addWidget(self)
+        self.layout = QtWidgets.QHBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+
+        self.buttons_align = []
+        self.align_names = ["left", "center", "right"]
+        for align in self.align_names:
+            button = QtWidgets.QPushButton(qta.icon("fa.align-"+align), "")
+            button.setCheckable(True)
+            button.clicked.connect(lambda x, name=align: self.changeAlign(name))
+            self.layout.addWidget(button)
+            self.buttons_align.append(button)
+
+        self.button_bold = QtWidgets.QPushButton(qta.icon("fa.bold"), "")
+        self.button_bold.setCheckable(True)
+        self.button_bold.clicked.connect(self.changeWeight)
+        self.layout.addWidget(self.button_bold)
+
+        self.button_italic = QtWidgets.QPushButton(qta.icon("fa.italic"), "")
+        self.button_italic.setCheckable(True)
+        self.button_italic.clicked.connect(self.changeStyle)
+        self.layout.addWidget(self.button_italic)
+
+        self.layout.addStretch()
+
+        self.font_size = QtWidgets.QSpinBox()
+        self.layout.addWidget(self.font_size)
+        self.font_size.valueChanged.connect(self.changeFontSize)
+
+        self.label = QtWidgets.QLabel()
+        self.label.setPixmap(qta.icon("fa.font").pixmap(16))
+        self.layout.addWidget(self.label)
+
+    def setTarget(self, element):
+        self.target = None
+        self.font_size.setValue(element.get_fontsize())
+
+        index_selected = self.align_names.index(element.get_ha())
+        for index, button in enumerate(self.buttons_align):
+            button.setChecked(index == index_selected)
+
+        self.button_bold.setChecked(element.get_weight() == "bold")
+        self.button_italic.setChecked(element.get_style() == "italic")
+
+        self.target = element
+
+    def changeWeight(self, checked):
+        if self.target:
+            element = self.target
+            self.target = None
+
+            element.set_weight("bold" if checked else "normal")
+            key = getReference(element) + ".set_weight"
+            element.figure.figure_dragger.addChange(key, key + "(\"%s\")" % ("bold" if checked else "normal",))
+
+            self.target = element
+            self.target.figure.canvas.draw()
+
+    def changeStyle(self, checked):
+        if self.target:
+            element = self.target
+            self.target = None
+
+            element.set_style("italic" if checked else "normal")
+            key = getReference(element) + ".set_style"
+            element.figure.figure_dragger.addChange(key, key + "(\"%s\")" % ("italic" if checked else "normal",))
+
+            self.target = element
+            self.target.figure.canvas.draw()
+
+    def changeAlign(self, align):
+        if self.target:
+            element = self.target
+            self.target = None
+
+            index_selected = self.align_names.index(align)
+            for index, button in enumerate(self.buttons_align):
+                button.setChecked(index == index_selected)
+            element.set_ha(align)
+            key = getReference(element) + ".set_ha"
+            element.figure.figure_dragger.addChange(key, key + "(\"%s\")" % align)
+
+            self.target = element
+            self.target.figure.canvas.draw()
+
+    def changeFontSize(self, value):
+        if self.target:
+            self.target.set_fontsize(value)
+            key = getReference(self.target) + ".set_fontsize"
+            self.target.figure.figure_dragger.addChange(key, key + "(%d)" % value)
+            self.target.figure.canvas.draw()
+
+
 class myTreeWidgetItem(QtGui.QStandardItem):
     def __init__(self, parent=None):
         QtGui.QStandardItem.__init__(self, parent)
@@ -597,6 +696,8 @@ class QItemProperties(QtWidgets.QWidget):
         self.input_text = TextWidget(self.layout, "Text:")
         self.input_text.editingFinished.connect(self.changeText)
 
+        self.input_font_properties = TextPropertiesWidget(self.layout)
+
         self.button_add_text = QtWidgets.QPushButton("add text")
         self.layout.addWidget(self.button_add_text)
         self.button_add_text.clicked.connect(self.buttonAddTextClicked)
@@ -794,8 +895,11 @@ class QItemProperties(QtWidgets.QWidget):
         try:
             self.input_text.setText(element.get_text())
             self.input_text.show()
+            self.input_font_properties.show()
+            self.input_font_properties.setTarget(element)
         except AttributeError:
             self.input_text.hide()
+            self.input_font_properties.hide()
 
 
 class PlotWindow(QtWidgets.QWidget):
