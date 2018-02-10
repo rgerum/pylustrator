@@ -78,7 +78,7 @@ class FigureDragger:
                 self.snaps.append(Snap(None, y, [0, 1], [y, y]))
         """
         # add a text showing the figure size
-        self.text = plt.text(0, 0, "", transform=self.fig.transFigure, clip_on=False, zorder=100)
+        #self.text = plt.text(0, 0, "", transform=self.fig.transFigure, clip_on=False, zorder=100)
 
         # connect event callbacks
         #fig.canvas.mpl_connect("pick_event", self.on_pick_event)
@@ -223,10 +223,10 @@ class FigureDragger:
             self.inch_offset = np.array(self.fig.get_size_inches()) - np.array(self.fig_inch_size)
         # draw the text with the figure size
         offx, offy = self.fig.transFigure.inverted().transform([5, 5])
-        self.text.set_position([offx, offy])
-        self.text.set_text("%.2f x %.2f cm" % (
-            (self.fig.get_size_inches()[0] - self.inch_offset[0]) * 2.54,
-            (self.fig.get_size_inches()[1] - self.inch_offset[1]) * 2.54))
+        #self.text.set_position([offx, offy])
+        #self.text.set_text("%.2f x %.2f cm" % (
+        #    (self.fig.get_size_inches()[0] - self.inch_offset[0]) * 2.54,
+        #    (self.fig.get_size_inches()[1] - self.inch_offset[1]) * 2.54))
 
     def scroll_event(self, event):
         inches = np.array(self.fig.get_size_inches()) - self.inch_offset
