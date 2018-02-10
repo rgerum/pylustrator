@@ -845,5 +845,8 @@ class PlotWindow(QtWidgets.QWidget):
         self.treeView.setCurrentIndex(self.fig)
 
     def select_element(self, element):
-        self.treeView.setCurrentIndex(element)
+        if element is None:
+            self.treeView.setCurrentIndex(self.fig)
+        else:
+            self.treeView.setCurrentIndex(element)
 
