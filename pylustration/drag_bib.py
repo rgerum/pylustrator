@@ -971,6 +971,21 @@ class DraggableText(DraggableBase):
         DraggableBase.__init__(self, text, use_blit=use_blit)
         self.text = text
 
+    def on_deselect(self, evt):
+        self.ref_artist.set_bbox(dict(facecolor="none", edgecolor=self.old_color))
+        self.ref_artist.figure.canvas.draw()
+        self.selected = False
+
+    def on_select(self, evt):
+        if self.selected:
+            return
+        self.selected = True
+
+        self.old_color = "none"
+        if self.ref_artist.get_bbox_patch():
+            self.old_color = self.ref_artist.get_bbox_patch().properties()["edgecolor"]
+        self.ref_artist.set_bbox(dict(facecolor="none", edgecolor="red"))
+
     def save_offset(self):
         # get current position of the text
         self.old_pos = self.text.get_position()
