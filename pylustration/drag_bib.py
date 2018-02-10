@@ -5,6 +5,9 @@ import matplotlib.pyplot as plt
 from matplotlib.text import Text
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle, Ellipse
+from matplotlib.figure import Figure
+from matplotlib.axes._subplots import Axes
+import matplotlib
 
 DIR_X0 = 1
 DIR_Y0 = 2
@@ -39,17 +42,13 @@ class FigureDragger:
             axes.set_picker(True)
             leg = axes.get_legend()
             if leg:
-                dragger = DraggableLegend(leg, use_blit=True)
-                leg._draggable = dragger
+                self.make_dragable(leg)
             for text in axes.texts:
-                dragger = DraggableText(text, use_blit=True)
-                text._draggable = dragger
+                self.make_dragable(text)
 
-            dragger = DraggableAxes(axes, use_blit=True)
-            axes._draggable = dragger
+            self.make_dragable(axes)
         for text in self.fig.texts:
-            dragger = DraggableText(text, use_blit=True)
-            text._draggable = dragger
+            self.make_dragable(text)
 
         # store the position where StartPylustration was called
         self.stack_position = traceback.extract_stack()[-3]
@@ -92,6 +91,17 @@ class FigureDragger:
 
         self.selected_element = None
         self.grab_element = None
+
+    def make_dragable(self, element):
+        if isinstance(element, matplotlib.legend.Legend):
+            dragger = DraggableLegend(element, use_blit=True)
+            element._draggable = dragger
+        if isinstance(element, Text):
+            dragger = DraggableText(element, use_blit=True)
+            element._draggable = dragger
+        if isinstance(element, Axes):
+            dragger = DraggableAxes(element, use_blit=True)
+            element._draggable = dragger
 
     def get_picked_element(self, event, element=None, picked_element=None):
         # start with the figure

@@ -597,12 +597,33 @@ class QItemProperties(QtWidgets.QWidget):
         self.input_text = TextWidget(self.layout, "Text:")
         self.input_text.editingFinished.connect(self.changeText)
 
+        self.button_add_text = QtWidgets.QPushButton("add text")
+        self.layout.addWidget(self.button_add_text)
+        self.button_add_text.clicked.connect(self.buttonAddTextClicked)
+
         #self.input_xlabel = TextWidget(self.layout, ":")
         #self.input_xlabel.editingFinished.connect(self.changeText)
 
         #self.radio_buttons[0].setChecked(True)
 
         self.fig = fig
+
+    def buttonAddTextClicked(self):
+        key = getReference(self.element)+".text"
+        if isinstance(self.element, Axes):
+            text = self.element.text(0.5, 0.5, "New Text", transform=self.element.transAxes)
+            self.fig.figure_dragger.addChange(key, key+"(0.5, 0.5, 'New Text', transform=%s.transAxes)" % getReference(self.element))
+        if isinstance(self.element, Figure):
+            text = self.element.text(0.5, 0.5, "New Text", transform=self.element.transFigure)
+            self.fig.figure_dragger.addChange(key,
+                                              key + "(0.5, 0.5, 'New Text', transform=%s.transFigure)" % getReference(self.element))
+        self.tree.updateEntry(self.element, update_children=True)
+        self.fig.figure_dragger.make_dragable(text)
+        self.fig.figure_dragger.select_element(text)
+        self.fig.canvas.draw()
+        self.setElement(text)
+        self.input_text.input1.selectAll()
+        self.input_text.input1.setFocus()
 
     def changeTransform(self, transform_index, name):
         self.transform_index = transform_index
@@ -658,7 +679,6 @@ class QItemProperties(QtWidgets.QWidget):
                     pos = text.get_position()
                     key = getReference(text) + ".set_position"
                     self.fig.figure_dragger.addChange(key, key + "([%f, %f])" % (pos[0], pos[1]))
-
 
             self.fig.canvas.draw()
             self.fig.widget.updateGeometry()
@@ -728,14 +748,17 @@ class QItemProperties(QtWidgets.QWidget):
             self.input_shape.show()
             self.input_transform.show()
             self.input_shape_transform.show()
+            self.button_add_text.show()
         elif isinstance(element, Axes):
             pos = element.get_position()
             self.input_shape.setTransform(self.getTransform(element))
             self.input_shape.setValue((pos.width, pos.height))
             self.input_transform.show()
             self.input_shape.show()
+            self.button_add_text.show()
         else:
             self.input_shape.hide()
+            self.button_add_text.hide()
 
         try:
             pos = element.get_position()
@@ -780,7 +803,6 @@ class PlotWindow(QtWidgets.QWidget):
         widget.setMaximumWidth(300)
         widget.setMinimumWidth(300)
 
-
         self.treeView = MyTreeView(self, self.layout_tools, self.fig)
         self.treeView.item_selected = self.elementSelected
 
@@ -811,6 +833,7 @@ class PlotWindow(QtWidgets.QWidget):
         #self.input_size.setValue(np.array(self.fig.get_size_inches())*2.54)
         self.treeView.deleteEntry(self.fig)
         self.treeView.expand(None)
+        self.treeView.expand(self.fig)
 
         def wrap(func):
             def newfunc(element, event=None):
@@ -818,6 +841,8 @@ class PlotWindow(QtWidgets.QWidget):
                 return func(element, event)
             return newfunc
         self.fig.figure_dragger.select_element = wrap(self.fig.figure_dragger.select_element)
+
+        self.treeView.setCurrentIndex(self.fig)
 
     def select_element(self, element):
         self.treeView.setCurrentIndex(element)
