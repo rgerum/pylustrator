@@ -14,6 +14,22 @@ DIR_Y0 = 2
 DIR_X1 = 4
 DIR_Y1 = 8
 
+def getReference(element):
+    import matplotlib
+    if isinstance(element, Figure):
+        return "fig"
+    if isinstance(element, matplotlib.text.Text):
+        if element.axes:
+            index0 = element.axes.number
+            index1 = element.axes.texts.index(element)
+            return "fig.axes[%d].texts[%d]" % (index0, index1)
+        index1 = element.figure.texts.index(element)
+        return "fig.texts[%d]" % (index1)
+    if isinstance(element, matplotlib.axes.Subplot):
+        return "fig.axes[%d]" % element.number
+    if isinstance(element, matplotlib.legend.Legend):
+        return "fig.axes[%d].get_legend()" % element.axes.number
+
 
 class FigureDragger:
     last_picked = False
@@ -640,7 +656,7 @@ class Grabber(object):
         pos = self.target.get_position()
         if self.moved:
             self.target.figure.figure_dragger.addEdit([lambda pos=self.old_pos: self.parent.redoPos(pos), lambda pos=pos: self.parent.redoPos(pos)])
-            key = "fig.axes[%d].set_position" % self.target.number
+            key = getReference(self.target)+".set_position"
             self.target.figure.figure_dragger.addChange(key, key + "([%f, %f, %f, %f])" % (pos.x0, pos.y0, pos.width, pos.height))
         for snap in self.snaps[self.snap_index_offset:]:
             snap.remove()
@@ -724,16 +740,47 @@ class GrabberRectangle(Rectangle, Grabber):
 class GrabberAnnotation(Ellipse, Grabber):
     d = 10
 
-    def __init__(self, parent, x, y, artist, dir):
-        Grabber.__init__(self, parent, x, y, artist, dir)
-        Ellipse.__init__(self, (0, 0), self.d, self.d, picker=True, figure=artist.figure, edgecolor="k", zorder=1000)
+    def __init__(self, parent, artist):
+        #Grabber.__init__(self, parent, 0, 0, artist, 0)
+        Ellipse.__init__(self, (0, 0), self.d, self.d, picker=True, figure=artist.figure, edgecolor="k", facecolor="r", zorder=1000)
+
+        self.parent = parent
+        self.fig = artist.figure
+        self.target = artist
+        self.updatePos()
+        self.snaps = []
+
         self.fig.patches.append(self)
         self.updatePos()
 
     def updatePos(self):
-        x, y = self.target.transAxes.transform(self.axes_pos)
+        x, y = self.target.get_transform().transform(self.target.xy)
         self.set_xy((x, y))
 
+    def clickedEvent(self, event):
+        self.snaps = []
+
+        self.mouse_x = event.x
+        self.mouse_y = event.y
+
+        self.old_pos = self.target.xy
+        self.ox, self.oy = self.get_xy()
+
+    def getPos(self):
+        x, y = self.get_xy()
+        return self.target.get_transform().inverted().transform((x, y))
+
+    def applyOffset(self, pos, event):
+        self.set_xy((self.ox+pos[0], self.oy+pos[1]))
+
+        self.target.xy = self.getPos()
+
+    def releasedEvent(self, event):
+        pos = self.target.xy
+        if self.moved:
+            self.target.figure.figure_dragger.addEdit([lambda pos=self.old_pos: self.parent.redoPos2(pos), lambda pos=pos: self.parent.redoPos2(pos)])
+            key = getReference(self.target) + ".xy = "
+            self.target.figure.figure_dragger.addChange(key, key + "(%f, %f)" % (pos[0], pos[1]))
 
 
 from matplotlib.offsetbox import DraggableBase
@@ -861,6 +908,10 @@ class DraggableBase(object):
         self.connected = False
         self.ref_artist.set_picker(None)
 
+    def updateGrabbers(self):
+        for grabber in self.grabbers:
+            grabber.updatePos()
+
     def artist_picker(self, artist, evt):
         return self.ref_artist.contains(evt)
 
@@ -883,10 +934,6 @@ class DraggableAxes(DraggableBase):
     def addGrabber(self, x, y, artist, dir, GrabberClass):
         # add a grabber object at the given coordinates
         self.grabbers.append(GrabberClass(self, x, y, artist, dir))
-
-    def updateGrabbers(self):
-        for grabber in self.grabbers:
-            grabber.updatePos()
 
     def on_deselect(self, evt):
         # remove all grabbers when an artist is deselected
@@ -1019,8 +1066,19 @@ class DraggableText(DraggableBase):
 
     def on_deselect(self, evt):
         self.ref_artist.set_bbox(dict(facecolor="none", edgecolor=self.old_color))
-        self.ref_artist.figure.canvas.draw()
         self.selected = False
+
+        # remove all grabbers when an artist is deselected
+        for grabber in self.grabbers[::-1]:
+            # remove the grabber from the list
+            self.grabbers.remove(grabber)
+            # and from the figure (if it is drawn on the figure)
+            try:
+                self.ref_artist.figure.patches.remove(grabber)
+            except ValueError:
+                pass
+
+        self.ref_artist.figure.canvas.draw()
 
     def on_select(self, evt):
         if self.selected:
@@ -1031,6 +1089,9 @@ class DraggableText(DraggableBase):
         if self.ref_artist.get_bbox_patch():
             self.old_color = self.ref_artist.get_bbox_patch().properties()["edgecolor"]
         self.ref_artist.set_bbox(dict(facecolor="none", edgecolor="red"))
+
+        if getattr(self.ref_artist, "xy", None) is not None:
+            self.grabbers.append(GrabberAnnotation(self, self.ref_artist))
 
     def save_offset(self):
         # get current position of the text
@@ -1065,7 +1126,11 @@ class DraggableText(DraggableBase):
 
     def redoPos(self, pos):
         self.ref_artist.set_position(pos)
-        self.deselectArtist()
+        self.on_deselect(None)
+
+    def redoPos2(self, pos):
+        self.ref_artist.xy = pos
+        self.on_deselect(None)
 
     def finalize_offset(self):
         pos = self.ref_artist.get_position()
