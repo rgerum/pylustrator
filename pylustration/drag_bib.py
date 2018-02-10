@@ -699,7 +699,7 @@ class GrabberRound(Ellipse, Grabber):
 
     def __init__(self, parent, x, y, artist, dir):
         Grabber.__init__(self, parent, x, y, artist, dir)
-        Ellipse.__init__(self, (0, 0), self.d, self.d, picker=True, figure=artist.figure, edgecolor="k", zorder=1000)
+        Ellipse.__init__(self, (0, 0), self.d, self.d, picker=True, figure=artist.figure, edgecolor="k", facecolor="r", zorder=1000)
         self.fig.patches.append(self)
         self.updatePos()
 
@@ -708,7 +708,7 @@ class GrabberRectangle(Rectangle, Grabber):
     d = 10
 
     def __init__(self, parent, x, y, artist, dir):
-        Rectangle.__init__(self, (0, 0), self.d, self.d, picker=True, figure=artist.figure, edgecolor="k", zorder=1000)
+        Rectangle.__init__(self, (0, 0), self.d, self.d, picker=True, figure=artist.figure, edgecolor="k", facecolor="r", zorder=1000)
         Grabber.__init__(self, parent, x, y, artist, dir)
         self.fig.patches.append(self)
         self.updatePos()
@@ -901,6 +901,12 @@ class DraggableAxes(DraggableBase):
         self.axes.figure.canvas.draw()
         self.selected = False
 
+        for key in self.old_visible:
+            spine = self.ref_artist.spines[key]
+            spine.set_visible(self.old_visible[key])
+            spine.set_edgecolor(self.old_color[key])
+            spine.set_linewidth(self.old_linewidth[key])
+
     def on_select(self, evt):
         if self.selected:
             return
@@ -921,6 +927,14 @@ class DraggableAxes(DraggableBase):
         self.snap_index_offset = 0  # len(self.snaps)
         #self.snaps = [getSnaps(self.axes, DIR_X0, no_height=True), getSnaps(self.axes, DIR_X1, no_height=True), getSnaps(self.axes, DIR_Y0, no_height=True), getSnaps(self.axes, DIR_Y1, no_height=True)]
         self.snaps = getSnaps(self.axes, DIR_X0 | DIR_X1 | DIR_Y0 | DIR_Y1, no_height=True)
+
+        self.old_visible = {key: self.ref_artist.spines[key].get_visible() for key in self.ref_artist.spines}
+        self.old_color = {key: self.ref_artist.spines[key].get_edgecolor() for key in self.ref_artist.spines}
+        self.old_linewidth = {key: self.ref_artist.spines[key].get_linewidth() for key in self.ref_artist.spines}
+        for key in self.ref_artist.spines:
+            self.ref_artist.spines[key].set_visible(True)
+            self.ref_artist.spines[key].set_edgecolor("r")
+            self.ref_artist.spines[key].set_linewidth(1.5)
 
     def save_offset(self):
         # get current position of the text
