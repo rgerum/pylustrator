@@ -37,7 +37,6 @@ class FigureDragger:
             #axes.set_title(index)
             axes.number = index
             axes.set_picker(True)
-            print("set picker", axes)
             leg = axes.get_legend()
             if leg:
                 dragger = DraggableLegend(leg, use_blit=True)
@@ -83,13 +82,54 @@ class FigureDragger:
 
         # connect event callbacks
         #fig.canvas.mpl_connect("pick_event", self.on_pick_event)
-        #fig.canvas.mpl_connect('button_press_event', self.mouse_down_event)
+        fig.canvas.mpl_connect('button_press_event', self.mouse_down_event)
         #fig.canvas.mpl_connect('motion_notify_event', self.mouse_move_event)
-        #fig.canvas.mpl_connect('button_release_event', self.mouse_up_event)
+        fig.canvas.mpl_connect('button_release_event', self.mouse_up_event)
         fig.canvas.mpl_connect('key_press_event', self.key_press_event)
         #fig.canvas.mpl_connect('draw_event', self.draw_event)
         fig.canvas.mpl_connect('resize_event', self.resize_event)
         #fig.canvas.mpl_connect('scroll_event', self.scroll_event)
+
+        self.selected_element = None
+
+    def get_picked_element(self, event, element=None, picked_element=None):
+        # start with the figure
+        if element is None:
+            element = self.fig
+        # iterate over all children
+        for child in sorted(element.get_children(), key=lambda x: x.get_zorder()):
+            # check if the element is contained in the event and has an active dragger
+            if child.contains(event)[0] and getattr(child, "_draggable", None) and getattr(child, "_draggable",
+                                                                                           None).connected:
+                # use this element as the current best matching element
+                picked_element = child
+            # iterate over the children's children
+            picked_element = self.get_picked_element(event, child, picked_element)
+        return picked_element
+
+    def mouse_up_event(self, event):
+        if self.selected_element:
+            self.selected_element._draggable.on_mouse_up(event)
+
+    def mouse_down_event(self, event):
+        if self.selected_element is None or not self.selected_element.contains(event)[0]:
+            # recursively iterate over all elements
+            picked_element = self.get_picked_element(event)
+            self.select_element(picked_element)
+
+        if self.selected_element and self.selected_element.contains(event)[0]:
+            self.selected_element._draggable.on_mouse_down(event)
+
+    def select_element(self, element, event=None):
+        # if there was was previously selected element, deselect it
+        if self.selected_element is not None:
+            self.selected_element._draggable.on_deselect(event)
+            self.selected_element = None
+
+        # if there is a new element, select it
+        if element is not None:
+            element._draggable.on_select(event)
+            self.selected_element = element
 
     def addChange(self, change_key, change):
         self.changes[change_key] = change
@@ -152,51 +192,6 @@ class FigureDragger:
             output += "#% end: automatic generated code from pylustration"
             print(output)
             insertTextToFile(output, self.stack_position)
-
-            return
-
-            # print comment that the block starts
-            save_text = "#% start: automatic generated code from pylustration\n"
-            # get the figure by its name
-            save_text += "fig = plt.figure(%s)\n" % self.fig.number
-            # set the size of the figure
-            save_text += "fig.set_size_inches(%f/2.54, %f/2.54, forward=True)\n" % (
-                (self.fig.get_size_inches()[0] - self.inch_offset[0]) * 2.54,
-                (self.fig.get_size_inches()[1] - self.inch_offset[1]) * 2.54)
-            # iterate over all axes
-            for index, ax in enumerate(self.fig.axes):
-                # get the position of the axes
-                pos = ax.get_position()
-                # and set the position
-                save_text += "fig.axes[%d].set_position([%f, %f, %f, %f])\n" % (
-                    index, pos.x0, pos.y0, pos.width, pos.height)
-                # set the zorder of the figure
-                if ax.get_zorder() != 0:
-                    save_text += "fig.axes[%d].set_zorder(%d)\n" % (index, ax.get_zorder())
-
-                # check if the axes has a legend
-                leg = ax.get_legend()
-                if leg:
-                    # if the location is a tuple
-                    loc = leg._get_loc()
-                    if isinstance(loc, tuple):
-                        # set the position of the legend
-                        save_text += "fig.axes[%d].get_legend()._set_loc(%s)\n" % (index, loc)
-
-                # iterate over the texts in the axes
-                for index2, txt in enumerate(ax.texts):
-                    # if the text is pickable...
-                    if txt.pickable():
-                        # ...store its position
-                        pos = txt.get_position()
-                        save_text += "fig.axes[%d].texts[%d].set_position([%f, %f])  # Text: \"%s\"\n" % (index, index2, pos[0], pos[1], txt.get_text())
-            for index, txt in enumerate(self.fig.texts):
-                if txt.pickable():
-                    pos = txt.get_position()
-                    save_text += "fig.texts[%d].set_position([%f, %f])  # Text: \"%s\"\n" % (index, pos[0], pos[1], txt.get_text())
-            save_text += "#% end: automatic generated code from pylustration"
-            print(save_text)
-            insertTextToFile(save_text, self.stack_position)
         if event.key == "ctrl+z":
             self.backEdit()
         if event.key == "ctrl+y":
@@ -718,11 +713,11 @@ class DraggableBase(object):
         self.snaps = []
 
     def connect(self):
-        c2 = self.canvas.mpl_connect('pick_event', self.on_pick)
-        c3 = self.canvas.mpl_connect('button_release_event', self.on_release)
-        self.cids = [c2, c3]
+        #c2 = self.canvas.mpl_connect('pick_event', self.on_pick)
+        #c3 = self.canvas.mpl_connect('button_release_event', self.on_release)
+        #self.cids = [c3]
         self.connected = True
-        self.ref_artist.set_picker(self.artist_picker)
+        #self.ref_artist.set_picker(self.artist_picker)
 
     def initBlit(self):
         self.blit_initialized = True
@@ -763,7 +758,7 @@ class DraggableBase(object):
         if self.got_artist:
             dx = evt.x - self.mouse_x
             dy = evt.y - self.mouse_y
-            self.update_offset(dx, dy)
+            self.update_offset(dx, dy, evt)
             self.moved = True
             self.canvas.draw()
 
@@ -778,23 +773,24 @@ class DraggableBase(object):
             self.moved = True
             self.doBlit()
 
-    def on_pick(self, evt):
-        if evt.artist == self.ref_artist:
+    def on_select(self, evt):
+        pass
 
-            self.mouse_x = evt.mouseevent.x
-            self.mouse_y = evt.mouseevent.y
-            self.got_artist = True
-            self.moved = False
+    def on_deselect(self, evt):
+        pass
 
-            if self._use_blit:
-                self._c1 = self.canvas.mpl_connect('motion_notify_event', self.on_motion_blit)
-            else:
-                self._c1 = self.canvas.mpl_connect('motion_notify_event', self.on_motion)
-            self.save_offset()
-        if evt.artist != self.ref_artist:
-            self.on_release(evt)
+    def on_mouse_down(self, evt):
+        self.mouse_x, self.mouse_y = evt.x, evt.y
+        self.got_artist = True
+        self.moved = False
 
-    def on_release(self, event):
+        if self._use_blit:
+            self._c1 = self.canvas.mpl_connect('motion_notify_event', self.on_motion_blit)
+        else:
+            self._c1 = self.canvas.mpl_connect('motion_notify_event', self.on_motion)
+        self.save_offset()
+
+    def on_mouse_up(self, event):
         if self.got_artist:
             if self.moved:
                 self.finalize_offset()
@@ -804,24 +800,10 @@ class DraggableBase(object):
         if self._use_blit and self.blit_initialized:
             self.finishBlit()
 
-        if getattr(event, "inaxes", 0) is None and self.selected:
-            for grabber in self.grabbers:
-                if grabber.got_artist:
-                    break
-            else:
-                self.selected = False
-                self.deselectArtist()
-
-        new_artist = getattr(event, "artist", None)
-        if new_artist and new_artist != self.ref_artist and self.selected:
-            if getattr(new_artist, "parent", None) != self:
-                self.selected = False
-                self.deselectArtist()
-
     def disconnect(self):
         """disconnect the callbacks"""
-        for cid in self.cids:
-            self.canvas.mpl_disconnect(cid)
+        #for cid in self.cids:
+        #    self.canvas.mpl_disconnect(cid)
         self.connected = False
         self.ref_artist.set_picker(None)
 
@@ -845,7 +827,7 @@ class DraggableAxes(DraggableBase):
     def __init__(self, axes, use_blit=False):
         DraggableBase.__init__(self, axes, use_blit=use_blit)
         self.axes = axes
-        self.cids.append(self.canvas.mpl_connect('key_press_event', self.keyPressEvent))
+        #self.cids.append(self.canvas.mpl_connect('key_press_event', self.keyPressEvent))
 
     def addGrabber(self, x, y, artist, dir, GrabberClass):
         # add a grabber object at the given coordinates
@@ -855,14 +837,7 @@ class DraggableAxes(DraggableBase):
         for grabber in self.grabbers:
             grabber.updatePos()
 
-    def on_releasexxx(self, event):
-        DraggableBase.on_release(self, event)
-        new_artist = getattr(event, "artist", None)
-        if new_artist and new_artist != self.axes and self.selected:
-            if getattr(new_artist, "parent", None) != self:
-                self.deselectArtist()
-
-    def deselectArtist(self):
+    def on_deselect(self, evt):
         # remove all grabbers when an artist is deselected
         for grabber in self.grabbers[::-1]:
             # remove the grabber from the list
@@ -875,7 +850,7 @@ class DraggableAxes(DraggableBase):
         self.axes.figure.canvas.draw()
         self.selected = False
 
-    def selectArtist(self):
+    def on_select(self, evt):
         if self.selected:
             return
         self.selected = True
@@ -897,7 +872,6 @@ class DraggableAxes(DraggableBase):
         self.snaps = getSnaps(self.axes, DIR_X0 | DIR_X1 | DIR_Y0 | DIR_Y1, no_height=True)
 
     def save_offset(self):
-        self.selectArtist()
         # get current position of the text
         pos = self.axes.get_position()
         self.old_pos = pos
