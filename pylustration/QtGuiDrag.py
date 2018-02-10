@@ -641,13 +641,23 @@ class QItemProperties(QtWidgets.QWidget):
             if self.scale_type == 0:
                 self.fig.set_size_inches(value)
                 key = getReference(self.element)+".set_size_inches"
-                self.fig.figure_dragger.addChange(key, key + "(%f/2.54, %f/2.54)" % (value[0]*2.54, value[1]*2.54))
+                self.fig.figure_dragger.addChange(key, key + "(%f/2.54, %f/2.54, forward=True)" % (value[0]*2.54, value[1]*2.54))
             else:
                 if self.scale_type == 1:
                     print(value)
                     changeFigureSize(value[0], value[1], fig=self.fig)
                 elif self.scale_type == 2:
                     changeFigureSize(value[0], value[1], cut_from_top=True, cut_from_left=True, fig=self.fig)
+                key = getReference(self.element) + ".set_size_inches"
+                self.fig.figure_dragger.addChange(key, key + "(%f/2.54, %f/2.54, forward=True)" % (value[0] * 2.54, value[1] * 2.54))
+                for axes in self.fig.axes:
+                    pos = axes.get_position()
+                    key = getReference(axes) + ".set_position"
+                    self.fig.figure_dragger.addChange(key, key + "([%f, %f, %f, %f])" % (pos.x0, pos.y0, pos.width, pos.height))
+                for text in self.fig.texts:
+                    pos = text.get_position()
+                    key = getReference(text) + ".set_position"
+                    self.fig.figure_dragger.addChange(key, key + "([%f, %f])" % (pos[0], pos[1]))
 
 
             self.fig.canvas.draw()
