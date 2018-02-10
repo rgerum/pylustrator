@@ -90,6 +90,7 @@ class DimensionsWidget(QtWidgets.QWidget):
 
         self.input1 = QtWidgets.QDoubleSpinBox()
         self.input1.setSuffix(" "+unit)
+        self.input1.setSingleStep(0.1)
         self.input1.valueChanged.connect(self.onValueChanged)
         self.input1.setMaximum(99999)
         self.layout.addWidget(self.input1)
@@ -99,6 +100,7 @@ class DimensionsWidget(QtWidgets.QWidget):
 
         self.input2 = QtWidgets.QDoubleSpinBox()
         self.input2.setSuffix(" "+unit)
+        self.input2.setSingleStep(0.1)
         self.input2.valueChanged.connect(self.onValueChanged)
         self.input2.setMaximum(99999)
         self.layout.addWidget(self.input2)
@@ -111,6 +113,7 @@ class DimensionsWidget(QtWidgets.QWidget):
         self.input2.setSuffix(" "+unit)
 
     def setTransform(self, transform):
+        print("new Trans", transform)
         self.transform = transform
 
     def onValueChanged(self, value):
@@ -525,6 +528,7 @@ class QItemProperties(QtWidgets.QWidget):
     valueChanged = QtCore.Signal(tuple)
     element = None
     transform = None
+    transform_index = 0
 
     def __init__(self, layout, fig, tree):
         QtWidgets.QWidget.__init__(self)
@@ -534,6 +538,17 @@ class QItemProperties(QtWidgets.QWidget):
 
         self.label = QtWidgets.QLabel()
         self.layout.addWidget(self.label)
+
+        layout = QtWidgets.QHBoxLayout()
+        self.layout.addLayout(layout)
+
+        self.transforms = ["cm", "in", "px", "none"]
+        self.radio_buttons = []
+        for transform in self.transforms:
+            radio = QtWidgets.QRadioButton(transform)
+            radio.toggled.connect(self.changeTransform)
+            layout.addWidget(radio)
+            self.radio_buttons.append(radio)
 
         self.input_picker = CheckWidget(self.layout, "Pickable:")
         self.input_picker.stateChanged.connect(self.changePickable)
@@ -550,7 +565,27 @@ class QItemProperties(QtWidgets.QWidget):
         #self.input_xlabel = TextWidget(self.layout, ":")
         #self.input_xlabel.editingFinished.connect(self.changeText)
 
+        self.radio_buttons[0].setChecked(True)
+
         self.fig = fig
+
+    def changeTransform(self, state):
+        if state:
+            transform_index = np.argmax([radio.isChecked() for radio in self.radio_buttons])
+            self.transform_index = transform_index
+            if transform_index == 0:
+                self.input_shape.setUnit("cm")
+                self.input_position.setUnit("cm")
+            if transform_index == 1:
+                self.input_shape.setUnit("in")
+                self.input_position.setUnit("in")
+            if transform_index == 2:
+                self.input_shape.setUnit("px")
+                self.input_position.setUnit("px")
+            if transform_index == 3:
+                self.input_shape.setUnit("")
+                self.input_position.setUnit("")
+            self.setElement(self.element)
 
     def changePos(self, value):
         pos = self.element.get_position()
@@ -604,6 +639,29 @@ class QItemProperties(QtWidgets.QWidget):
             self.element._draggable.disconnect()
         self.tree.updateEntry(self.element)
 
+    def getTransform(self, element):
+        if isinstance(element, Figure):
+            if self.transform_index == 0:
+                return transforms.Affine2D().scale(2.54, 2.54)
+            return None
+        if isinstance(element, Axes):
+            if self.transform_index == 0:
+                return transforms.Affine2D().scale(2.54, 2.54) + element.figure.dpi_scale_trans.inverted() + element.figure.transFigure
+            if self.transform_index == 1:
+                return element.figure.dpi_scale_trans.inverted() + element.figure.transFigure
+            if self.transform_index == 2:
+                return element.figure.transFigure
+            return None
+        if self.transform_index == 0:
+            return transforms.Affine2D().scale(2.54,
+                                               2.54) + element.figure.dpi_scale_trans.inverted() + element.get_transform()
+        if self.transform_index == 1:
+            return element.figure.dpi_scale_trans.inverted() + element.get_transform()
+        if self.transform_index == 2:
+            return element.get_transform()
+        return None
+
+
     def setElement(self, element):
         self.label.setText(str(element))
         self.element = element
@@ -616,12 +674,12 @@ class QItemProperties(QtWidgets.QWidget):
 
         if isinstance(element, Figure):
             pos = element.get_size_inches()
-            self.input_shape.setTransform(transforms.Affine2D().scale(2.54, 2.54))
+            self.input_shape.setTransform(self.getTransform(element))
             self.input_shape.setValue((pos[0], pos[1]))
             self.input_shape.show()
         elif isinstance(element, Axes):
             pos = element.get_position()
-            self.input_shape.setTransform(transforms.Affine2D().scale(2.54, 2.54) + element.figure.dpi_scale_trans.inverted() + element.figure.transFigure)
+            self.input_shape.setTransform(self.getTransform(element))
             self.input_shape.setValue((pos.width, pos.height))
             self.input_shape.show()
         else:
@@ -629,11 +687,7 @@ class QItemProperties(QtWidgets.QWidget):
 
         try:
             pos = element.get_position()
-            if isinstance(element, Axes):
-                self.input_position.setTransform(transforms.Affine2D().scale(2.54,
-                                                                          2.54) + element.figure.dpi_scale_trans.inverted() + element.figure.transFigure)
-            else:
-                self.input_position.setTransform(transforms.Affine2D().scale(2.54, 2.54) + element.figure.dpi_scale_trans.inverted() + element.get_transform())
+            self.input_position.setTransform(self.getTransform(element))
             try:
                 self.input_position.setValue(pos)
             except Exception as err:
