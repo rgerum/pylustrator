@@ -43,11 +43,11 @@ def show():
     for figure in figures:
         # get the window
         window = figures[figure].window
+        # add dragger
+        FigureDragger(figures[figure].figure, [], [], "cm")
         window.update()
         # and show it
         window.show()
-        # add dragger
-        FigureDragger(figures[figure].figure, [], [], "cm")
     # execute the application
     app.exec_()
 
@@ -257,9 +257,15 @@ class MyTreeView(QtWidgets.QTreeView):
             self.item_selected(entry)
 
     def setCurrentIndex(self, entry):
-        item = self.getItemFromEntry(entry)
-        if item is not None:
-            super(QtWidgets.QTreeView, self).setCurrentIndex(item.index())
+        while entry:
+            item = self.getItemFromEntry(entry)
+            if item is not None:
+                super(QtWidgets.QTreeView, self).setCurrentIndex(item.index())
+                return
+            try:
+                entry = entry.parent
+            except AttributeError:
+                return
 
     def treeClicked(self, index):
         # upon selecting one of the tree elements
@@ -305,51 +311,17 @@ class MyTreeView(QtWidgets.QTreeView):
 
     def getParentEntry(self, entry):
         return entry.parent
-        if isinstance(entry, self.data_file.table_markertype):
-            return None
-        if isinstance(entry, self.data_file.table_marker):
-            if entry.track:
-                return entry.track
-        return entry.type
 
     def getNameOfEntry(self, entry):
         return str(entry)
-        if isinstance(entry, self.data_file.table_markertype):
-            return entry.name
-        if isinstance(entry, self.data_file.table_marker):
-            return "Marker #%d (frame %d)" % (entry.id, entry.image.sort_index)
-        if isinstance(entry, self.data_file.table_line):
-            return "Line #%d (frame %d)" % (entry.id, entry.image.sort_index)
-        if isinstance(entry, self.data_file.table_rectangle):
-            return "Rectangle #%d (frame %d)" % (entry.id, entry.image.sort_index)
-        if isinstance(entry, self.data_file.table_track):
-            count = entry.track_markers.count()
-            if count == 0:
-                self.deleteEntry(entry)
-                return None
-            return "Track #%d (count %d)" % (entry.id, count)
-        return "nix"
 
     def getIconOfEntry(self, entry):
         if getattr(entry, "_draggable", None):
             if entry._draggable.connected:
                 return qta.icon("fa.hand-paper-o")
         return QtGui.QIcon()
-        if isinstance(entry, self.data_file.table_markertype):
-            if entry.mode == TYPE_Normal:
-                return qta.icon("fa.crosshairs", color=QtGui.QColor(*HTMLColorToRGB(entry.color)))
-            if entry.mode == TYPE_Line:
-                return IconFromFile("Line.png", color=QtGui.QColor(*HTMLColorToRGB(entry.color)))
-            if entry.mode == TYPE_Rect:
-                return IconFromFile("Rectangle.png", color=QtGui.QColor(*HTMLColorToRGB(entry.color)))
-            if entry.mode == TYPE_Track:
-                return IconFromFile("Track.png", color=QtGui.QColor(*HTMLColorToRGB(entry.color)))
-        return QtGui.QIcon()
 
     def getEntrySortRole(self, entry):
-        return None
-        if isinstance(entry, self.data_file.table_marker):
-            return entry.image.sort_index
         return None
 
     def getKey(self, entry):
@@ -390,20 +362,6 @@ class MyTreeView(QtWidgets.QTreeView):
         for row, entry in enumerate(query):
             entry.parent = parent_entry
             self.addChild(parent_item, entry)
-
-        """
-        if parent_item is None:
-            # add entry for new type
-            self.new_type = self.data_file.table_markertype()
-            self.new_type.color = GetColorByIndex(self.data_file.table_markertype.select().count()-1)
-            item_type = myTreeWidgetItem("add type")
-            item_type.entry = self.new_type
-            item_type.setIcon(qta.icon("fa.plus"))
-            item_type.setEditable(False)
-            self.model.setItem(row + 1, 0, item_type)
-            self.setItemForEntry(self.new_type, item_type)
-            #self.marker_type_modelitems[-1] = item_type
-        """
 
     def addChild(self, parent_item, entry, row=None):
         if parent_item is None:
@@ -649,10 +607,8 @@ class QItemProperties(QtWidgets.QWidget):
     def setElement(self, element):
         self.label.setText(str(element))
         self.element = element
-        print(repr(element))
         try:
             element._draggable
-            print(element.get_picker())
             self.input_picker.setChecked(element._draggable.connected)
             self.input_picker.show()
         except AttributeError:
@@ -681,7 +637,6 @@ class QItemProperties(QtWidgets.QWidget):
             try:
                 self.input_position.setValue(pos)
             except Exception as err:
-                print(err)
                 self.input_position.setValue((pos.x0, pos.y0))
             self.input_position.show()
         except:
@@ -742,4 +697,14 @@ class PlotWindow(QtWidgets.QWidget):
         #self.input_size.setValue(np.array(self.fig.get_size_inches())*2.54)
         self.treeView.deleteEntry(self.fig)
         self.treeView.expand(None)
+
+        def wrap(func):
+            def newfunc(element, event=None):
+                self.select_element(element)
+                return func(element, event)
+            return newfunc
+        self.fig.figure_dragger.select_element = wrap(self.fig.figure_dragger.select_element)
+
+    def select_element(self, element):
+        self.treeView.setCurrentIndex(element)
 
