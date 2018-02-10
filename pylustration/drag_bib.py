@@ -82,15 +82,16 @@ class FigureDragger:
 
         # connect event callbacks
         #fig.canvas.mpl_connect("pick_event", self.on_pick_event)
-        fig.canvas.mpl_connect('button_press_event', self.mouse_down_event)
+        fig.canvas.mpl_connect('button_press_event', self.button_press_event)
         #fig.canvas.mpl_connect('motion_notify_event', self.mouse_move_event)
-        fig.canvas.mpl_connect('button_release_event', self.mouse_up_event)
+        fig.canvas.mpl_connect('button_release_event', self.button_release_event)
         fig.canvas.mpl_connect('key_press_event', self.key_press_event)
         #fig.canvas.mpl_connect('draw_event', self.draw_event)
         fig.canvas.mpl_connect('resize_event', self.resize_event)
         #fig.canvas.mpl_connect('scroll_event', self.scroll_event)
 
         self.selected_element = None
+        self.grab_element = None
 
     def get_picked_element(self, event, element=None, picked_element=None):
         # start with the figure
@@ -99,28 +100,45 @@ class FigureDragger:
         # iterate over all children
         for child in sorted(element.get_children(), key=lambda x: x.get_zorder()):
             # check if the element is contained in the event and has an active dragger
-            if child.contains(event)[0] and getattr(child, "_draggable", None) and getattr(child, "_draggable",
-                                                                                           None).connected:
+            if child.contains(event)[0] and ((getattr(child, "_draggable", None) and getattr(child, "_draggable",
+                                                                                           None).connected) or isinstance(child, Grabber)):
                 # use this element as the current best matching element
                 picked_element = child
             # iterate over the children's children
             picked_element = self.get_picked_element(event, child, picked_element)
         return picked_element
 
-    def mouse_up_event(self, event):
-        if self.selected_element:
-            self.selected_element._draggable.on_mouse_up(event)
+    def button_release_event(self, event):
+        # release the grabber
+        if self.grab_element:
+            self.grab_element.button_release_event(event)
+            self.grab_element = None
+        # or notify the selected element
+        elif self.selected_element:
+            self.selected_element._draggable.button_release_event(event)
 
-    def mouse_down_event(self, event):
-        if self.selected_element is None or not self.selected_element.contains(event)[0]:
-            # recursively iterate over all elements
-            picked_element = self.get_picked_element(event)
-            self.select_element(picked_element)
+    def button_press_event(self, event):
+        # recursively iterate over all elements
+        picked_element = self.get_picked_element(event)
 
-        if self.selected_element and self.selected_element.contains(event)[0]:
-            self.selected_element._draggable.on_mouse_down(event)
+        # if the element is a grabber, store it
+        if isinstance(picked_element, Grabber):
+            self.grab_element = picked_element
+        # if not, we want to keep our selected element, if the click was in the area of the selected element
+        elif self.selected_element is None or not self.selected_element.contains(event)[0]:
+                self.select_element(picked_element)
+
+        # if we have a grabber, notify it
+        if self.grab_element:
+            self.grab_element.button_press_event(event)
+        # if not, notify the selected element
+        elif self.selected_element and self.selected_element.contains(event)[0]:
+            self.selected_element._draggable.button_press_event(event)
 
     def select_element(self, element, event=None):
+        # do nothing if it is already selected
+        if element == self.selected_element:
+            return
         # if there was was previously selected element, deselect it
         if self.selected_element is not None:
             self.selected_element._draggable.on_deselect(event)
@@ -539,10 +557,10 @@ class Grabber(object):
         self.width = pos.width
         self.fix_aspect = self.target.get_aspect() != "auto" and self.target.get_adjustable() != "datalim"
 
-        c2 = self.fig.canvas.mpl_connect('pick_event', self.on_pick)
-        c3 = self.fig.canvas.mpl_connect('button_release_event', self.on_release)
+        #c2 = self.fig.canvas.mpl_connect('pick_event', self.on_pick)
+        #c3 = self.fig.canvas.mpl_connect('button_release_event', self.on_release)
 
-        self.cids = [c2, c3]
+        #self.cids = [c2, c3]
 
     def on_motion(self, evt):
         if self.got_artist:
@@ -554,19 +572,22 @@ class Grabber(object):
 
             self.parent.doBlit()
 
-    def on_pick(self, evt):
-        if evt.artist == self:
-            self.got_artist = True
-            self.moved = False
+    def button_press_event(self, evt):
+        self.got_artist = True
+        self.moved = False
 
-            self._c1 = self.fig.canvas.mpl_connect('motion_notify_event', self.on_motion)
-            self.clickedEvent(evt)
+        self._c1 = self.fig.canvas.mpl_connect('motion_notify_event', self.on_motion)
+        self.clickedEvent(evt)
 
-    def on_release(self, event):
+    def button_release_event(self, event):
+        print("release Event", event)
         if self.got_artist:
             self.got_artist = False
             self.fig.canvas.mpl_disconnect(self._c1)
             self.releasedEvent(event)
+            if self.parent.blit_initialized:
+                self.parent.finishBlit()
+            print("release")
 
     def get_xy(self):
         return self.center
@@ -588,8 +609,8 @@ class Grabber(object):
         self.snap_index_offset = 0#len(self.snaps)
         self.snaps.extend(getSnaps(self.target, self.dir))
 
-        self.mouse_x = event.mouseevent.x
-        self.mouse_y = event.mouseevent.y
+        self.mouse_x = event.x
+        self.mouse_y = event.y
 
         self.old_pos = self.target.get_position()
         self.ox, self.oy = self.get_xy()
@@ -606,6 +627,7 @@ class Grabber(object):
         for snap in self.snaps[self.snap_index_offset:]:
             snap.remove()
         self.snaps = self.snaps[self.snap_index_offset:]
+        print("releasedEvent")
 
     def applyOffset(self, pos, event):
         self.set_xy((self.ox+pos[0], self.oy+pos[1]))
@@ -779,7 +801,7 @@ class DraggableBase(object):
     def on_deselect(self, evt):
         pass
 
-    def on_mouse_down(self, evt):
+    def button_press_event(self, evt):
         self.mouse_x, self.mouse_y = evt.x, evt.y
         self.got_artist = True
         self.moved = False
@@ -790,7 +812,7 @@ class DraggableBase(object):
             self._c1 = self.canvas.mpl_connect('motion_notify_event', self.on_motion)
         self.save_offset()
 
-    def on_mouse_up(self, event):
+    def button_release_event(self, event):
         if self.got_artist:
             if self.moved:
                 self.finalize_offset()
@@ -809,9 +831,6 @@ class DraggableBase(object):
 
     def artist_picker(self, artist, evt):
         return self.ref_artist.contains(evt)
-
-    def deselectArtist(self):
-        pass
 
     def save_offset(self):
         pass
@@ -906,7 +925,9 @@ class DraggableAxes(DraggableBase):
 
     def redoPos(self, pos):
         self.ref_artist.set_position(pos)
-        self.deselectArtist()
+        if self.ref_artist.figure.figure_dragger.selected_element == self.ref_artist:
+            self.ref_artist.figure.figure_dragger.select_element(None)
+        self.on_deselect(None)
 
     def finalize_offset(self):
         pos = self.ref_artist.get_position()
