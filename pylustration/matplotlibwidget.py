@@ -82,10 +82,10 @@ class MatplotlibWidget(Canvas):
     self.widget.axes.plot(x, x**2)
     self.wdiget.axes.plot(x, x**3)
     """
-    def __init__(self, parent=None, title='', xlabel='', ylabel='',
+    def __init__(self, parent=None, num=1, title='', xlabel='', ylabel='',
                  xlim=None, ylim=None, xscale='linear', yscale='linear',
-                 width=4, height=3, dpi=100):
-        self.figure = Figure(figsize=(width, height), dpi=dpi)
+                 size=None, dpi=100):
+        self.figure = Figure(figsize=size, dpi=dpi)
         self.axes = self.figure.add_subplot(111)
         self.axes.set_title(title)
         self.axes.set_xlabel(xlabel)

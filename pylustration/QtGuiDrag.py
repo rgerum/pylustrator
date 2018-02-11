@@ -41,11 +41,11 @@ def initialize():
 def show():
     global figures
     # iterate over figures
-    for figure in figures:
+    for figure in _pylab_helpers.Gcf.figs:
         # get the window
-        window = figures[figure].window
+        window = _pylab_helpers.Gcf.figs[figure].canvas.window
         # add dragger
-        FigureDragger(figures[figure].figure, [], [], "cm")
+        FigureDragger(_pylab_helpers.Gcf.figs[figure].canvas.figure, [], [], "cm")
         window.update()
         # and show it
         window.show()
@@ -57,22 +57,23 @@ def figure(num=None, size=None, *args, **kwargs):
     global figures
     # if num is not defined create a new number
     if num is None:
-        num = len(figures)
+        num = len(_pylab_helpers.Gcf.figs)+1
     # if number is not defined
-    if num not in figures.keys():
+    if num not in _pylab_helpers.Gcf.figs.keys():
         # create a new window and store it
-        canvas = PlotWindow(num, *args, **kwargs).canvas
+        canvas = PlotWindow(num, size, *args, **kwargs).canvas
         canvas.figure.number = num
-        figures[num] = canvas
+        canvas.manager.num = num
+        _pylab_helpers.Gcf.figs[num] = canvas.manager
     # get the canvas of the figure
-    canvas = figures[num]
+    manager = _pylab_helpers.Gcf.figs[num]
     # set the size if it is defined
     if size is not None:
-        figures[num].window.setGeometry(100, 100, size[0] * 80, size[1] * 80)
+        _pylab_helpers.Gcf.figs[num].window.setGeometry(100, 100, size[0] * 80, size[1] * 80)
     # set the figure as the active figure
-    _pylab_helpers.Gcf.set_active(canvas.manager)
+    _pylab_helpers.Gcf.set_active(manager)
     # return the figure
-    return canvas.figure
+    return manager.canvas.figure
 
 """ Window """
 
@@ -903,10 +904,10 @@ class QItemProperties(QtWidgets.QWidget):
 
 
 class PlotWindow(QtWidgets.QWidget):
-    def __init__(self, number, *args, **kwargs):
+    def __init__(self, number, size, *args, **kwargs):
         QtWidgets.QWidget.__init__(self)
 
-        self.canvas = MatplotlibWidget(self)
+        self.canvas = MatplotlibWidget(self, number, size=size)
         self.canvas.window = self
         self.fig = self.canvas.figure
         self.fig.widget = self.canvas
@@ -936,9 +937,7 @@ class PlotWindow(QtWidgets.QWidget):
         self.layout_main.addLayout(self.layout_plot)
 
         # add plot canvas
-
         self.layout_plot.addWidget(self.canvas)
-        _pylab_helpers.Gcf.set_active(self.canvas.manager)
 
         # add toolbar
         self.navi_toolbar = NavigationToolbar(self.canvas, self)
