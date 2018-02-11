@@ -52,7 +52,7 @@ def changeFigureSize(w, h, cut_from_top=False, cut_from_left=False, fig=None):
     fy = oldh / h
     print("fx", fx, oldw, w)
     print("fy", fy, oldh, h)
-    for axe in plt.gcf().axes:
+    for axe in fig.axes:
         box = axe.get_position()
         if cut_from_top:
             if cut_from_left:
@@ -65,7 +65,7 @@ def changeFigureSize(w, h, cut_from_top=False, cut_from_left=False, fig=None):
                     [1 - (1 - box.x0) * fx, 1 - (1 - box.y0) * fy, (box.x1 - box.x0) * fx, (box.y1 - box.y0) * fy])
             else:
                 axe.set_position([box.x0 * fx, 1 - (1 - box.y0) * fy, (box.x1 - box.x0) * fx, (box.y1 - box.y0) * fy])
-    for text in plt.gcf().texts:
+    for text in fig.texts:
         x0, y0 = text.get_position()
         if cut_from_top:
             if cut_from_left:
@@ -78,6 +78,86 @@ def changeFigureSize(w, h, cut_from_top=False, cut_from_left=False, fig=None):
             else:
                 text.set_position([x0 * fx, 1 - (1 - y0) * fy])
     fig.set_size_inches(w, h, forward=True)
+
+
+def loadFigureFromFile(filename, fig1=None):
+    from pylustration import changeFigureSize
+    import os, sys
+    from importlib import import_module
+    from matplotlib import _pylab_helpers
+    import pylustration
+
+    # defaults to the current figure
+    if fig1 is None:
+        fig1 = plt.gcf()
+
+    class noShow:
+        """
+        An environment that prevents the script from calling the plt.show function
+        """
+        def __enter__(self):
+            # store the show function
+            self.show = plt.show
+            self.dragger = pylustration.StartDragger
+
+            # define an empty function
+            def empty(*args, **kwargs):
+                pass
+
+            # set the show function to the empty function
+            plt.show = empty
+            pylustration.StartDragger = empty
+
+        def __exit__(self, type, value, traceback):
+            # restore the old show function
+            plt.show = self.show
+            pylustration.StartDragger = self.dragger
+
+    class noNewFigures:
+        """
+        An environment that prevents the script from creating new figures in the figure manager
+        """
+        def __enter__(self):
+            # reset the figure manangar and store the current state
+            self.fig = _pylab_helpers.Gcf.figs
+            self.active = _pylab_helpers.Gcf._activeQue
+            _pylab_helpers.Gcf.figs = {}
+            _pylab_helpers.Gcf._activeQue = []
+
+        def __exit__(self, type, value, traceback):
+            # reset the figure manager
+            _pylab_helpers.Gcf.figs = self.fig
+            _pylab_helpers.Gcf._activeQue = self.active
+
+    with noNewFigures():
+        # prevent the script we want to load from calling show
+        with noShow():
+            # add the path of the sys.path
+            sys.path.insert(0, os.path.dirname(os.path.abspath(filename)))
+            # import the filename
+            import_module(os.path.basename(filename))
+            # remove the path from sys.path
+            sys.path.pop(0)
+        fig2 = plt.gcf()
+
+    # get the size of the old figure
+    w1, h1 = fig1.get_size_inches()
+    # get the size of the new figure
+    w2, h2 = fig2.get_size_inches()
+
+    # calculate the size of the joined figure
+    w = np.max([w1, w2])
+    h = h1+h2
+
+    # change the sizes of the two figures
+    changeFigureSize(w, h, fig=fig1)
+    changeFigureSize(w, h, cut_from_top=True, fig=fig2)
+
+    # move the axes from the new figure to the old figure
+    for index, ax in enumerate(fig2.axes):
+        fig1._axstack.add(fig1._make_key(ax), ax)
+        ax.figure = fig1
+        fig2.delaxes(ax)
 
 
 def mark_inset(parent_axes, inset_axes, loc1=1, loc2=2, **kwargs):
