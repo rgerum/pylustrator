@@ -312,7 +312,7 @@ def getTextFromFile(marker, stack_pos):
                 if line.strip().startswith("#% end:"):
                     block_active = False
                     last_block = lineno
-                    if block.split("\n", 1)[0] == marker[:-1]:
+                    if block.split("\n", 1)[0].strip() == marker[:-1]:
                         break
                     block = ""
                 block = block + line
