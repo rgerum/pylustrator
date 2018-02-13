@@ -651,15 +651,16 @@ def getReference(element):
         return "fig"
     if isinstance(element, matplotlib.text.Text):
         if element.axes:
-            index0 = element.axes.number
-            index1 = element.axes.texts.index(element)
-            return "fig.axes[%d].texts[%d]" % (index0, index1)
-        index1 = element.figure.texts.index(element)
-        return "fig.texts[%d]" % (index1)
+            index = element.axes.texts.index(element)
+            return getReference(element.axes)+".texts[%d]" % index
+        index = element.figure.texts.index(element)
+        return "fig.texts[%d]" % (index)
     if isinstance(element, matplotlib.axes.Subplot):
+        if element.get_label() != "":
+            return "fig.ax_dict[%s]" % element.get_label()
         return "fig.axes[%d]" % element.number
     if isinstance(element, matplotlib.legend.Legend):
-        return "fig.axes[%d].get_legend()" % element.axes.number
+        return getReference(element.axes)+".get_legend()"
 
 
 class QItemProperties(QtWidgets.QWidget):
