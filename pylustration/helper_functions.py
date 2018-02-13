@@ -50,8 +50,6 @@ def changeFigureSize(w, h, cut_from_top=False, cut_from_left=False, fig=None):
     oldw, oldh = fig.get_size_inches()
     fx = oldw / w
     fy = oldh / h
-    print("fx", fx, oldw, w)
-    print("fy", fy, oldh, h)
     for axe in fig.axes:
         box = axe.get_position()
         if cut_from_top:
