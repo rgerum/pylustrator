@@ -21,15 +21,18 @@ def getReference(element):
         return "fig"
     if isinstance(element, matplotlib.text.Text):
         if element.axes:
-            index0 = element.axes.number
-            index1 = element.axes.texts.index(element)
-            return "fig.axes[%d].texts[%d]" % (index0, index1)
-        index1 = element.figure.texts.index(element)
-        return "fig.texts[%d]" % (index1)
-    if isinstance(element, matplotlib.axes.Subplot):
+            index = element.axes.texts.index(element)
+            return getReference(element.axes)+".texts[%d]" % index
+        index = element.figure.texts.index(element)
+        return "fig.texts[%d]" % (index)
+    if isinstance(element, matplotlib.axes._axes.Axes):
+        print("label", element.get_label())
+        if element.get_label():
+            return "fig.ax_dict[\"%s\"]" % element.get_label()
         return "fig.axes[%d]" % element.number
     if isinstance(element, matplotlib.legend.Legend):
-        return "fig.axes[%d].get_legend()" % element.axes.number
+        return getReference(element.axes)+".get_legend()"
+    raise(TypeError(str(type(element))+" not found"))
 
 
 class FigureDragger:
@@ -238,23 +241,27 @@ class FigureDragger:
             self.forwardEdit()
 
     def save(self):
-        figure = "fig = plt.figure(%s)\n" % self.fig.number
-        block = getTextFromFile(figure, self.stack_position).split("\n")
-        output = "#% start: automatic generated code from pylustration\n"
-        output += figure
-        for line in block[1:]:
+        header = ["fig = plt.figure(%s)" % self.fig.number, "fig.ax_dict = {ax.get_label(): ax for ax in fig.axes}"]
+
+        block = getTextFromFile(header[0], self.stack_position).split("\n")
+        output = ["#% start: automatic generated code from pylustration"]
+        for line in header:
+            output.append(line)
+        for line in block:
             line = line.strip()
             if line == "":
+                continue
+            if line in header:
                 continue
             for key in self.changes:
                 if line.startswith(key):
                     break
             else:
-                output += line + "\n"
+                output.append(line)
         for key in self.changes:
-            output += self.changes[key] + "\n"
-        output += "#% end: automatic generated code from pylustration"
-        print(output)
+            output.append(self.changes[key])
+        output.append("#% end: automatic generated code from pylustration")
+        print("\n".join(output))
         insertTextToFile(output, self.stack_position)
         self.saved = True
 
@@ -321,7 +328,7 @@ def getTextFromFile(marker, stack_pos):
                 if line.strip().startswith("#% end:"):
                     block_active = False
                     last_block = lineno
-                    if block.split("\n", 1)[0].strip() == marker[:-1]:
+                    if block.split("\n", 1)[0].strip() == marker.strip():
                         break
                     block = ""
                 block = block + line
@@ -358,7 +365,7 @@ def insertTextToFile(text, stack_pos):
                         if line[i] != " " and line[i] != "\t":
                             break
                     indent = line[:i]
-                    for line_text in text.split("\n"):
+                    for line_text in text:
                         fp2.write(indent + line_text + "\n")
                     written = True
                     last_block = -10
@@ -1034,7 +1041,7 @@ class DraggableAxes(DraggableBase):
     def finalize_offset(self):
         pos = self.ref_artist.get_position()
         self.ref_artist.figure.figure_dragger.addEdit([lambda pos=self.old_pos: self.redoPos(pos), lambda pos=pos: self.redoPos(pos)])
-        key = "fig.axes[%d].set_position" % self.ref_artist.number
+        key = getReference(self.ref_artist)+".set_position"
         self.ref_artist.figure.figure_dragger.addChange(key, key+"([%f, %f, %f, %f])" % (pos.x0, pos.y0, pos.width, pos.height))
         for snap in self.snaps:
             snap.hide()
@@ -1145,13 +1152,7 @@ class DraggableText(DraggableBase):
         pos = self.ref_artist.get_position()
         self.ref_artist.figure.figure_dragger.addEdit(
             [lambda pos=self.old_pos: self.redoPos(pos), lambda pos=pos: self.redoPos(pos)])
-        if self.ref_artist.axes:
-            index0 = self.ref_artist.axes.number
-            index1 = self.ref_artist.axes.texts.index(self.ref_artist)
-            key = "fig.axes[%d].texts[%d].set_position" % (index0, index1)
-        else:
-            index1 = self.ref_artist.figure.texts.index(self.ref_artist)
-            key = "fig.texts[%d].set_position" % (index1)
+        key = getReference(self.ref_artist)+".set_position"
         self.ref_artist.figure.figure_dragger.addChange(key, key + "([%f, %f])  # Text: \"%s\"" % (pos[0], pos[1], self.ref_artist.get_text()))
         # remove all snaps when the dragger is released
         for snap in self.snaps:
@@ -1242,8 +1243,7 @@ class DraggableLegend(DraggableOffsetBox):
                                self.update)
 
         loc = self.ref_artist._get_loc()
-        index1 = self.ref_artist.axes.number
-        key = "fig.axes[%d].get_legend()._set_loc" % (index1)
+        key = getReference(self.ref_artist)+"._set_loc"
         self.ref_artist.figure.figure_dragger.addChange(key, key + "(%s)" % (loc,))
         #save_text += "fig.axes[%d].get_legend()._set_loc(%s)\n" % (index, loc)
 
