@@ -115,7 +115,6 @@ class DimensionsWidget(QtWidgets.QWidget):
         self.input2.setSuffix(" "+unit)
 
     def setTransform(self, transform):
-        print("new Trans", transform)
         self.transform = transform
 
     def onValueChanged(self, value):
@@ -777,14 +776,12 @@ class QItemProperties(QtWidgets.QWidget):
     def changeSize(self, value):
         if isinstance(self.element, Figure):
 
-            print("self.scale_type", self.scale_type)
             if self.scale_type == 0:
                 self.fig.set_size_inches(value)
                 key = getReference(self.element)+".set_size_inches"
                 self.fig.figure_dragger.addChange(key, key + "(%f/2.54, %f/2.54, forward=True)" % (value[0]*2.54, value[1]*2.54))
             else:
                 if self.scale_type == 1:
-                    print(value)
                     changeFigureSize(value[0], value[1], fig=self.fig)
                 elif self.scale_type == 2:
                     changeFigureSize(value[0], value[1], cut_from_top=True, cut_from_left=True, fig=self.fig)
@@ -969,6 +966,7 @@ class PlotWindow(QtWidgets.QWidget):
     def select_element(self, element):
         if element is None:
             self.treeView.setCurrentIndex(self.fig)
+            self.input_properties.setElement(self.fig)
         else:
             self.treeView.setCurrentIndex(element)
-        self.input_properties.setElement(element)
+            self.input_properties.setElement(element)
