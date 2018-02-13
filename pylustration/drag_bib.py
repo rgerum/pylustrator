@@ -41,6 +41,7 @@ class FigureDragger:
     snaps = None
 
     changes = None
+    saved = True
 
     def __init__(self, fig, xsnaps=None, ysnaps=None, unit="cm"):
         self.fig = fig
@@ -185,6 +186,7 @@ class FigureDragger:
 
     def addChange(self, change_key, change):
         self.changes[change_key] = change
+        self.saved = False
         print(self.changes)
 
     def addEdit(self, edit):
@@ -226,28 +228,32 @@ class FigureDragger:
     def key_press_event(self, event):
         # space: print code to restore current configuration
         if event.key == ' ':
-            figure = "fig = plt.figure(%s)\n" % self.fig.number
-            block = getTextFromFile(figure, self.stack_position).split("\n")
-            output = "#% start: automatic generated code from pylustration\n"
-            output += figure
-            for line in block[1:]:
-                line = line.strip()
-                if line == "":
-                    continue
-                for key in self.changes:
-                    if line.startswith(key):
-                        break
-                else:
-                    output += line + "\n"
-            for key in self.changes:
-                output += self.changes[key] + "\n"
-            output += "#% end: automatic generated code from pylustration"
-            print(output)
-            insertTextToFile(output, self.stack_position)
+            self.save()
         if event.key == "ctrl+z":
             self.backEdit()
         if event.key == "ctrl+y":
             self.forwardEdit()
+
+    def save(self):
+        figure = "fig = plt.figure(%s)\n" % self.fig.number
+        block = getTextFromFile(figure, self.stack_position).split("\n")
+        output = "#% start: automatic generated code from pylustration\n"
+        output += figure
+        for line in block[1:]:
+            line = line.strip()
+            if line == "":
+                continue
+            for key in self.changes:
+                if line.startswith(key):
+                    break
+            else:
+                output += line + "\n"
+        for key in self.changes:
+            output += self.changes[key] + "\n"
+        output += "#% end: automatic generated code from pylustration"
+        print(output)
+        insertTextToFile(output, self.stack_position)
+        self.saved = True
 
     def resize_event(self, event):
         # on the first resize (when the figure window plops up) store the additional size (edit toolbar and stuff)
