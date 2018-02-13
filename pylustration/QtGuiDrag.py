@@ -961,7 +961,22 @@ class PlotWindow(QtWidgets.QWidget):
             return newfunc
         self.fig.figure_dragger.select_element = wrap(self.fig.figure_dragger.select_element)
 
+        def wrap(func):
+            def newfunc(*args):
+                self.updateTitle()
+                return func(*args)
+            return newfunc
+        self.fig.figure_dragger.addChange = wrap(self.fig.figure_dragger.addChange)
+
+        self.fig.figure_dragger.save = wrap(self.fig.figure_dragger.save)
+
         self.treeView.setCurrentIndex(self.fig)
+
+    def updateTitle(self):
+        if self.fig.figure_dragger.saved:
+            self.setWindowTitle("Figure %s" % self.fig.number)
+        else:
+            self.setWindowTitle("Figure %s*" % self.fig.number)
 
     def select_element(self, element):
         if element is None:
@@ -970,3 +985,15 @@ class PlotWindow(QtWidgets.QWidget):
         else:
             self.treeView.setCurrentIndex(element)
             self.input_properties.setElement(element)
+
+    def closeEvent(self, event):
+        if not self.fig.figure_dragger.saved:
+            reply = QtWidgets.QMessageBox.question(self, 'Warning', 'The figure has not been saved. '
+                                                                    'All data will be lost.\nDo you want to save it?',
+                                                   QtWidgets.QMessageBox.Cancel | QtWidgets.QMessageBox.No | QtWidgets.QMessageBox.Yes,
+                                                   QtWidgets.QMessageBox.Yes)
+
+            if reply == QtWidgets.QMessageBox.Cancel:
+                event.ignore()
+            if reply == QtWidgets.QMessageBox.Yes:
+                self.fig.figure_dragger.save()
