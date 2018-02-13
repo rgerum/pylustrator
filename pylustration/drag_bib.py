@@ -8,6 +8,7 @@ from matplotlib.patches import Rectangle, Ellipse
 from matplotlib.figure import Figure
 from matplotlib.axes._subplots import Axes
 import matplotlib
+import uuid
 
 DIR_X0 = 1
 DIR_Y0 = 2
@@ -185,6 +186,8 @@ class FigureDragger:
         self.fig.canvas.draw()
 
     def addChange(self, change_key, change):
+        if change_key is None:
+            change_key = str(uuid.uuid4())
         self.changes[change_key] = change
         self.saved = False
         print(self.changes)

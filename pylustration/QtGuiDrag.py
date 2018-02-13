@@ -717,10 +717,10 @@ class QItemProperties(QtWidgets.QWidget):
         key = getReference(self.element)+".text"
         if isinstance(self.element, Axes):
             text = self.element.text(0.5, 0.5, "New Text", transform=self.element.transAxes)
-            self.fig.figure_dragger.addChange(key, key+"(0.5, 0.5, 'New Text', transform=%s.transAxes)" % getReference(self.element))
+            self.fig.figure_dragger.addChange(None, key+"(0.5, 0.5, 'New Text', transform=%s.transAxes)" % getReference(self.element))
         if isinstance(self.element, Figure):
             text = self.element.text(0.5, 0.5, "New Text", transform=self.element.transFigure)
-            self.fig.figure_dragger.addChange(key,
+            self.fig.figure_dragger.addChange(None,
                                               key + "(0.5, 0.5, 'New Text', transform=%s.transFigure)" % getReference(self.element))
         self.tree.updateEntry(self.element, update_children=True)
         self.fig.figure_dragger.make_dragable(text)
@@ -733,7 +733,7 @@ class QItemProperties(QtWidgets.QWidget):
     def buttonAddAnnotationClicked(self):
         key = getReference(self.element)+".annotate"
         text = self.element.annotate("New Annotation", (self.element.get_xlim()[0], self.element.get_ylim()[0]), (np.mean(self.element.get_xlim()), np.mean(self.element.get_ylim())), arrowprops=dict(arrowstyle="->"))
-        self.fig.figure_dragger.addChange(key, key+"('New Annotation', %s, %s, arrowprops=dict(arrowstyle='->'))" % (text.xy, text.get_position()))
+        self.fig.figure_dragger.addChange(None, key+"('New Annotation', %s, %s, arrowprops=dict(arrowstyle='->'))" % (text.xy, text.get_position()))
 
         self.tree.updateEntry(self.element, update_children=True)
         self.fig.figure_dragger.make_dragable(text)
@@ -843,7 +843,6 @@ class QItemProperties(QtWidgets.QWidget):
         if self.transform_index == 2:
             return element.get_transform()
         return None
-
 
     def setElement(self, element):
         self.label.setText(str(element))
