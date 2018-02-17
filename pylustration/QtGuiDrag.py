@@ -15,6 +15,7 @@ import matplotlib.transforms as transforms
 from .QtShortCuts import AddQColorChoose, QDragableColor
 from .drag_bib import FigureDragger
 from .helper_functions import changeFigureSize
+from .drag_bib import getReference
 
 import sys
 
@@ -643,24 +644,6 @@ class MyTreeView(QtWidgets.QTreeView):
             name = self.getNameOfEntry(parent_entry)
             if name is not None:
                 parent_item.setText(name)
-
-
-def getReference(element):
-    import matplotlib
-    if isinstance(element, Figure):
-        return "fig"
-    if isinstance(element, matplotlib.text.Text):
-        if element.axes:
-            index = element.axes.texts.index(element)
-            return getReference(element.axes)+".texts[%d]" % index
-        index = element.figure.texts.index(element)
-        return "fig.texts[%d]" % (index)
-    if isinstance(element, matplotlib.axes.Subplot):
-        if element.get_label() != "":
-            return "fig.ax_dict[%s]" % element.get_label()
-        return "fig.axes[%d]" % element.number
-    if isinstance(element, matplotlib.legend.Legend):
-        return getReference(element.axes)+".get_legend()"
 
 
 class QItemProperties(QtWidgets.QWidget):
