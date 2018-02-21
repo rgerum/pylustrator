@@ -64,6 +64,7 @@ def figure(num=None, size=None, *args, **kwargs):
         # create a new window and store it
         canvas = PlotWindow(num, size, *args, **kwargs).canvas
         canvas.figure.number = num
+        canvas.figure.clf()
         canvas.manager.num = num
         _pylab_helpers.Gcf.figs[num] = canvas.manager
     # get the canvas of the figure
