@@ -12,7 +12,6 @@ from matplotlib.figure import Figure
 from matplotlib.axes._subplots import Axes
 import matplotlib.transforms as transforms
 
-from .QtShortCuts import AddQColorChoose, QDragableColor
 from .drag_bib import FigureDragger
 from .helper_functions import changeFigureSize
 from .drag_bib import getReference
@@ -230,6 +229,38 @@ class RadioWidget(QtWidgets.QWidget):
         return self.checked
 
 
+
+class QColorWidget(QtWidgets.QPushButton):
+    valueChanged = QtCore.Signal(str)
+
+    def __init__(self, value):
+        super(QtWidgets.QPushButton, self).__init__()
+        self.clicked.connect(self.OpenDialog)
+        # default value for the color
+        if value is None:
+            value = "#FF0000FF"
+        # set the color
+        self.setColor(value)
+
+    def OpenDialog(self):
+        # get new color from color picker
+        color = QtWidgets.QColorDialog.getColor(QtGui.QColor(*tuple(mpl.colors.to_rgba_array(self.getColor())[0]*255)), self.parent(), "Choose Color")
+        # if a color is set, apply it
+        if color.isValid():
+            color = mpl.colors.to_hex(color.getRgbF())
+            self.setColor(color)
+
+    def setColor(self, value):
+        # display and save the new color
+        self.setStyleSheet("background-color: %s;" % value)
+        self.color = value
+        self.valueChanged.emit(self.color)
+
+    def getColor(self):
+        # return the color
+        return self.color
+
+
 class TextPropertiesWidget(QtWidgets.QWidget):
     stateChanged = QtCore.Signal(int, str)
     noSignal = False
@@ -259,6 +290,10 @@ class TextPropertiesWidget(QtWidgets.QWidget):
         self.button_italic.clicked.connect(self.changeStyle)
         self.layout.addWidget(self.button_italic)
 
+        self.button_color = QColorWidget("#000000FF")
+        self.button_color.valueChanged.connect(self.changeColor)
+        self.layout.addWidget(self.button_color)
+
         self.layout.addStretch()
 
         self.font_size = QtWidgets.QSpinBox()
@@ -279,6 +314,7 @@ class TextPropertiesWidget(QtWidgets.QWidget):
 
         self.button_bold.setChecked(element.get_weight() == "bold")
         self.button_italic.setChecked(element.get_style() == "italic")
+        self.button_color.setColor(element.get_color())
 
         self.target = element
 
@@ -302,6 +338,18 @@ class TextPropertiesWidget(QtWidgets.QWidget):
             element.set_style("italic" if checked else "normal")
             key = getReference(element) + ".set_style"
             element.figure.figure_dragger.addChange(key, key + "(\"%s\")" % ("italic" if checked else "normal",))
+
+            self.target = element
+            self.target.figure.canvas.draw()
+
+    def changeColor(self, color):
+        if self.target:
+            element = self.target
+            self.target = None
+
+            element.set_color(color)
+            key = getReference(element) + ".set_color"
+            element.figure.figure_dragger.addChange(key, key + "(\"%s\")" % (color,))
 
             self.target = element
             self.target.figure.canvas.draw()
