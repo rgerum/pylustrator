@@ -96,6 +96,7 @@ class DimensionsWidget(QtWidgets.QWidget):
         self.input1.setSingleStep(0.1)
         self.input1.valueChanged.connect(self.onValueChanged)
         self.input1.setMaximum(99999)
+        self.input1.setMinimum(-99999)
         self.layout.addWidget(self.input1)
 
         self.text2 = QtWidgets.QLabel(join)
@@ -106,6 +107,7 @@ class DimensionsWidget(QtWidgets.QWidget):
         self.input2.setSingleStep(0.1)
         self.input2.valueChanged.connect(self.onValueChanged)
         self.input2.setMaximum(99999)
+        self.input2.setMinimum(-99999)
         self.layout.addWidget(self.input2)
 
     def setText(self, text):
@@ -732,8 +734,14 @@ class QItemProperties(QtWidgets.QWidget):
         self.input_xlabel = TextWidget(self.layout, "X-Label:")
         self.input_xlabel.editingFinished.connect(self.changeXLabel)
 
+        self.input_xlim = DimensionsWidget(self.layout, "X-Lim:", "-", "")
+        self.input_xlim.valueChanged.connect(self.changeXLim)
+
         self.input_ylabel = TextWidget(self.layout, "Y-Label:")
         self.input_ylabel.editingFinished.connect(self.changeYLabel)
+
+        self.input_ylim = DimensionsWidget(self.layout, "Y-Lim:", "-", "")
+        self.input_ylim.valueChanged.connect(self.changeYLim)
 
         self.input_font_properties = TextPropertiesWidget(self.layout)
 
@@ -860,10 +868,22 @@ class QItemProperties(QtWidgets.QWidget):
         self.fig.figure_dragger.addChange(key, key + "(\"%s\")" % (self.element.get_xlabel()))
         self.fig.canvas.draw()
 
+    def changeXLim(self):
+        self.element.set_xlim(*self.input_xlim.value())
+        key = getReference(self.element) + ".set_xlim"
+        self.fig.figure_dragger.addChange(key, key + "(%s, %s)" % tuple(str(i) for i in self.element.get_xlim()))
+        self.fig.canvas.draw()
+
     def changeYLabel(self):
         self.element.set_ylabel(self.input_ylabel.text())
         key = getReference(self.element)+".set_ylabel"
         self.fig.figure_dragger.addChange(key, key + "(\"%s\")" % (self.element.get_ylabel()))
+        self.fig.canvas.draw()
+
+    def changeYLim(self):
+        self.element.set_ylim(*self.input_ylim.value())
+        key = getReference(self.element) + ".set_ylim"
+        self.fig.figure_dragger.addChange(key, key + "(%s, %s)" % tuple(str(i) for i in self.element.get_ylim()))
         self.fig.canvas.draw()
 
     def changePickable(self):
@@ -908,7 +928,9 @@ class QItemProperties(QtWidgets.QWidget):
         self.input_shape_transform.hide()
         self.input_transform.hide()
         self.input_xlabel.hide()
+        self.input_xlim.hide()
         self.input_ylabel.hide()
+        self.input_ylim.hide()
         self.button_add_annotation.hide()
         if isinstance(element, Figure):
             pos = element.get_size_inches()
@@ -926,8 +948,12 @@ class QItemProperties(QtWidgets.QWidget):
             self.input_shape.show()
             self.input_xlabel.show()
             self.input_xlabel.setText(element.get_xlabel())
+            self.input_xlim.show()
+            self.input_xlim.setValue(element.get_xlim())
             self.input_ylabel.show()
             self.input_ylabel.setText(element.get_ylabel())
+            self.input_ylim.show()
+            self.input_ylim.setValue(element.get_ylim())
             self.button_add_text.show()
             self.button_add_annotation.show()
         else:
