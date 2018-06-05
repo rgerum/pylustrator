@@ -729,6 +729,12 @@ class QItemProperties(QtWidgets.QWidget):
         self.input_text = TextWidget(self.layout, "Text:")
         self.input_text.editingFinished.connect(self.changeText)
 
+        self.input_xlabel = TextWidget(self.layout, "X-Label:")
+        self.input_xlabel.editingFinished.connect(self.changeXLabel)
+
+        self.input_ylabel = TextWidget(self.layout, "Y-Label:")
+        self.input_ylabel.editingFinished.connect(self.changeYLabel)
+
         self.input_font_properties = TextPropertiesWidget(self.layout)
 
         self.button_add_text = QtWidgets.QPushButton("add text")
@@ -848,6 +854,18 @@ class QItemProperties(QtWidgets.QWidget):
         self.fig.figure_dragger.addChange(key, key + "(\"%s\")" % (self.element.get_text()))
         self.fig.canvas.draw()
 
+    def changeXLabel(self):
+        self.element.set_xlabel(self.input_xlabel.text())
+        key = getReference(self.element)+".set_xlabel"
+        self.fig.figure_dragger.addChange(key, key + "(\"%s\")" % (self.element.get_xlabel()))
+        self.fig.canvas.draw()
+
+    def changeYLabel(self):
+        self.element.set_ylabel(self.input_ylabel.text())
+        key = getReference(self.element)+".set_ylabel"
+        self.fig.figure_dragger.addChange(key, key + "(\"%s\")" % (self.element.get_ylabel()))
+        self.fig.canvas.draw()
+
     def changePickable(self):
         if self.input_picker.isChecked():
             self.element._draggable.connect()
@@ -889,6 +907,8 @@ class QItemProperties(QtWidgets.QWidget):
 
         self.input_shape_transform.hide()
         self.input_transform.hide()
+        self.input_xlabel.hide()
+        self.input_ylabel.hide()
         self.button_add_annotation.hide()
         if isinstance(element, Figure):
             pos = element.get_size_inches()
@@ -904,6 +924,10 @@ class QItemProperties(QtWidgets.QWidget):
             self.input_shape.setValue((pos.width, pos.height))
             self.input_transform.show()
             self.input_shape.show()
+            self.input_xlabel.show()
+            self.input_xlabel.setText(element.get_xlabel())
+            self.input_ylabel.show()
+            self.input_ylabel.setText(element.get_ylabel())
             self.button_add_text.show()
             self.button_add_annotation.show()
         else:
