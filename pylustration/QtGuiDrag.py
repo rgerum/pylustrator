@@ -132,6 +132,7 @@ class DimensionsWidget(QtWidgets.QWidget):
         self.layout.addWidget(self.input1)
 
         self.text2 = QtWidgets.QLabel(join)
+        self.text2.setMaximumWidth(self.text2.fontMetrics().width(join))
         self.layout.addWidget(self.text2)
 
         self.input2 = QtWidgets.QDoubleSpinBox()
@@ -740,6 +741,7 @@ class QItemProperties(QtWidgets.QWidget):
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
         self.layout = QtWidgets.QVBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
         self.tree = tree
 
         self.label = QtWidgets.QLabel()
@@ -1036,6 +1038,7 @@ class PlotWindow(QtWidgets.QWidget):
         self.layout_tools = QtWidgets.QVBoxLayout()
         self.layout_tools.setContentsMargins(0, 0, 0, 0)
         self.layout_main.addLayout(self.layout_tools)
+        self.layout_main.setContentsMargins(0, 0, 0, 0)
         widget = QtWidgets.QWidget()
         self.layout_tools.addWidget(widget)
         self.layout_tools = QtWidgets.QVBoxLayout(widget)
