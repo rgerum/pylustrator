@@ -28,14 +28,46 @@ sys.excepthook = my_excepthook
 """ Matplotlib overlaod """
 figures = {}
 app = None
+keys_for_lines = {}
 
 
 def initialize():
-    global app
+    global app, keys_for_lines
     if app is None:
         app = QtWidgets.QApplication(sys.argv)
     plt.show = show
     plt.figure = figure
+
+    import traceback
+    stack_call_position = traceback.extract_stack()[-2]
+    stack_call_position.filename
+
+    from matplotlib.axes._axes import Axes
+    from matplotlib.figure import Figure
+    def wrap(func, fig=True, text=""):
+        def f(axes, *args, **kwargs):
+            if args[2] == "New Text":
+                if fig is True:
+                    key = 'fig.texts[%d].new' % len(axes.texts)
+                else:
+                    index = axes.figure.axes.index(axes)
+                    key = 'fig.axes[%d].texts[%d].new' % (index, len(axes.texts))
+                    if plt.gca().get_label():
+                        key = 'fig.ax_dict["%s"].texts[%d].new' % (plt.gca().get_label(), len(axes.texts))
+                stack = traceback.extract_stack()
+                for stack_item in stack:
+                    if stack_item.filename == stack_call_position.filename:
+                        print(stack_item, len(axes.texts), key)
+                        keys_for_lines[stack_item.lineno] = key
+                        break
+            return func(axes, *args, **kwargs)
+        return f
+    Axes.text = wrap(Axes.text, fig=False, text="New Text")
+    Axes.annotate = wrap(Axes.annotate, fig=False, text="New Annotation")
+
+    Figure.text = wrap(Figure.text, fig=True, text="New Text")
+    #Figure.annotate = wrap(Figure.annotate, fig=True, text="New Annotation")
+    plt.keys_for_lines = keys_for_lines
 
 
 def show():
@@ -761,14 +793,18 @@ class QItemProperties(QtWidgets.QWidget):
         self.fig = fig
 
     def buttonAddTextClicked(self):
-        key = getReference(self.element)+".text"
+        key = getReference(self.element)
         if isinstance(self.element, Axes):
+            index = len(self.element.texts)
+            key2 = key+".texts[%d].new" % index
             text = self.element.text(0.5, 0.5, "New Text", transform=self.element.transAxes)
-            self.fig.figure_dragger.addChange(None, key+"(0.5, 0.5, 'New Text', transform=%s.transAxes)" % getReference(self.element))
+            self.fig.figure_dragger.addChange(key2, key+".text(0.5, 0.5, 'New Text', transform=%s.transAxes)  # id=%s" % (key, key2))
         if isinstance(self.element, Figure):
+            index = len(self.element.texts)
+            key2 = key + ".texts[%d].new" % index
             text = self.element.text(0.5, 0.5, "New Text", transform=self.element.transFigure)
-            self.fig.figure_dragger.addChange(None,
-                                              key + "(0.5, 0.5, 'New Text', transform=%s.transFigure)" % getReference(self.element))
+            self.fig.figure_dragger.addChange(key2,
+                                              key + ".text(0.5, 0.5, 'New Text', transform=%s.transFigure)  # id=%s" % (key, key2))
         self.tree.updateEntry(self.element, update_children=True)
         self.fig.figure_dragger.make_dragable(text)
         self.fig.figure_dragger.select_element(text)

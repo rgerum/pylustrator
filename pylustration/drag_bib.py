@@ -9,6 +9,7 @@ from matplotlib.figure import Figure
 from matplotlib.axes._subplots import Axes
 import matplotlib
 import uuid
+import re
 
 DIR_X0 = 1
 DIR_Y0 = 2
@@ -26,7 +27,6 @@ def getReference(element):
         index = element.figure.texts.index(element)
         return "fig.texts[%d]" % (index)
     if isinstance(element, matplotlib.axes._axes.Axes):
-        print("label", element.get_label())
         if element.get_label():
             return "fig.ax_dict[\"%s\"]" % element.get_label()
         return "fig.axes[%d]" % element.number
@@ -75,6 +75,8 @@ class FigureDragger:
         self.stack_position = traceback.extract_stack()[-3]
 
         self.fig_inch_size = fig.get_size_inches()
+
+        self.load()
 
         """
         self.snaps = []
@@ -239,25 +241,48 @@ class FigureDragger:
             self.backEdit()
         if event.key == "ctrl+y":
             self.forwardEdit()
+            
+    def load(self):
+        header = ["fig = plt.figure(%s)" % self.fig.number, "fig.ax_dict = {ax.get_label(): ax for ax in fig.axes}"]
+
+        block = getTextFromFile(header[0], self.stack_position)
+        for lineno, line in block:
+            line = line.strip()
+            if line == "":
+                continue
+            if line in header:
+                continue
+            key = line.split("(", 1)[0]
+            m = re.match(r".*# id=(.*)", line) 
+            if m:
+                key = m.groups()[0]
+            if lineno in plt.keys_for_lines:
+                key = plt.keys_for_lines[lineno]
+            if key in self.changes:
+                print("error", key, line)
+            print("key", key)
+            self.changes[key] = line
 
     def save(self):
         header = ["fig = plt.figure(%s)" % self.fig.number, "fig.ax_dict = {ax.get_label(): ax for ax in fig.axes}"]
 
-        block = getTextFromFile(header[0], self.stack_position).split("\n")
+        #block = getTextFromFile(header[0], self.stack_position)
         output = ["#% start: automatic generated code from pylustration"]
         for line in header:
             output.append(line)
-        for line in block:
+        """
+        for lineno, line in block:
             line = line.strip()
             if line == "":
                 continue
             if line in header:
                 continue
             for key in self.changes:
-                if line.startswith(key):
+                if line.startswith(key) or line.endswith(key):
                     break
             else:
                 output.append(line)
+        """
         for key in self.changes:
             output.append(self.changes[key])
         output.append("#% end: automatic generated code from pylustration")
@@ -319,7 +344,7 @@ def moveArtist(index, x1, y1, x2, y2):
 
 def getTextFromFile(marker, stack_pos):
     block_active = False
-    block = ""
+    block = []
     last_block = -10
     written = False
     with open(stack_pos.filename, 'r') as fp1:
@@ -328,10 +353,10 @@ def getTextFromFile(marker, stack_pos):
                 if line.strip().startswith("#% end:"):
                     block_active = False
                     last_block = lineno
-                    if block.split("\n", 1)[0].strip() == marker.strip():
+                    if block[0][1].strip() == marker.strip():
                         break
-                    block = ""
-                block = block + line
+                    block = []
+                block.append([lineno+1, line])
             elif line.strip().startswith("#% start:"):
                 #block = block + line
                 block_active = True
