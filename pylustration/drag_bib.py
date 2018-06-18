@@ -256,12 +256,43 @@ class FigureDragger:
             m = re.match(r".*# id=(.*)", line) 
             if m:
                 key = m.groups()[0]
-            if lineno in plt.keys_for_lines:
-                key = plt.keys_for_lines[lineno]
-            if key in self.changes:
-                print("error", key, line)
-            print("key", key)
+            if key.endswith("text") or key.endswith("annotate"):
+                if lineno in plt.keys_for_lines:
+                    key = plt.keys_for_lines[lineno]
+            #if key in self.changes:
+            #    print("error", key, line)
+            #print("key", key)
             self.changes[key] = line
+        self.sorted_changes()
+
+    def sorted_changes(self):
+        indices = []
+        for key in self.changes:
+            # directly from figure
+            if not key.startswith("fig.ax_dict") and not key.startswith("fig.axes"):
+                axes = ""
+                other = key.split(".", 1)[1]
+                other = "." + other
+            else:
+                axes, other = key.split("]", 1)
+                axes += "]"
+            if other.startswith(".texts"):
+                text, other = other.split("]", 1)
+                text += "]"
+                if other.startswith(".new"):
+                    index = ".."
+                else:
+                    index = other
+            else:
+                text = ""
+                index = ""
+            indices.append([key, self.changes[key], (axes, text, index)])
+        srt = sorted(indices, key=lambda a: a[2])
+        output = []
+        for s in srt:
+            print(s)
+            output.append(s[1])
+        return output
 
     def save(self):
         header = ["fig = plt.figure(%s)" % self.fig.number, "fig.ax_dict = {ax.get_label(): ax for ax in fig.axes}"]
@@ -283,8 +314,8 @@ class FigureDragger:
             else:
                 output.append(line)
         """
-        for key in self.changes:
-            output.append(self.changes[key])
+        for line in self.sorted_changes():
+            output.append(line)
         output.append("#% end: automatic generated code from pylustration")
         print("\n".join(output))
         insertTextToFile(output, self.stack_position)
