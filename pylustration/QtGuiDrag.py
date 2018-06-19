@@ -339,6 +339,11 @@ class TextPropertiesWidget(QtWidgets.QWidget):
         self.label.setPixmap(qta.icon("fa.font").pixmap(16))
         self.layout.addWidget(self.label)
 
+        self.button_delete = QtWidgets.QPushButton(qta.icon("fa.trash"), "")
+        self.button_delete.setCheckable(True)
+        self.button_delete.clicked.connect(self.delete)
+        self.layout.addWidget(self.button_delete)
+
     def setTarget(self, element):
         self.target = None
         self.font_size.setValue(element.get_fontsize())
@@ -353,14 +358,20 @@ class TextPropertiesWidget(QtWidgets.QWidget):
 
         self.target = element
 
+    def delete(self):
+        fig = self.target.figure
+        fig.figure_dragger.removeElement(self.target)
+        self.target = None
+        #self.target.set_visible(False)
+        fig.canvas.draw()
+
     def changeWeight(self, checked):
         if self.target:
             element = self.target
             self.target = None
 
             element.set_weight("bold" if checked else "normal")
-            key = getReference(element) + ".set_weight"
-            element.figure.figure_dragger.addChange(key, key + "(\"%s\")" % ("bold" if checked else "normal",))
+            element.figure.figure_dragger.addChange(element, ".set_weight(\"%s\")" % ("bold" if checked else "normal",))
 
             self.target = element
             self.target.figure.canvas.draw()
@@ -371,8 +382,7 @@ class TextPropertiesWidget(QtWidgets.QWidget):
             self.target = None
 
             element.set_style("italic" if checked else "normal")
-            key = getReference(element) + ".set_style"
-            element.figure.figure_dragger.addChange(key, key + "(\"%s\")" % ("italic" if checked else "normal",))
+            element.figure.figure_dragger.addChange(element, ".set_style(\"%s\")" % ("italic" if checked else "normal",))
 
             self.target = element
             self.target.figure.canvas.draw()
@@ -383,8 +393,7 @@ class TextPropertiesWidget(QtWidgets.QWidget):
             self.target = None
 
             element.set_color(color)
-            key = getReference(element) + ".set_color"
-            element.figure.figure_dragger.addChange(key, key + "(\"%s\")" % (color,))
+            element.figure.figure_dragger.addChange(element, ".set_color(\"%s\")" % (color,))
 
             self.target = element
             self.target.figure.canvas.draw()
@@ -398,8 +407,7 @@ class TextPropertiesWidget(QtWidgets.QWidget):
             for index, button in enumerate(self.buttons_align):
                 button.setChecked(index == index_selected)
             element.set_ha(align)
-            key = getReference(element) + ".set_ha"
-            element.figure.figure_dragger.addChange(key, key + "(\"%s\")" % align)
+            element.figure.figure_dragger.addChange(element, ".set_ha(\"%s\")" % align)
 
             self.target = element
             self.target.figure.canvas.draw()
@@ -407,8 +415,7 @@ class TextPropertiesWidget(QtWidgets.QWidget):
     def changeFontSize(self, value):
         if self.target:
             self.target.set_fontsize(value)
-            key = getReference(self.target) + ".set_fontsize"
-            self.target.figure.figure_dragger.addChange(key, key + "(%d)" % value)
+            self.target.figure.figure_dragger.addChange(self.target, ".set_fontsize(%d)" % value)
             self.target.figure.canvas.draw()
 
 
@@ -795,6 +802,7 @@ class QItemProperties(QtWidgets.QWidget):
         self.fig = fig
 
     def buttonAddTextClicked(self):
+        """
         key = getReference(self.element)
         if isinstance(self.element, Axes):
             index = len(self.element.texts)
@@ -807,6 +815,17 @@ class QItemProperties(QtWidgets.QWidget):
             text = self.element.text(0.5, 0.5, "New Text", transform=self.element.transFigure)
             self.fig.figure_dragger.addChange(key2,
                                               key + ".text(0.5, 0.5, 'New Text', transform=%s.transFigure)  # id=%s" % (key, key2))
+                                            """
+        if isinstance(self.element, Axes):
+            text = self.element.text(0.5, 0.5, "New Text", transform=self.element.transAxes)
+            self.fig.figure_dragger.addChange(self.element,
+                                              ".text(0.5, 0.5, 'New Text', transform=%s.transAxes)  # id=%s.new" % (
+                                              getReference(self.element), getReference(text)), text, ".new")
+        if isinstance(self.element, Figure):
+            text = self.element.text(0.5, 0.5, "New Text", transform=self.element.transFigure)
+            self.fig.figure_dragger.addChange(self.element,
+                                              ".text(0.5, 0.5, 'New Text', transform=%s.transFigure)  # id=%s.new" % (
+                                              getReference(self.element), getReference(text)), text, ".new")
         self.tree.updateEntry(self.element, update_children=True)
         self.fig.figure_dragger.make_dragable(text)
         self.fig.figure_dragger.select_element(text)
@@ -816,9 +835,9 @@ class QItemProperties(QtWidgets.QWidget):
         self.input_text.input1.setFocus()
 
     def buttonAddAnnotationClicked(self):
-        key = getReference(self.element)+".annotate"
         text = self.element.annotate("New Annotation", (self.element.get_xlim()[0], self.element.get_ylim()[0]), (np.mean(self.element.get_xlim()), np.mean(self.element.get_ylim())), arrowprops=dict(arrowstyle="->"))
-        self.fig.figure_dragger.addChange(None, key+"('New Annotation', %s, %s, arrowprops=dict(arrowstyle='->'))" % (text.xy, text.get_position()))
+        self.fig.figure_dragger.addChange(self.element, ".annotate('New Annotation', %s, %s, arrowprops=dict(arrowstyle='->'))  # id=%s.new" % (text.xy, text.get_position(), getReference(text)),
+                                          text, ".new")
 
         self.tree.updateEntry(self.element, update_children=True)
         self.fig.figure_dragger.make_dragable(text)
@@ -848,13 +867,11 @@ class QItemProperties(QtWidgets.QWidget):
             pos.x1 = value[0]+w
             pos.y1 = value[1]+h
 
-            key = getReference(self.element) + ".set_position"
-            self.fig.figure_dragger.addChange(key, key + "([%f, %f, %f, %f])" % (pos.x0, pos.y0, pos.width, pos.height))
+            self.fig.figure_dragger.addChange(self.element, ".set_position([%f, %f, %f, %f])" % (pos.x0, pos.y0, pos.width, pos.height))
         except AttributeError:
             pos = value
 
-            key = getReference(self.element) + ".set_position"
-            self.fig.figure_dragger.addChange(key, key + "([%f, %f])" % (pos[0], pos[1]))
+            self.fig.figure_dragger.addChange(self.element, ".set_position([%f, %f])" % (pos[0], pos[1]))
         self.element.set_position(pos)
         self.fig.canvas.draw()
 
@@ -863,23 +880,19 @@ class QItemProperties(QtWidgets.QWidget):
 
             if self.scale_type == 0:
                 self.fig.set_size_inches(value)
-                key = getReference(self.element)+".set_size_inches"
-                self.fig.figure_dragger.addChange(key, key + "(%f/2.54, %f/2.54, forward=True)" % (value[0]*2.54, value[1]*2.54))
+                self.fig.figure_dragger.addChange(self.element, ".set_size_inches(%f/2.54, %f/2.54, forward=True)" % (value[0]*2.54, value[1]*2.54))
             else:
                 if self.scale_type == 1:
                     changeFigureSize(value[0], value[1], fig=self.fig)
                 elif self.scale_type == 2:
                     changeFigureSize(value[0], value[1], cut_from_top=True, cut_from_left=True, fig=self.fig)
-                key = getReference(self.element) + ".set_size_inches"
-                self.fig.figure_dragger.addChange(key, key + "(%f/2.54, %f/2.54, forward=True)" % (value[0] * 2.54, value[1] * 2.54))
+                self.fig.figure_dragger.addChange(self.element, ".set_size_inches(%f/2.54, %f/2.54, forward=True)" % (value[0] * 2.54, value[1] * 2.54))
                 for axes in self.fig.axes:
                     pos = axes.get_position()
-                    key = getReference(axes) + ".set_position"
-                    self.fig.figure_dragger.addChange(key, key + "([%f, %f, %f, %f])" % (pos.x0, pos.y0, pos.width, pos.height))
+                    self.fig.figure_dragger.addChange(axes, ".set_position([%f, %f, %f, %f])" % (pos.x0, pos.y0, pos.width, pos.height))
                 for text in self.fig.texts:
                     pos = text.get_position()
-                    key = getReference(text) + ".set_position"
-                    self.fig.figure_dragger.addChange(key, key + "([%f, %f])" % (pos[0], pos[1]))
+                    self.fig.figure_dragger.addChange(text, ".set_position([%f, %f])" % (pos[0], pos[1]))
 
             self.fig.canvas.draw()
             self.fig.widget.updateGeometry()
@@ -889,39 +902,33 @@ class QItemProperties(QtWidgets.QWidget):
             pos.y1 = pos.y0 + value[1]
             self.element.set_position(pos)
 
-            key = getReference(self.element) + ".set_position"
-            self.fig.figure_dragger.addChange(key, key + "([%f, %f, %f, %f])" % (pos.x0, pos.y0, pos.width, pos.height))
+            self.fig.figure_dragger.addChange(self.element, ".set_position([%f, %f, %f, %f])" % (pos.x0, pos.y0, pos.width, pos.height))
 
             self.fig.canvas.draw()
 
     def changeText(self):
         self.element.set_text(self.input_text.text())
-        key = getReference(self.element)+".set_text"
-        self.fig.figure_dragger.addChange(key, key + "(\"%s\")" % (self.element.get_text()))
+        self.fig.figure_dragger.addChange(self.element, ".set_text(\"%s\")" % (self.element.get_text()))
         self.fig.canvas.draw()
 
     def changeXLabel(self):
         self.element.set_xlabel(self.input_xlabel.text())
-        key = getReference(self.element)+".set_xlabel"
-        self.fig.figure_dragger.addChange(key, key + "(\"%s\")" % (self.element.get_xlabel()))
+        self.fig.figure_dragger.addChange(self.element, ".set_xlabel(\"%s\")" % (self.element.get_xlabel()))
         self.fig.canvas.draw()
 
     def changeXLim(self):
         self.element.set_xlim(*self.input_xlim.value())
-        key = getReference(self.element) + ".set_xlim"
-        self.fig.figure_dragger.addChange(key, key + "(%s, %s)" % tuple(str(i) for i in self.element.get_xlim()))
+        self.fig.figure_dragger.addChange(self.element, ".set_xlim(%s, %s)" % tuple(str(i) for i in self.element.get_xlim()))
         self.fig.canvas.draw()
 
     def changeYLabel(self):
         self.element.set_ylabel(self.input_ylabel.text())
-        key = getReference(self.element)+".set_ylabel"
-        self.fig.figure_dragger.addChange(key, key + "(\"%s\")" % (self.element.get_ylabel()))
+        self.fig.figure_dragger.addChange(self.element, ".set_ylabel(\"%s\")" % (self.element.get_ylabel()))
         self.fig.canvas.draw()
 
     def changeYLim(self):
         self.element.set_ylim(*self.input_ylim.value())
-        key = getReference(self.element) + ".set_ylim"
-        self.fig.figure_dragger.addChange(key, key + "(%s, %s)" % tuple(str(i) for i in self.element.get_ylim()))
+        self.fig.figure_dragger.addChange(self.element, ".set_ylim(%s, %s)" % tuple(str(i) for i in self.element.get_ylim()))
         self.fig.canvas.draw()
 
     def changePickable(self):

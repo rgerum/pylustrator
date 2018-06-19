@@ -17,7 +17,8 @@ DIR_X1 = 4
 DIR_Y1 = 8
 
 def getReference(element):
-    import matplotlib
+    if element is None:
+        return ""
     if isinstance(element, Figure):
         return "fig"
     if isinstance(element, matplotlib.text.Text):
@@ -190,12 +191,30 @@ class FigureDragger:
             self.selected_element = element
         self.fig.canvas.draw()
 
-    def addChange(self, change_key, change):
-        if change_key is None:
-            change_key = str(uuid.uuid4())
-        self.changes[change_key] = change
+    def addChange(self, command_obj, command, reference_obj=None, reference_command=None):
+        if reference_obj is None:
+            reference_obj = command_obj
+        if reference_command is None:
+            reference_command, = re.match(r"(\.\w*)", command).groups()
+        self.changes[reference_obj, reference_command] = (command_obj, command)
         self.saved = False
         print(self.changes)
+
+    def removeElement(self, element):
+        #create_key = key+".new"
+        created_by_pylustrator = (element, ".new") in self.changes
+        # delete changes related to this element
+        keys = [k for k in self.changes]
+        for reference_obj, reference_command in keys:
+            if reference_obj == element:
+                del self.changes[reference_obj, reference_command]
+        if not created_by_pylustrator:
+            self.addChange(element, ".set_visible(False)")
+            element.set_visible(False)
+        else:
+            element.remove()
+        if self.selected_element == element:
+            self.selected_element = None
 
     def addEdit(self, edit):
         if self.last_edit < len(self.edits)-1:
@@ -243,55 +262,65 @@ class FigureDragger:
             self.forwardEdit()
             
     def load(self):
+        regex = re.compile(r"([^\(=]*)(\.[^\(= ]*)(.*)")
+
+        fig = self.fig
         header = ["fig = plt.figure(%s)" % self.fig.number, "fig.ax_dict = {ax.get_label(): ax for ax in fig.axes}"]
 
         block = getTextFromFile(header[0], self.stack_position)
         for lineno, line in block:
             line = line.strip()
-            if line == "":
+            if line == "" or line in header or line.startswith("#"):
                 continue
-            if line in header:
+
+            try:
+                command_obj, command, parameter = regex.match(line).groups()
+            except AttributeError:  # no regex match
                 continue
-            key = line.split("(", 1)[0]
-            m = re.match(r".*# id=(.*)", line) 
+
+            m = re.match(r".*# id=(.*)", line)
             if m:
                 key = m.groups()[0]
-            if key.endswith("text") or key.endswith("annotate"):
+            else:
+                key = command_obj + command
+
+            if command == ".text" or command == ".annotate":
                 if lineno in plt.keys_for_lines:
                     key = plt.keys_for_lines[lineno]
-            #if key in self.changes:
-            #    print("error", key, line)
-            #print("key", key)
-            self.changes[key] = line
+                reference_obj, _ = re.match(r"(.*)(\..*)", key).groups()
+                reference_command = ".new"
+            else:
+                reference_obj = command_obj
+                reference_command = command
+
+            command_obj = eval(command_obj)
+            reference_obj = eval(reference_obj)
+
+            print("key", (reference_obj, reference_command))
+            print("command", (command_obj, command+parameter))
+            self.changes[reference_obj, reference_command] = (command_obj, command+parameter)
         self.sorted_changes()
 
     def sorted_changes(self):
         indices = []
-        for key in self.changes:
-            # directly from figure
-            if not key.startswith("fig.ax_dict") and not key.startswith("fig.axes"):
-                axes = ""
-                other = key.split(".", 1)[1]
-                other = "." + other
-            else:
-                axes, other = key.split("]", 1)
-                axes += "]"
-            if other.startswith(".texts"):
-                text, other = other.split("]", 1)
-                text += "]"
-                if other.startswith(".new"):
-                    index = ".."
+        for reference_obj, reference_command in self.changes:
+            if isinstance(reference_obj, Figure):
+                obj_indices = ("", "", "")
+            if isinstance(reference_obj, matplotlib.axes._axes.Axes):
+                obj_indices = (getReference(reference_obj), "", "")
+            if isinstance(reference_obj, matplotlib.text.Text):
+                if reference_command == ".new":
+                    index = "0"
                 else:
-                    index = other
-            else:
-                text = ""
-                index = ""
-            indices.append([key, self.changes[key], (axes, text, index)])
+                    index = "1"
+                obj_indices = (getReference(reference_obj.axes), getReference(reference_obj), index)
+            indices.append([(reference_obj, reference_command), self.changes[reference_obj, reference_command], obj_indices])
         srt = sorted(indices, key=lambda a: a[2])
         output = []
         for s in srt:
-            print(s)
-            output.append(s[1])
+            command_obj, command = s[1]
+            print(getReference(command_obj)+command)
+            output.append(getReference(command_obj)+command)
         return output
 
     def save(self):
@@ -728,8 +757,7 @@ class Grabber(object):
         pos = self.target.get_position()
         if self.moved:
             self.target.figure.figure_dragger.addEdit([lambda pos=self.old_pos: self.parent.redoPos(pos), lambda pos=pos: self.parent.redoPos(pos)])
-            key = getReference(self.target)+".set_position"
-            self.target.figure.figure_dragger.addChange(key, key + "([%f, %f, %f, %f])" % (pos.x0, pos.y0, pos.width, pos.height))
+            self.target.figure.figure_dragger.addChange(self.target, ".set_position([%f, %f, %f, %f])" % (pos.x0, pos.y0, pos.width, pos.height))
         for snap in self.snaps[self.snap_index_offset:]:
             snap.remove()
         self.snaps = self.snaps[self.snap_index_offset:]
@@ -851,8 +879,7 @@ class GrabberAnnotation(Ellipse, Grabber):
         pos = self.target.xy
         if self.moved:
             self.target.figure.figure_dragger.addEdit([lambda pos=self.old_pos: self.parent.redoPos2(pos), lambda pos=pos: self.parent.redoPos2(pos)])
-            key = getReference(self.target) + ".xy = "
-            self.target.figure.figure_dragger.addChange(key, key + "(%f, %f)" % (pos[0], pos[1]))
+            self.target.figure.figure_dragger.addChange(self.target, ".xy = (%f, %f)" % (pos[0], pos[1]))
 
 
 from matplotlib.offsetbox import DraggableBase
@@ -1097,8 +1124,7 @@ class DraggableAxes(DraggableBase):
     def finalize_offset(self):
         pos = self.ref_artist.get_position()
         self.ref_artist.figure.figure_dragger.addEdit([lambda pos=self.old_pos: self.redoPos(pos), lambda pos=pos: self.redoPos(pos)])
-        key = getReference(self.ref_artist)+".set_position"
-        self.ref_artist.figure.figure_dragger.addChange(key, key+"([%f, %f, %f, %f])" % (pos.x0, pos.y0, pos.width, pos.height))
+        self.ref_artist.figure.figure_dragger.addChange(self.ref_artist, ".set_position([%f, %f, %f, %f])" % (pos.x0, pos.y0, pos.width, pos.height))
         for snap in self.snaps:
             snap.hide()
         self.axes.figure.canvas.draw()
@@ -1208,8 +1234,7 @@ class DraggableText(DraggableBase):
         pos = self.ref_artist.get_position()
         self.ref_artist.figure.figure_dragger.addEdit(
             [lambda pos=self.old_pos: self.redoPos(pos), lambda pos=pos: self.redoPos(pos)])
-        key = getReference(self.ref_artist)+".set_position"
-        self.ref_artist.figure.figure_dragger.addChange(key, key + "([%f, %f])  # Text: \"%s\"" % (pos[0], pos[1], self.ref_artist.get_text()))
+        self.ref_artist.figure.figure_dragger.addChange(self.ref_artist, ".set_position([%f, %f])  # Text: \"%s\"" % (pos[0], pos[1], self.ref_artist.get_text()))
         # remove all snaps when the dragger is released
         for snap in self.snaps:
             snap.remove()
@@ -1299,8 +1324,7 @@ class DraggableLegend(DraggableOffsetBox):
                                self.update)
 
         loc = self.ref_artist._get_loc()
-        key = getReference(self.ref_artist)+"._set_loc"
-        self.ref_artist.figure.figure_dragger.addChange(key, key + "(%s)" % (loc,))
+        self.ref_artist.figure.figure_dragger.addChange(self.ref_artist, "._set_loc(%s)" % (loc,))
         #save_text += "fig.axes[%d].get_legend()._set_loc(%s)\n" % (index, loc)
 
     def _update_loc(self, loc_in_canvas):
