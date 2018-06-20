@@ -2,7 +2,6 @@ from __future__ import division
 import matplotlib.pyplot as plt
 from matplotlib.text import Text
 import numpy as np
-import imageio
 import traceback
 
 def fig_text(x, y, text, unit="cm", *args, **kwargs):
@@ -39,7 +38,7 @@ def add_axes(dim, unit="cm", *args, **kwargs):
 
 
 def add_image(filename):
-    plt.imshow(imageio.imread(filename))
+    plt.imshow(plt.imread(filename))
     plt.xticks([])
     plt.yticks([])
 
