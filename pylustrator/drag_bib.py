@@ -72,7 +72,7 @@ class FigureDragger:
         for text in self.fig.texts:
             self.make_dragable(text)
 
-        # store the position where StartPylustration was called
+        # store the position where StartPylustrator was called
         self.stack_position = traceback.extract_stack()[-3]
 
         self.fig_inch_size = fig.get_size_inches()
@@ -327,7 +327,7 @@ class FigureDragger:
         header = ["fig = plt.figure(%s)" % self.fig.number, "fig.ax_dict = {ax.get_label(): ax for ax in fig.axes}"]
 
         #block = getTextFromFile(header[0], self.stack_position)
-        output = ["#% start: automatic generated code from pylustration"]
+        output = ["#% start: automatic generated code from pylustrator"]
         for line in header:
             output.append(line)
         """
@@ -345,7 +345,7 @@ class FigureDragger:
         """
         for line in self.sorted_changes():
             output.append(line)
-        output.append("#% end: automatic generated code from pylustration")
+        output.append("#% end: automatic generated code from pylustrator")
         print("\n".join(output))
         insertTextToFile(output, self.stack_position)
         self.saved = True
@@ -1352,7 +1352,7 @@ class DraggableLegend(DraggableOffsetBox):
         self.legend.set_bbox_to_anchor(loc_in_bbox)
 
 
-def StartPylustration(xsnaps=None, ysnaps=None, unit="cm"):
+def StartPylustrator(xsnaps=None, ysnaps=None, unit="cm"):
     import matplotlib as mpl
     mpl.rcParams['keymap.back'].remove('left')
     mpl.rcParams['keymap.forward'].remove('right')

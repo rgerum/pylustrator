@@ -10,6 +10,7 @@ build/*
 
 # Python egg metadata, regenerated from source files by setuptools.
 
+docs/_build_html/*
 syntax: regexp
 
 .directory
