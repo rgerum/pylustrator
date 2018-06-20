@@ -293,3 +293,49 @@ def despine(ax=None, complete=False):
         # Only show ticks on the left and bottom spines
         ax.yaxis.set_ticks_position('left')
         ax.xaxis.set_ticks_position('bottom')
+
+
+
+letter_index = 0
+def add_letter(ax = None, offset=0, offset2=0, letter=None):
+    global letter_index
+    from matplotlib.transforms import Affine2D, ScaledTranslation
+
+    # get the axes
+    if ax is None:
+        ax = plt.gca()
+
+    # get the figure
+    fig = ax.figure
+
+    # get the font properties for figure letters
+    font = get_letter_font_prop()
+
+    # if no letter is given
+    if letter is None:
+        # use the letter_format from the font
+        letter = font.letter_format
+        # and add a letter given the current letter_index
+        letter = letter.replace("a", chr(ord("a") + letter_index))
+        letter = letter.replace("A", chr(ord("A") + letter_index))
+        # increase the letter index
+        letter_index += 1
+
+    # add a transform that gives the coordinates relative to the left top corner of the axes in cm
+    transform = Affine2D().scale(1 / 2.54, 1 / 2.54) + fig.dpi_scale_trans + ScaledTranslation(0, 1, ax.transAxes)
+
+    # add a text a the given position
+    ax.text(-0.5+offset, offset2, letter, fontproperties=font, transform=transform, ha="center", va="bottom", picker=True)
+
+def get_letter_font_prop():
+    from matplotlib.font_manager import FontProperties
+    font = FontProperties()
+    font.set_family("C:\\WINDOWS\\Fonts\\HelveticaNeue-CondensedBold.ttf")
+    font.set_weight("heavy")
+    font.set_size(10)
+    font.letter_format = "a"
+    return font
+
+def add_letters(*args, **kwargs):
+    for ax in plt.gcf().axes:
+        add_letter(ax, *args, **kwargs)
