@@ -190,10 +190,12 @@ class TextWidget(QtWidgets.QWidget):
         self.label.setLabel(text)
 
     def setText(self, text):
+        text = text.replace("\n", "\\n")
         self.input1.setText(text)
 
     def text(self):
-        return self.input1.text()
+        text = self.input1.text()
+        return text.replace("\\n", "\n")
 
 
 class CheckWidget(QtWidgets.QWidget):
@@ -908,12 +910,12 @@ class QItemProperties(QtWidgets.QWidget):
 
     def changeText(self):
         self.element.set_text(self.input_text.text())
-        self.fig.figure_dragger.addChange(self.element, ".set_text(\"%s\")" % (self.element.get_text()))
+        self.fig.figure_dragger.addChange(self.element, ".set_text(\"%s\")" % (self.element.get_text().replace("\n", "\\n")))
         self.fig.canvas.draw()
 
     def changeXLabel(self):
         self.element.set_xlabel(self.input_xlabel.text())
-        self.fig.figure_dragger.addChange(self.element, ".set_xlabel(\"%s\")" % (self.element.get_xlabel()))
+        self.fig.figure_dragger.addChange(self.element, ".set_xlabel(\"%s\")" % (self.element.get_xlabel().replace("\n", "\\n")))
         self.fig.canvas.draw()
 
     def changeXLim(self):
@@ -923,7 +925,7 @@ class QItemProperties(QtWidgets.QWidget):
 
     def changeYLabel(self):
         self.element.set_ylabel(self.input_ylabel.text())
-        self.fig.figure_dragger.addChange(self.element, ".set_ylabel(\"%s\")" % (self.element.get_ylabel()))
+        self.fig.figure_dragger.addChange(self.element, ".set_ylabel(\"%s\")" % (self.element.get_ylabel().replace("\n", "\\n")))
         self.fig.canvas.draw()
 
     def changeYLim(self):
