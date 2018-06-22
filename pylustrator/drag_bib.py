@@ -1234,7 +1234,7 @@ class DraggableText(DraggableBase):
         pos = self.ref_artist.get_position()
         self.ref_artist.figure.figure_dragger.addEdit(
             [lambda pos=self.old_pos: self.redoPos(pos), lambda pos=pos: self.redoPos(pos)])
-        self.ref_artist.figure.figure_dragger.addChange(self.ref_artist, ".set_position([%f, %f])  # Text: \"%s\"" % (pos[0], pos[1], self.ref_artist.get_text()))
+        self.ref_artist.figure.figure_dragger.addChange(self.ref_artist, ".set_position([%f, %f])  # Text: \"%s\"" % (pos[0], pos[1], self.ref_artist.get_text().replace("\n", "\\n")))
         # remove all snaps when the dragger is released
         for snap in self.snaps:
             snap.remove()
