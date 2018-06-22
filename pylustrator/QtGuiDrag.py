@@ -1065,9 +1065,44 @@ class PlotWindow(QtWidgets.QWidget):
         self.layout_plot.addWidget(self.canvas)
 
         # add toolbar
-        self.navi_toolbar = NavigationToolbar(self.canvas, self)
-        self.layout_plot.addWidget(self.navi_toolbar)
+        #self.navi_toolbar = NavigationToolbar(self.canvas, self)
+        #self.layout_plot.addWidget(self.navi_toolbar)
+
+        self.fig.canvas.mpl_connect('scroll_event', self.scroll_event)
+        self.fig.canvas.mpl_connect('key_press_event', self.canvas_key_press)
+        self.fig.canvas.mpl_connect('key_release_event', self.canvas_key_release)
+        self.control_modifier = False
+
         self.layout_plot.addStretch()
+        self.layout_main.addStretch()
+
+    def canvas_key_press(self, event):
+        if event.key == "control":
+            self.control_modifier = True
+
+    def canvas_key_release(self, event):
+        if event.key == "control":
+            self.control_modifier = False
+
+    def keyPressEvent(self, event):
+        if event.key() == QtCore.Qt.Key_Control:
+            self.control_modifier = True
+
+    def keyReleaseEvent(self, event):
+        if event.key() == QtCore.Qt.Key_Control:
+            self.control_modifier = False
+
+    def scroll_event(self, event):
+        if self.control_modifier:
+            new_dpi = self.fig.get_dpi() + 10 * event.step
+
+            self.fig.figure_dragger.select_element(None)
+
+            self.fig.set_dpi(new_dpi)
+            self.fig.canvas.draw()
+
+            self.canvas.updateGeometry()
+
 
     def changedFigureSize(self, tuple):
         self.fig.set_size_inches(np.array(tuple)/2.54)
