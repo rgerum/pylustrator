@@ -407,7 +407,7 @@ def getTextFromFile(marker, stack_pos):
     block = []
     last_block = -10
     written = False
-    with open(stack_pos.filename, 'r') as fp1:
+    with open(stack_pos.filename, 'r', encoding="utf-8") as fp1:
         for lineno, line in enumerate(fp1):
             if block_active:
                 if line.strip().startswith("#% end:"):
@@ -430,8 +430,8 @@ def insertTextToFile(text, stack_pos):
     block = ""
     last_block = -10
     written = False
-    with open(stack_pos.filename + ".tmp", 'w') as fp2:
-        with open(stack_pos.filename, 'r') as fp1:
+    with open(stack_pos.filename + ".tmp", 'w', encoding="utf-8") as fp2:
+        with open(stack_pos.filename, 'r', encoding="utf-8") as fp1:
             for lineno, line in enumerate(fp1):
                 if block_active:
                     block = block + line
@@ -459,8 +459,8 @@ def insertTextToFile(text, stack_pos):
                     fp2.write(block)
                 fp2.write(line)
 
-    with open(stack_pos.filename + ".tmp", 'r') as fp2:
-        with open(stack_pos.filename, 'w') as fp1:
+    with open(stack_pos.filename + ".tmp", 'r', encoding="utf-8") as fp2:
+        with open(stack_pos.filename, 'w', encoding="utf-8") as fp1:
             for line in fp2:
                 fp1.write(line)
     print("Save to", stack_pos.filename, "line", stack_pos.lineno)
