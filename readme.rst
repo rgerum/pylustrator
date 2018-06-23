@@ -3,7 +3,7 @@
 Pylustrator
 ===========
 
-|DOC|_ |Python27| |Python36| |License|_ |DOI|_
+|DOC|_ |License|_ |DOI|_
 
 .. |DOC| image:: https://readthedocs.org/projects/pylustrator/badge/
 .. _DOC: https://pylustrator.readthedocs.io
