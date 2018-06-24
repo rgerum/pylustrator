@@ -195,10 +195,9 @@ class FigureDragger:
         if reference_obj is None:
             reference_obj = command_obj
         if reference_command is None:
-            reference_command, = re.match(r"(\.\w*)", command).groups()
+            reference_command, = re.match(r"(\.[^(]*)", command).groups()
         self.changes[reference_obj, reference_command] = (command_obj, command)
         self.saved = False
-        print(self.changes)
 
     def removeElement(self, element):
         #create_key = key+".new"
@@ -278,6 +277,11 @@ class FigureDragger:
             except AttributeError:  # no regex match
                 continue
 
+            m = re.match(r"(.*)(.spines\[[^\]]*\])", command_obj)
+            if m:
+                command_obj, extra = m.groups()
+                command = extra + command
+
             m = re.match(r".*# id=(.*)", line)
             if m:
                 key = m.groups()[0]
@@ -296,8 +300,6 @@ class FigureDragger:
             command_obj = eval(command_obj)
             reference_obj = eval(reference_obj)
 
-            print("key", (reference_obj, reference_command))
-            print("command", (command_obj, command+parameter))
             self.changes[reference_obj, reference_command] = (command_obj, command+parameter)
         self.sorted_changes()
 
@@ -319,7 +321,6 @@ class FigureDragger:
         output = []
         for s in srt:
             command_obj, command = s[1]
-            print(getReference(command_obj)+command)
             output.append(getReference(command_obj)+command)
         return output
 
@@ -1049,7 +1050,8 @@ class DraggableAxes(DraggableBase):
 
         for key in self.old_visible:
             spine = self.ref_artist.spines[key]
-            spine.set_visible(self.old_visible[key])
+            if spine.get_visible():
+                spine.set_visible(self.old_visible[key])
             spine.set_edgecolor(self.old_color[key])
             spine.set_linewidth(self.old_linewidth[key])
 
