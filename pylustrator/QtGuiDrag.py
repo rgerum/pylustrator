@@ -57,7 +57,6 @@ def initialize():
                 stack = traceback.extract_stack()
                 for stack_item in stack:
                     if stack_item.filename == stack_call_position.filename:
-                        print(stack_item, len(axes.texts), key)
                         keys_for_lines[stack_item.lineno] = key
                         break
             return func(axes, *args, **kwargs)
@@ -788,13 +787,20 @@ class QItemProperties(QtWidgets.QWidget):
 
         self.input_font_properties = TextPropertiesWidget(self.layout)
 
+        self.layout_buttons = QtWidgets.QHBoxLayout()
+        self.layout.addLayout(self.layout_buttons)
+
         self.button_add_text = QtWidgets.QPushButton("add text")
-        self.layout.addWidget(self.button_add_text)
+        self.layout_buttons.addWidget(self.button_add_text)
         self.button_add_text.clicked.connect(self.buttonAddTextClicked)
 
         self.button_add_annotation = QtWidgets.QPushButton("add annotation")
-        self.layout.addWidget(self.button_add_annotation)
+        self.layout_buttons.addWidget(self.button_add_annotation)
         self.button_add_annotation.clicked.connect(self.buttonAddAnnotationClicked)
+
+        self.button_despine = QtWidgets.QPushButton("despine")
+        self.layout_buttons.addWidget(self.button_despine)
+        self.button_despine.clicked.connect(self.buttonDespineClicked)
 
         #self.input_xlabel = TextWidget(self.layout, ":")
         #self.input_xlabel.editingFinished.connect(self.changeText)
@@ -804,20 +810,6 @@ class QItemProperties(QtWidgets.QWidget):
         self.fig = fig
 
     def buttonAddTextClicked(self):
-        """
-        key = getReference(self.element)
-        if isinstance(self.element, Axes):
-            index = len(self.element.texts)
-            key2 = key+".texts[%d].new" % index
-            text = self.element.text(0.5, 0.5, "New Text", transform=self.element.transAxes)
-            self.fig.figure_dragger.addChange(key2, key+".text(0.5, 0.5, 'New Text', transform=%s.transAxes)  # id=%s" % (key, key2))
-        if isinstance(self.element, Figure):
-            index = len(self.element.texts)
-            key2 = key + ".texts[%d].new" % index
-            text = self.element.text(0.5, 0.5, "New Text", transform=self.element.transFigure)
-            self.fig.figure_dragger.addChange(key2,
-                                              key + ".text(0.5, 0.5, 'New Text', transform=%s.transFigure)  # id=%s" % (key, key2))
-                                            """
         if isinstance(self.element, Axes):
             text = self.element.text(0.5, 0.5, "New Text", transform=self.element.transAxes)
             self.fig.figure_dragger.addChange(self.element,
@@ -908,6 +900,14 @@ class QItemProperties(QtWidgets.QWidget):
 
             self.fig.canvas.draw()
 
+    def buttonDespineClicked(self):
+        commands = [".spines['right'].set_visible(False)", 
+                    ".spines['top'].set_visible(False)"]
+        for command in commands:
+            eval("self.element"+command)
+            self.fig.figure_dragger.addChange(self.element, command)
+        self.fig.canvas.draw()
+
     def changeText(self):
         self.element.set_text(self.input_text.text())
         self.fig.figure_dragger.addChange(self.element, ".set_text(\"%s\")" % (self.element.get_text().replace("\n", "\\n")))
@@ -979,6 +979,7 @@ class QItemProperties(QtWidgets.QWidget):
         self.input_ylabel.hide()
         self.input_ylim.hide()
         self.button_add_annotation.hide()
+        self.button_despine.hide()
         if isinstance(element, Figure):
             pos = element.get_size_inches()
             self.input_shape.setTransform(self.getTransform(element))
@@ -1003,6 +1004,7 @@ class QItemProperties(QtWidgets.QWidget):
             self.input_ylim.setValue(element.get_ylim())
             self.button_add_text.show()
             self.button_add_annotation.show()
+            self.button_despine.show()
         else:
             self.input_shape.hide()
             self.button_add_text.hide()
@@ -1051,8 +1053,8 @@ class PlotWindow(QtWidgets.QWidget):
         widget = QtWidgets.QWidget()
         self.layout_tools.addWidget(widget)
         self.layout_tools = QtWidgets.QVBoxLayout(widget)
-        widget.setMaximumWidth(300)
-        widget.setMinimumWidth(300)
+        widget.setMaximumWidth(350)
+        widget.setMinimumWidth(350)
 
         self.treeView = MyTreeView(self, self.layout_tools, self.fig)
         self.treeView.item_selected = self.elementSelected
