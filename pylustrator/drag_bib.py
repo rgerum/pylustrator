@@ -883,6 +883,58 @@ class GrabberAnnotation(Ellipse, Grabber):
             self.target.figure.figure_dragger.addChange(self.target, ".xy = (%f, %f)" % (pos[0], pos[1]))
 
 
+
+class GrabberRotate(Ellipse, Grabber):
+    d = 10
+
+    def __init__(self, parent, artist):
+        #Grabber.__init__(self, parent, 0, 0, artist, 0)
+        Ellipse.__init__(self, (0, 0), self.d, self.d, picker=True, figure=artist.figure, edgecolor="k", facecolor="r", zorder=1000)
+
+        self.parent = parent
+        self.fig = artist.figure
+        self.target = artist
+        self.updatePos()
+        self.snaps = []
+
+        self.fig.patches.append(self)
+        self.updatePos()
+
+    def updatePos(self):
+        x, y = self.target.get_transform().transform(self.target.get_position())
+        self.set_xy((x, y))
+
+    def clickedEvent(self, event):
+        self.snaps = []
+
+        self.mouse_x = event.x
+        self.mouse_y = event.y
+
+        self.old_pos = self.target.get_position()
+        self.old_rotation = self.target.get_rotation()
+        self.ox, self.oy = self.get_xy()
+
+    def getPos(self):
+        x, y = self.get_xy()
+        return self.target.get_transform().inverted().transform((x, y))
+
+    def applyOffset(self, pos, event):
+        self.set_xy((self.ox+pos[0], self.oy+pos[1]))
+
+        x, y = self.target.get_transform().transform(self.target.get_position())
+        x2, y2 = self.get_xy()
+        angle = np.arctan2(x-x2, y-y2)*180/np.pi
+        angle = np.round(angle/10)*10
+
+        #self.target.xy = self.getPos()
+        self.target.set_rotation(angle)
+
+    def releasedEvent(self, event):
+        angle = self.target.get_rotation()
+        if self.moved:
+            self.target.figure.figure_dragger.addEdit([lambda a=self.old_rotation: self.target.set_rotation(a), lambda a=angle: self.parent.redoPos2(a)])
+            self.target.figure.figure_dragger.addChange(self.target, ".set_rotation(%f)" % angle)
+
 from matplotlib.offsetbox import DraggableBase
 from matplotlib.transforms import BboxTransformFrom
 
@@ -1192,6 +1244,7 @@ class DraggableText(DraggableBase):
 
         if getattr(self.ref_artist, "xy", None) is not None:
             self.grabbers.append(GrabberAnnotation(self, self.ref_artist))
+        self.grabbers.append(GrabberRotate(self, self.ref_artist))
 
     def save_offset(self):
         # get current position of the text
