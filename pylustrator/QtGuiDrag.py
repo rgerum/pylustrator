@@ -745,12 +745,13 @@ class QItemProperties(QtWidgets.QWidget):
     transform_index = 0
     scale_type = 0
 
-    def __init__(self, layout, fig, tree):
+    def __init__(self, layout, fig, tree, parent):
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
         self.layout = QtWidgets.QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.tree = tree
+        self.parent = parent
 
         self.label = QtWidgets.QLabel()
         self.layout.addWidget(self.label)
@@ -888,8 +889,10 @@ class QItemProperties(QtWidgets.QWidget):
                     pos = text.get_position()
                     self.fig.figure_dragger.addChange(text, ".set_position([%f, %f])" % (pos[0], pos[1]))
 
+
             self.fig.canvas.draw()
             self.fig.widget.updateGeometry()
+            self.parent.updateFigureSize()
         else:
             pos = self.element.get_position()
             pos.x1 = pos.x0 + value[0]
@@ -1035,8 +1038,23 @@ class PlotWindow(QtWidgets.QWidget):
     def __init__(self, number, size, *args, **kwargs):
         QtWidgets.QWidget.__init__(self)
 
+        self.canvas_canvas = QtWidgets.QWidget()
+        self.canvas_canvas.setMinimumHeight(400)
+        self.canvas_canvas.setMinimumWidth(400)
+        self.canvas_canvas.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        self.canvas_canvas.setStyleSheet("background:#DDD")
+        self.canvas_canvas.setFocusPolicy(QtCore.Qt.StrongFocus)
+
+        self.canvas_container = QtWidgets.QWidget(self.canvas_canvas)
+        self.canvas_wrapper_layout = QtWidgets.QHBoxLayout()
+        self.canvas_wrapper_layout.setContentsMargins(0, 0, 0, 0)
+        self.canvas_container.setLayout(self.canvas_wrapper_layout)
+
+        self.canvas_container.setStyleSheet("background:blue")
+
         self.canvas = MatplotlibWidget(self, number, size=size)
         self.canvas.window = self
+        self.canvas_wrapper_layout.addWidget(self.canvas)
         self.fig = self.canvas.figure
         self.fig.widget = self.canvas
 
@@ -1059,26 +1077,51 @@ class PlotWindow(QtWidgets.QWidget):
         self.treeView = MyTreeView(self, self.layout_tools, self.fig)
         self.treeView.item_selected = self.elementSelected
 
-        self.input_properties = QItemProperties(self.layout_tools, self.fig, self.treeView)
+        self.input_properties = QItemProperties(self.layout_tools, self.fig, self.treeView, self)
 
         # add plot layout
         self.layout_plot = QtWidgets.QVBoxLayout()
         self.layout_main.addLayout(self.layout_plot)
 
         # add plot canvas
-        self.layout_plot.addWidget(self.canvas)
+        self.layout_plot.addWidget(self.canvas_canvas)
 
         # add toolbar
         #self.navi_toolbar = NavigationToolbar(self.canvas, self)
         #self.layout_plot.addWidget(self.navi_toolbar)
+
+        self.fig.canvas.mpl_disconnect(self.fig.canvas.manager.key_press_handler_id)
 
         self.fig.canvas.mpl_connect('scroll_event', self.scroll_event)
         self.fig.canvas.mpl_connect('key_press_event', self.canvas_key_press)
         self.fig.canvas.mpl_connect('key_release_event', self.canvas_key_release)
         self.control_modifier = False
 
-        self.layout_plot.addStretch()
-        self.layout_main.addStretch()
+        self.fig.canvas.mpl_connect('button_press_event', self.button_press_event)
+        self.fig.canvas.mpl_connect('motion_notify_event', self.mouse_move_event)
+        self.fig.canvas.mpl_connect('button_release_event', self.button_release_event)
+        self.drag = None
+
+        #self.layout_plot.addStretch()
+        #self.layout_main.addStretch()
+
+    def showEvent(self, event):
+        self.fitToView()
+
+    def button_press_event(self, event):
+        if event.button == 2:
+            self.drag = np.array([event.x, event.y])
+
+    def mouse_move_event(self, event):
+        if self.drag is not None:
+            pos = np.array([event.x, event.y])
+            offset = pos - self.drag
+            offset[1] = -offset[1]
+            self.moveCanvasCanvas(*offset)
+
+    def button_release_event(self, event):
+        if event.button == 2:
+            self.drag = None
 
     def canvas_key_press(self, event):
         if event.key == "control":
@@ -1088,9 +1131,30 @@ class PlotWindow(QtWidgets.QWidget):
         if event.key == "control":
             self.control_modifier = False
 
+    def moveCanvasCanvas(self, offset_x, offset_y):
+        p = self.canvas_container.pos()
+        self.canvas_container.move(p.x() + offset_x, p.y() + offset_y)
+
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key_Control:
             self.control_modifier = True
+        if event.key() == QtCore.Qt.Key_Left:
+            self.moveCanvasCanvas(-10, 0)
+        if event.key() == QtCore.Qt.Key_Right:
+            self.moveCanvasCanvas(10, 0)
+        if event.key() == QtCore.Qt.Key_Up:
+            self.moveCanvasCanvas(0, -10)
+        if event.key() == QtCore.Qt.Key_Down:
+            self.moveCanvasCanvas(0, 10)
+
+        if event.key() == QtCore.Qt.Key_F:
+            self.fitToView()
+
+    def fitToView(self):
+        w, h = self.canvas.get_width_height()
+        self.canvas_canvas.setMinimumWidth(w)
+        self.canvas_canvas.setMinimumHeight(h)
+        self.canvas_container.move((self.canvas_canvas.width() - w) / 2, (self.canvas_canvas.height() - h) / 2)
 
     def keyReleaseEvent(self, event):
         if event.key() == QtCore.Qt.Key_Control:
@@ -1102,11 +1166,30 @@ class PlotWindow(QtWidgets.QWidget):
 
             self.fig.figure_dragger.select_element(None)
 
+            pos = self.fig.transFigure.inverted().transform((event.x, event.y))
+            pos_ax = self.fig.transFigure.transform(self.fig.axes[0].get_position())[0]
+
             self.fig.set_dpi(new_dpi)
             self.fig.canvas.draw()
 
             self.canvas.updateGeometry()
+            w, h = self.canvas.get_width_height()
+            self.canvas_container.setMinimumSize(w, h)
+            self.canvas_container.setMaximumSize(w, h)
 
+            pos2 = self.fig.transFigure.transform(pos)
+            diff = np.array([event.x, event.y]) - pos2
+
+            pos_ax2 = self.fig.transFigure.transform(self.fig.axes[0].get_position())[0]
+            diff += pos_ax2 - pos_ax
+            self.moveCanvasCanvas(*diff)
+
+            bb = self.fig.axes[0].get_position()
+
+    def updateFigureSize(self):
+        w, h = self.canvas.get_width_height()
+        self.canvas_container.setMinimumSize(w, h)
+        self.canvas_container.setMaximumSize(w, h)
 
     def changedFigureSize(self, tuple):
         self.fig.set_size_inches(np.array(tuple)/2.54)
