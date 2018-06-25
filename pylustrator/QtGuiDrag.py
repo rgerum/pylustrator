@@ -1042,8 +1042,10 @@ class PlotWindow(QtWidgets.QWidget):
         self.canvas_canvas.setMinimumHeight(400)
         self.canvas_canvas.setMinimumWidth(400)
         self.canvas_canvas.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        self.canvas_canvas.setStyleSheet("background:#DDD")
+        self.canvas_canvas.setStyleSheet("background:white")
         self.canvas_canvas.setFocusPolicy(QtCore.Qt.StrongFocus)
+
+        self.shadow = QtWidgets.QLabel(self.canvas_canvas)
 
         self.canvas_container = QtWidgets.QWidget(self.canvas_canvas)
         self.canvas_wrapper_layout = QtWidgets.QHBoxLayout()
@@ -1175,6 +1177,25 @@ class PlotWindow(QtWidgets.QWidget):
         self.y_scale.setMinimumSize(l, h)
         self.y_scale.setMaximumSize(l, h)
 
+        w, h = self.canvas.get_width_height()
+
+        self.pixmap = QtGui.QPixmap(w+100, h+10)
+
+        self.pixmap.fill(QtGui.QColor("transparent"))
+
+        painter = QtGui.QPainter(self.pixmap)
+
+        painter.setPen(QtCore.Qt.NoPen)
+        painter.setBrush(QtGui.QBrush(QtGui.QColor("#666666")))
+        painter.drawRect(2, 2, w + 2,  h + 2)
+        painter.drawRect(0, 0, w+2, h+2)
+
+        p = self.canvas_container.pos()
+        self.shadow.setPixmap(self.pixmap)
+        self.shadow.move(p.x()-1, p.y()-1)
+        self.shadow.setMinimumSize(w+100, h+10)
+        self.shadow.setMaximumSize(w+100, h+10)
+
     def showEvent(self, event):
         self.fitToView()
         self.updateRuler()
@@ -1225,9 +1246,10 @@ class PlotWindow(QtWidgets.QWidget):
 
     def fitToView(self):
         w, h = self.canvas.get_width_height()
-        self.canvas_canvas.setMinimumWidth(w)
-        self.canvas_canvas.setMinimumHeight(h)
-        self.canvas_container.move((self.canvas_canvas.width() - w) / 2, (self.canvas_canvas.height() - h) / 2)
+        self.canvas_canvas.setMinimumWidth(w+30)
+        self.canvas_canvas.setMinimumHeight(h+30)
+        self.canvas_container.move((self.canvas_canvas.width() - w) / 2 + 5, (self.canvas_canvas.height() - h) / 2 + 5)
+        self.updateRuler()
 
     def keyReleaseEvent(self, event):
         if event.key() == QtCore.Qt.Key_Control:
