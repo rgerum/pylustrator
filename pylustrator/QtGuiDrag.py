@@ -1052,6 +1052,9 @@ class PlotWindow(QtWidgets.QWidget):
 
         self.canvas_container.setStyleSheet("background:blue")
 
+        self.x_scale = QtWidgets.QLabel(self.canvas_canvas)
+        self.y_scale = QtWidgets.QLabel(self.canvas_canvas)
+
         self.canvas = MatplotlibWidget(self, number, size=size)
         self.canvas.window = self
         self.canvas_wrapper_layout.addWidget(self.canvas)
@@ -1105,8 +1108,76 @@ class PlotWindow(QtWidgets.QWidget):
         #self.layout_plot.addStretch()
         #self.layout_main.addStretch()
 
+    def updateRuler(self):
+        trans = transforms.Affine2D().scale(1./2.54, 1./2.54) + self.fig.dpi_scale_trans
+        l = 15
+        l1 = 10
+        l2 = 5
+        l3 = 3
+
+        w = self.canvas_canvas.width()
+        h = self.canvas_canvas.height()
+
+        self.pixmapX = QtGui.QPixmap(w, l)
+        self.pixmapY = QtGui.QPixmap(l, h)
+
+        self.pixmapX.fill(QtGui.QColor("white"))
+        self.pixmapY.fill(QtGui.QColor("white"))
+
+        painterX = QtGui.QPainter(self.pixmapX)
+        painterY = QtGui.QPainter(self.pixmapY)
+
+        painterX.setPen(QtGui.QPen(QtGui.QColor("black"), 1))
+        painterY.setPen(QtGui.QPen(QtGui.QColor("black"), 1))
+
+        offset = self.canvas_container.pos().x()
+        start_x = np.floor(trans.inverted().transform((-offset, 0))[0])
+        end_x = np.ceil(trans.inverted().transform((-offset+w, 0))[0])
+        dx = 0.1
+        for i, pos_cm in enumerate(np.arange(start_x, end_x, dx)):
+            x = (trans.transform((pos_cm, 0))[0] + offset)
+            if i % 10 == 0:
+                painterX.drawLine(x, l - l1, x, l)
+                text = str("%d" % np.round(pos_cm))
+                o = 0
+                painterX.drawText(x+3, o, self.fontMetrics().width(text), o+self.fontMetrics().height(), QtCore.Qt.AlignLeft,
+                                 text)
+            elif i % 2 == 0:
+                painterX.drawLine(x, l - l2, x, l)
+            else:
+                painterX.drawLine(x, l - l3, x, l)
+        painterX.drawLine(0, l-1, w, l-1)
+        self.x_scale.setPixmap(self.pixmapX)
+        self.x_scale.setMinimumSize(w, l)
+        self.x_scale.setMaximumSize(w, l)
+
+        offset = self.canvas_container.pos().y()
+        start_y = np.floor(trans.inverted().transform((0, -offset))[1])
+        end_y = np.ceil(trans.inverted().transform((0, -offset+h))[1])
+        dy = 0.1
+        for i, pos_cm in enumerate(np.arange(start_y, end_y, dy)):
+            y = (trans.transform((0, pos_cm))[1] + offset)
+            if i % 10 == 0:
+                painterY.drawLine(l - l1, y, l, y)
+                text = str("%d" % np.round(pos_cm))
+                o = 0
+                painterY.drawText(o, y+3, o+self.fontMetrics().width(text), self.fontMetrics().height(), QtCore.Qt.AlignRight,
+                                 text)
+            elif i % 2 == 0:
+                painterY.drawLine(l - l2, y, l, y)
+            else:
+                painterY.drawLine(l - l3, y, l, y)
+        painterY.drawLine(l-1, 0, l-1, h)
+        painterY.setPen(QtGui.QPen(QtGui.QColor("white"), 0))
+        painterY.setBrush(QtGui.QBrush(QtGui.QColor("white")))
+        painterY.drawRect(0, 0, l, l)
+        self.y_scale.setPixmap(self.pixmapY)
+        self.y_scale.setMinimumSize(l, h)
+        self.y_scale.setMaximumSize(l, h)
+
     def showEvent(self, event):
         self.fitToView()
+        self.updateRuler()
 
     def button_press_event(self, event):
         if event.button == 2:
@@ -1134,6 +1205,8 @@ class PlotWindow(QtWidgets.QWidget):
     def moveCanvasCanvas(self, offset_x, offset_y):
         p = self.canvas_container.pos()
         self.canvas_container.move(p.x() + offset_x, p.y() + offset_y)
+
+        self.updateRuler()
 
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key_Control:
