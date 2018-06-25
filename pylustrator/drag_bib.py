@@ -159,22 +159,23 @@ class FigureDragger:
             self.selected_element._draggable.button_release_event(event)
 
     def button_press_event(self, event):
-        # recursively iterate over all elements
-        picked_element, _ = self.get_picked_element(event, last_selected=self.selected_element if event.dblclick else None)
+        if event.button == 1:
+            # recursively iterate over all elements
+            picked_element, _ = self.get_picked_element(event, last_selected=self.selected_element if event.dblclick else None)
 
-        # if the element is a grabber, store it
-        if isinstance(picked_element, Grabber):
-            self.grab_element = picked_element
-        # if not, we want to keep our selected element, if the click was in the area of the selected element
-        elif self.selected_element is None or not self.selected_element.contains(event)[0] or event.dblclick:
-                self.select_element(picked_element)
+            # if the element is a grabber, store it
+            if isinstance(picked_element, Grabber):
+                self.grab_element = picked_element
+            # if not, we want to keep our selected element, if the click was in the area of the selected element
+            elif self.selected_element is None or not self.selected_element.contains(event)[0] or event.dblclick:
+                    self.select_element(picked_element)
 
-        # if we have a grabber, notify it
-        if self.grab_element:
-            self.grab_element.button_press_event(event)
-        # if not, notify the selected element
-        elif self.selected_element and self.selected_element.contains(event)[0]:
-            self.selected_element._draggable.button_press_event(event)
+            # if we have a grabber, notify it
+            if self.grab_element:
+                self.grab_element.button_press_event(event)
+            # if not, notify the selected element
+            elif self.selected_element and self.selected_element.contains(event)[0]:
+                self.selected_element._draggable.button_press_event(event)
 
     def select_element(self, element, event=None):
         # do nothing if it is already selected
