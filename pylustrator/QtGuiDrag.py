@@ -1106,6 +1106,17 @@ class PlotWindow(QtWidgets.QWidget):
         self.fig.canvas.mpl_connect('motion_notify_event', self.mouse_move_event)
         self.fig.canvas.mpl_connect('button_release_event', self.button_release_event)
         self.drag = None
+        
+        self.footer_layout = QtWidgets.QHBoxLayout()
+        self.layout_plot.addLayout(self.footer_layout)
+        
+        self.footer_label = QtWidgets.QLabel("")
+        self.footer_layout.addWidget(self.footer_label)
+
+        self.footer_layout.addStretch()
+
+        self.footer_label2 = QtWidgets.QLabel("")
+        self.footer_layout.addWidget(self.footer_label2)
 
         #self.layout_plot.addStretch()
         #self.layout_main.addStretch()
@@ -1216,6 +1227,15 @@ class PlotWindow(QtWidgets.QWidget):
             offset = pos - self.drag
             offset[1] = -offset[1]
             self.moveCanvasCanvas(*offset)
+        trans = transforms.Affine2D().scale(2.54, 2.54) + self.fig.dpi_scale_trans.inverted()
+        pos = trans.transform((event.x, event.y))
+        self.footer_label.setText("%.2f, %.2f (cm)" % (pos[0], pos[1]))
+
+        print(event)
+        if event.ydata is not None:
+            self.footer_label2.setText("%.2f, %.2f" % (event.xdata, event.ydata))
+        else:
+            self.footer_label2.setText("")
 
     def button_release_event(self, event):
         if event.button == 2:
