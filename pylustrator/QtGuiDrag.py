@@ -1112,10 +1112,10 @@ class PlotWindow(QtWidgets.QWidget):
 
     def updateRuler(self):
         trans = transforms.Affine2D().scale(1./2.54, 1./2.54) + self.fig.dpi_scale_trans
-        l = 15
-        l1 = 10
-        l2 = 5
-        l3 = 3
+        l = 17
+        l1 = 13
+        l2 = 6
+        l3 = 4
 
         w = self.canvas_canvas.width()
         h = self.canvas_canvas.height()
@@ -1123,8 +1123,8 @@ class PlotWindow(QtWidgets.QWidget):
         self.pixmapX = QtGui.QPixmap(w, l)
         self.pixmapY = QtGui.QPixmap(l, h)
 
-        self.pixmapX.fill(QtGui.QColor("white"))
-        self.pixmapY.fill(QtGui.QColor("white"))
+        self.pixmapX.fill(QtGui.QColor("#f0f0f0"))
+        self.pixmapY.fill(QtGui.QColor("#f0f0f0"))
 
         painterX = QtGui.QPainter(self.pixmapX)
         painterY = QtGui.QPainter(self.pixmapY)
@@ -1139,39 +1139,45 @@ class PlotWindow(QtWidgets.QWidget):
         for i, pos_cm in enumerate(np.arange(start_x, end_x, dx)):
             x = (trans.transform((pos_cm, 0))[0] + offset)
             if i % 10 == 0:
-                painterX.drawLine(x, l - l1, x, l)
+                painterX.drawLine(x, l - l1 - 1, x, l - 1)
                 text = str("%d" % np.round(pos_cm))
                 o = 0
                 painterX.drawText(x+3, o, self.fontMetrics().width(text), o+self.fontMetrics().height(), QtCore.Qt.AlignLeft,
                                  text)
             elif i % 2 == 0:
-                painterX.drawLine(x, l - l2, x, l)
+                painterX.drawLine(x, l - l2 - 1, x, l - 1)
             else:
-                painterX.drawLine(x, l - l3, x, l)
+                painterX.drawLine(x, l - l3 - 1, x, l - 1)
+        painterX.drawLine(0, l-2, w, l-2)
+        painterX.setPen(QtGui.QPen(QtGui.QColor("white"), 1))
         painterX.drawLine(0, l-1, w, l-1)
         self.x_scale.setPixmap(self.pixmapX)
         self.x_scale.setMinimumSize(w, l)
         self.x_scale.setMaximumSize(w, l)
 
-        offset = self.canvas_container.pos().y()
-        start_y = np.floor(trans.inverted().transform((0, -offset))[1])
-        end_y = np.ceil(trans.inverted().transform((0, -offset+h))[1])
+        #height_cm = self.fig.get_size_inches()[1]*2.45
+        offset = self.canvas_container.pos().y() + self.canvas_container.height()
+        start_y = np.floor(trans.inverted().transform((0, +offset-h))[1])
+        end_y = np.ceil(trans.inverted().transform((0, +offset))[1])
         dy = 0.1
+        print(start_y, end_y)
         for i, pos_cm in enumerate(np.arange(start_y, end_y, dy)):
-            y = (trans.transform((0, pos_cm))[1] + offset)
+            y = (-trans.transform((0, pos_cm))[1] + offset)
             if i % 10 == 0:
-                painterY.drawLine(l - l1, y, l, y)
+                painterY.drawLine(l - l1 - 1, y, l - 1, y)
                 text = str("%d" % np.round(pos_cm))
                 o = 0
                 painterY.drawText(o, y+3, o+self.fontMetrics().width(text), self.fontMetrics().height(), QtCore.Qt.AlignRight,
                                  text)
             elif i % 2 == 0:
-                painterY.drawLine(l - l2, y, l, y)
+                painterY.drawLine(l - l2 - 1, y, l - 1, y)
             else:
-                painterY.drawLine(l - l3, y, l, y)
+                painterY.drawLine(l - l3 - 1, y, l - 1, y)
+        painterY.drawLine(l-2, 0, l-2, h)
+        painterY.setPen(QtGui.QPen(QtGui.QColor("white"), 1))
         painterY.drawLine(l-1, 0, l-1, h)
-        painterY.setPen(QtGui.QPen(QtGui.QColor("white"), 0))
-        painterY.setBrush(QtGui.QBrush(QtGui.QColor("white")))
+        painterY.setPen(QtGui.QPen(QtGui.QColor("#f0f0f0"), 0))
+        painterY.setBrush(QtGui.QBrush(QtGui.QColor("#f0f0f0")))
         painterY.drawRect(0, 0, l, l)
         self.y_scale.setPixmap(self.pixmapY)
         self.y_scale.setMinimumSize(l, h)
