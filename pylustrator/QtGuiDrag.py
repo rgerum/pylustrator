@@ -738,6 +738,101 @@ class MyTreeView(QtWidgets.QTreeView):
                 parent_item.setText(name)
 
 
+class QTickEdit(QtWidgets.QWidget):
+    def __init__(self, axis):
+        QtWidgets.QWidget.__init__(self)
+        self.setWindowTitle("Figure - "+axis+"-Axis - Ticks")
+        self.layout = QtWidgets.QVBoxLayout(self)
+        self.axis = axis
+
+        self.input_ticks = TextWidget(self.layout, axis + "-Ticks:")
+        self.input_ticks.editingFinished.connect(self.ticksChanged)
+
+        self.input_tick_labels = TextWidget(self.layout, axis + "-TickLabels:")
+        self.input_tick_labels.editingFinished.connect(self.ticksLabelsChanged)
+
+        self.button_ok = QtWidgets.QPushButton("Ok")
+        self.layout.addWidget(self.button_ok)
+        self.button_ok.clicked.connect(self.hide)
+
+    def setTarget(self, element):
+        self.element = element
+        self.fig = element.figure
+
+        labels = getattr(self.element, "get_"+self.axis+"ticks")()
+        self.input_ticks.setText(", ".join(str(x) for x in labels))
+
+        labels = getattr(self.element, "get_" + self.axis + "ticklabels")()
+        self.input_tick_labels.setText(", ".join(x.get_text() for x in labels))
+
+    def ticksChanged(self):
+        try:
+            ticks = [float(x) for x in self.input_ticks.text().split(",")]
+            getattr(self.element, "set_" + self.axis + "ticks")(ticks)
+        except ValueError as err:
+            print(err)
+        self.setTarget(self.element)
+        self.fig.figure_dragger.addChange(self.element, ".set_" + self.axis + "ticks([%s])" % self.input_ticks.text())
+        self.fig.canvas.draw()
+
+    def ticksLabelsChanged(self):
+        ticks = [x.strip() for x in self.input_tick_labels.text().split(",")]
+        getattr(self.element, "set_" + self.axis + "ticklabels")(ticks)
+        string = "\", \"".join(ticks)
+        self.setTarget(self.element)
+        self.fig.figure_dragger.addChange(self.element, ".set_" + self.axis + "ticklabels([\"%s\"])" % string)
+        self.fig.canvas.draw()
+
+class QAxesProperties(QtWidgets.QWidget):
+    def __init__(self, layout, axis):
+        QtWidgets.QWidget.__init__(self)
+        layout.addWidget(self)
+        self.layout = QtWidgets.QHBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+
+        self.axis = axis
+
+        self.input_label = TextWidget(self.layout, axis+"-Label:")
+        self.input_label.editingFinished.connect(self.changeLabel)
+
+        self.input_lim = DimensionsWidget(self.layout, axis+"-Lim:", "-", "")
+        self.input_lim.valueChanged.connect(self.changeLim)
+
+        import os
+        print(os.path.join(os.path.dirname(__file__), "..", "icons", "ticks.ico"))
+        self.button_ticks = QtWidgets.QPushButton(QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", "ticks.ico")), "")
+        #self.button_ticks = QtWidgets.QPushButton(qta.icon("fa.plus"), "ticks")
+        self.button_ticks.clicked.connect(self.showTickWidget)
+        self.layout.addWidget(self.button_ticks)
+
+        self.tick_edit = QTickEdit(self.axis)
+
+    def showTickWidget(self):
+        self.tick_edit.setTarget(self.element)
+        self.tick_edit.show()
+
+    def setTarget(self, element):
+        self.element = element
+        self.fig = element.figure
+
+        if isinstance(element, Axes):
+            self.show()
+            self.input_label.setText(getattr(element, "get_"+self.axis+"label")())
+            self.input_lim.setValue(getattr(element, "get_"+self.axis+"lim")())
+        else:
+            self.hide()
+
+    def changeLabel(self):
+        getattr(self.element, "set_"+self.axis+"label")(self.input_label.text())
+        self.fig.figure_dragger.addChange(self.element, ".set_"+self.axis+"label(\"%s\")" % (getattr(self.element, "get_"+self.axis+"label")().replace("\n", "\\n")))
+        self.fig.canvas.draw()
+
+    def changeLim(self):
+        getattr(self.element, "set_"+self.axis+"lim")(*self.input_lim.value())
+        self.fig.figure_dragger.addChange(self.element, ".set_"+self.axis+"lim(%s, %s)" % tuple(str(i) for i in getattr(self.element, "get_"+self.axis+"lim")()))
+        self.fig.canvas.draw()
+
+
 class QItemProperties(QtWidgets.QWidget):
     valueChanged = QtCore.Signal(tuple)
     element = None
@@ -774,17 +869,8 @@ class QItemProperties(QtWidgets.QWidget):
         self.input_text = TextWidget(self.layout, "Text:")
         self.input_text.editingFinished.connect(self.changeText)
 
-        self.input_xlabel = TextWidget(self.layout, "X-Label:")
-        self.input_xlabel.editingFinished.connect(self.changeXLabel)
-
-        self.input_xlim = DimensionsWidget(self.layout, "X-Lim:", "-", "")
-        self.input_xlim.valueChanged.connect(self.changeXLim)
-
-        self.input_ylabel = TextWidget(self.layout, "Y-Label:")
-        self.input_ylabel.editingFinished.connect(self.changeYLabel)
-
-        self.input_ylim = DimensionsWidget(self.layout, "Y-Lim:", "-", "")
-        self.input_ylim.valueChanged.connect(self.changeYLim)
+        self.input_xaxis = QAxesProperties(self.layout, "x")
+        self.input_yaxis = QAxesProperties(self.layout, "y")
 
         self.input_font_properties = TextPropertiesWidget(self.layout)
 
@@ -916,15 +1002,6 @@ class QItemProperties(QtWidgets.QWidget):
         self.fig.figure_dragger.addChange(self.element, ".set_text(\"%s\")" % (self.element.get_text().replace("\n", "\\n")))
         self.fig.canvas.draw()
 
-    def changeXLabel(self):
-        self.element.set_xlabel(self.input_xlabel.text())
-        self.fig.figure_dragger.addChange(self.element, ".set_xlabel(\"%s\")" % (self.element.get_xlabel().replace("\n", "\\n")))
-        self.fig.canvas.draw()
-
-    def changeXLim(self):
-        self.element.set_xlim(*self.input_xlim.value())
-        self.fig.figure_dragger.addChange(self.element, ".set_xlim(%s, %s)" % tuple(str(i) for i in self.element.get_xlim()))
-        self.fig.canvas.draw()
 
     def changeYLabel(self):
         self.element.set_ylabel(self.input_ylabel.text())
@@ -977,10 +1054,6 @@ class QItemProperties(QtWidgets.QWidget):
 
         self.input_shape_transform.hide()
         self.input_transform.hide()
-        self.input_xlabel.hide()
-        self.input_xlim.hide()
-        self.input_ylabel.hide()
-        self.input_ylim.hide()
         self.button_add_annotation.hide()
         self.button_despine.hide()
         if isinstance(element, Figure):
@@ -997,14 +1070,6 @@ class QItemProperties(QtWidgets.QWidget):
             self.input_shape.setValue((pos.width, pos.height))
             self.input_transform.show()
             self.input_shape.show()
-            self.input_xlabel.show()
-            self.input_xlabel.setText(element.get_xlabel())
-            self.input_xlim.show()
-            self.input_xlim.setValue(element.get_xlim())
-            self.input_ylabel.show()
-            self.input_ylabel.setText(element.get_ylabel())
-            self.input_ylim.show()
-            self.input_ylim.setValue(element.get_ylim())
             self.button_add_text.show()
             self.button_add_annotation.show()
             self.button_despine.show()
@@ -1032,6 +1097,9 @@ class QItemProperties(QtWidgets.QWidget):
         except AttributeError:
             self.input_text.hide()
             self.input_font_properties.hide()
+
+        self.input_xaxis.setTarget(element)
+        self.input_yaxis.setTarget(element)
 
 
 class PlotWindow(QtWidgets.QWidget):
