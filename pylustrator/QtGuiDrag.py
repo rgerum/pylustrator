@@ -1,6 +1,7 @@
 from __future__ import division, print_function
 from qtpy import QtCore, QtWidgets, QtGui
 
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt4 import NavigationToolbar2QT as NavigationToolbar
@@ -742,6 +743,7 @@ class QTickEdit(QtWidgets.QWidget):
     def __init__(self, axis):
         QtWidgets.QWidget.__init__(self)
         self.setWindowTitle("Figure - "+axis+"-Axis - Ticks")
+        self.setWindowIcon(QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", "ticks.ico")))
         self.layout = QtWidgets.QVBoxLayout(self)
         self.axis = axis
 
@@ -798,8 +800,6 @@ class QAxesProperties(QtWidgets.QWidget):
         self.input_lim = DimensionsWidget(self.layout, axis+"-Lim:", "-", "")
         self.input_lim.valueChanged.connect(self.changeLim)
 
-        import os
-        print(os.path.join(os.path.dirname(__file__), "..", "icons", "ticks.ico"))
         self.button_ticks = QtWidgets.QPushButton(QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", "ticks.ico")), "")
         #self.button_ticks = QtWidgets.QPushButton(qta.icon("fa.plus"), "ticks")
         self.button_ticks.clicked.connect(self.showTickWidget)
@@ -1283,6 +1283,9 @@ class PlotWindow(QtWidgets.QWidget):
 
     def showEvent(self, event):
         self.fitToView()
+        self.updateRuler()
+
+    def resizeEvent(self, event):
         self.updateRuler()
 
     def button_press_event(self, event):
