@@ -649,7 +649,17 @@ class MyTreeView(QtWidgets.QTreeView):
         # add all marker types
         row = -1
         for row, entry in enumerate(query):
-            entry.parent = parent_entry
+            if(isinstance(entry, mpl.spines.Spine) or
+               isinstance(entry, mpl.axis.XAxis) or
+               isinstance(entry, mpl.axis.YAxis)):
+                continue
+            if isinstance(entry, mpl.text.Text) and entry.get_text() == "":
+                continue
+            try:
+                if entry == parent_entry.patch:
+                    continue
+            except AttributeError:
+                pass
             self.addChild(parent_item, entry)
 
     def addChild(self, parent_item, entry, row=None):
