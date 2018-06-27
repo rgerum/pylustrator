@@ -110,7 +110,41 @@ def figure(num=None, size=None, *args, **kwargs):
 
 """ Window """
 
-class DimensionsWidget(QtWidgets.QWidget):
+class Linkable:
+
+    def link(self, property_name,  signal=None):
+        self.element = None
+        self.setLinkedProperty = lambda text: getattr(self.element, "set_"+property_name)(text)
+        self.getLinkedProperty = lambda: getattr(self.element, "get_"+property_name)()
+        self.serializeLinkedProperty = lambda x: ".set_"+property_name+"(%s)" % x
+
+        self.editingFinished.connect(self.updateLink)
+        signal.connect(self.setTarget)
+
+    def setTarget(self, element):
+        self.element = element
+        try:
+            self.set(self.getLinkedProperty())
+        except AttributeError:
+            self.hide()
+        else:
+            self.show()
+
+    def updateLink(self):
+        self.setLinkedProperty(self.get())
+        self.element.figure.figure_dragger.addChange(self.element, self.serializeLinkedProperty(self.getSerialized()))
+        self.element.figure.canvas.draw()
+
+    def set(self, value):
+        pass
+
+    def get(self):
+        return None
+
+    def getSerialized(self):
+        return ""
+
+class DimensionsWidget(QtWidgets.QWidget, Linkable):
     valueChanged = QtCore.Signal(tuple)
     transform = None
     noSignal = False
@@ -143,6 +177,8 @@ class DimensionsWidget(QtWidgets.QWidget):
         self.input2.setMinimum(-99999)
         self.layout.addWidget(self.input2)
 
+        self.editingFinished = self.valueChanged
+
     def setText(self, text):
         self.text.setText(text)
 
@@ -171,8 +207,17 @@ class DimensionsWidget(QtWidgets.QWidget):
             tuple = self.transform.inverted().transform(tuple)
         return tuple
 
+    def get(self):
+        return self.value()
 
-class TextWidget(QtWidgets.QWidget):
+    def set(self, value):
+        self.setValue(value)
+
+    def getSerialized(self):
+        return ", ".join([str(i) for i in self.get()])
+
+
+class TextWidget(QtWidgets.QWidget, Linkable):
 
     def __init__(self, layout, text):
         QtWidgets.QWidget.__init__(self)
@@ -196,6 +241,15 @@ class TextWidget(QtWidgets.QWidget):
     def text(self):
         text = self.input1.text()
         return text.replace("\\n", "\n")
+
+    def get(self):
+        return self.text()
+
+    def set(self, value):
+        self.setText(value)
+
+    def getSerialized(self):
+        return "\""+str(self.get())+"\""
 
 
 class CheckWidget(QtWidgets.QWidget):
@@ -786,26 +840,26 @@ class QTickEdit(QtWidgets.QWidget):
         self.fig.canvas.draw()
 
 class QAxesProperties(QtWidgets.QWidget):
-    def __init__(self, layout, axis):
+    def __init__(self, layout, axis, signal_target_changed):
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
         self.layout = QtWidgets.QHBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
 
-        self.axis = axis
+        self.targetChanged = signal_target_changed
+        self.targetChanged.connect(self.setTarget)
 
         self.input_label = TextWidget(self.layout, axis+"-Label:")
-        self.input_label.editingFinished.connect(self.changeLabel)
+        self.input_label.link(axis+"label", signal=self.targetChanged)
 
         self.input_lim = DimensionsWidget(self.layout, axis+"-Lim:", "-", "")
-        self.input_lim.valueChanged.connect(self.changeLim)
+        self.input_lim.link(axis+"lim", signal=self.targetChanged)
 
         self.button_ticks = QtWidgets.QPushButton(QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", "ticks.ico")), "")
-        #self.button_ticks = QtWidgets.QPushButton(qta.icon("fa.plus"), "ticks")
         self.button_ticks.clicked.connect(self.showTickWidget)
         self.layout.addWidget(self.button_ticks)
 
-        self.tick_edit = QTickEdit(self.axis)
+        self.tick_edit = QTickEdit(axis)
 
     def showTickWidget(self):
         self.tick_edit.setTarget(self.element)
@@ -813,27 +867,15 @@ class QAxesProperties(QtWidgets.QWidget):
 
     def setTarget(self, element):
         self.element = element
-        self.fig = element.figure
 
         if isinstance(element, Axes):
             self.show()
-            self.input_label.setText(getattr(element, "get_"+self.axis+"label")())
-            self.input_lim.setValue(getattr(element, "get_"+self.axis+"lim")())
         else:
             self.hide()
 
-    def changeLabel(self):
-        getattr(self.element, "set_"+self.axis+"label")(self.input_label.text())
-        self.fig.figure_dragger.addChange(self.element, ".set_"+self.axis+"label(\"%s\")" % (getattr(self.element, "get_"+self.axis+"label")().replace("\n", "\\n")))
-        self.fig.canvas.draw()
-
-    def changeLim(self):
-        getattr(self.element, "set_"+self.axis+"lim")(*self.input_lim.value())
-        self.fig.figure_dragger.addChange(self.element, ".set_"+self.axis+"lim(%s, %s)" % tuple(str(i) for i in getattr(self.element, "get_"+self.axis+"lim")()))
-        self.fig.canvas.draw()
-
 
 class QItemProperties(QtWidgets.QWidget):
+    targetChanged = QtCore.Signal('PyQt_PyObject')
     valueChanged = QtCore.Signal(tuple)
     element = None
     transform = None
@@ -867,10 +909,10 @@ class QItemProperties(QtWidgets.QWidget):
         self.input_shape_transform.stateChanged.connect(self.changeTransform2)
 
         self.input_text = TextWidget(self.layout, "Text:")
-        self.input_text.editingFinished.connect(self.changeText)
+        self.input_text.link("text", self.targetChanged)
 
-        self.input_xaxis = QAxesProperties(self.layout, "x")
-        self.input_yaxis = QAxesProperties(self.layout, "y")
+        self.input_xaxis = QAxesProperties(self.layout, "x", self.targetChanged)
+        self.input_yaxis = QAxesProperties(self.layout, "y", self.targetChanged)
 
         self.input_font_properties = TextPropertiesWidget(self.layout)
 
@@ -889,8 +931,7 @@ class QItemProperties(QtWidgets.QWidget):
         self.layout_buttons.addWidget(self.button_despine)
         self.button_despine.clicked.connect(self.buttonDespineClicked)
 
-        #self.input_xlabel = TextWidget(self.layout, ":")
-        #self.input_xlabel.editingFinished.connect(self.changeText)
+        self.fig = fig
 
         #self.radio_buttons[0].setChecked(True)
 
@@ -997,22 +1038,6 @@ class QItemProperties(QtWidgets.QWidget):
             self.fig.figure_dragger.addChange(self.element, command)
         self.fig.canvas.draw()
 
-    def changeText(self):
-        self.element.set_text(self.input_text.text())
-        self.fig.figure_dragger.addChange(self.element, ".set_text(\"%s\")" % (self.element.get_text().replace("\n", "\\n")))
-        self.fig.canvas.draw()
-
-
-    def changeYLabel(self):
-        self.element.set_ylabel(self.input_ylabel.text())
-        self.fig.figure_dragger.addChange(self.element, ".set_ylabel(\"%s\")" % (self.element.get_ylabel().replace("\n", "\\n")))
-        self.fig.canvas.draw()
-
-    def changeYLim(self):
-        self.element.set_ylim(*self.input_ylim.value())
-        self.fig.figure_dragger.addChange(self.element, ".set_ylim(%s, %s)" % tuple(str(i) for i in self.element.get_ylim()))
-        self.fig.canvas.draw()
-
     def changePickable(self):
         if self.input_picker.isChecked():
             self.element._draggable.connect()
@@ -1090,16 +1115,12 @@ class QItemProperties(QtWidgets.QWidget):
             self.input_position.hide()
 
         try:
-            self.input_text.setText(element.get_text())
-            self.input_text.show()
             self.input_font_properties.show()
             self.input_font_properties.setTarget(element)
         except AttributeError:
-            self.input_text.hide()
             self.input_font_properties.hide()
 
-        self.input_xaxis.setTarget(element)
-        self.input_yaxis.setTarget(element)
+        self.targetChanged.emit(element)
 
 
 class PlotWindow(QtWidgets.QWidget):
