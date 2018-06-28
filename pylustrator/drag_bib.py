@@ -21,6 +21,9 @@ def getReference(element):
         return ""
     if isinstance(element, Figure):
         return "fig"
+    if isinstance(element, matplotlib.lines.Line2D):
+        index = element.axes.lines.index(element)
+        return getReference(element.axes)+".lines[%d]" % index
     if isinstance(element, matplotlib.text.Text):
         if element.axes:
             index = element.axes.texts.index(element)
@@ -290,8 +293,9 @@ class FigureDragger:
                 key = command_obj + command
 
             if command == ".text" or command == ".annotate":
-                if lineno in plt.keys_for_lines:
-                    key = plt.keys_for_lines[lineno]
+                #if lineno in plt.keys_for_lines:
+                #    key = plt.keys_for_lines[lineno]
+                #    print("linoeno", key)
                 reference_obj, _ = re.match(r"(.*)(\..*)", key).groups()
                 reference_command = ".new"
             else:
@@ -474,7 +478,7 @@ class snapBase(Line2D):
         self.ax_target = ax_target
         self.edge = edge
         Line2D.__init__(self, [], [], transform=None, clip_on=False, lw=1, zorder=100, linestyle="dashed",
-                        color="r", marker="o", ms=1)
+                        color="r", marker="o", ms=1, label="_tmp_snap")
         plt.gca().add_artist(self)
 
     def getPosition(self, axes):

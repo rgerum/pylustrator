@@ -132,8 +132,12 @@ class Linkable:
 
     def updateLink(self):
         self.setLinkedProperty(self.get())
-        self.element.figure.figure_dragger.addChange(self.element, self.serializeLinkedProperty(self.getSerialized()))
-        self.element.figure.canvas.draw()
+        if isinstance(self.element, mpl.figure.Figure):
+            fig = self.element
+        else:
+            fig = self.element.figure
+        fig.figure_dragger.addChange(self.element, self.serializeLinkedProperty(self.getSerialized()))
+        fig.canvas.draw()
 
     def set(self, value):
         pass
@@ -252,6 +256,82 @@ class TextWidget(QtWidgets.QWidget, Linkable):
         return "\""+str(self.get())+"\""
 
 
+class NumberWidget(QtWidgets.QWidget, Linkable):
+
+    def __init__(self, layout, text, use_float=True):
+        QtWidgets.QWidget.__init__(self)
+        layout.addWidget(self)
+        self.layout = QtWidgets.QHBoxLayout(self)
+        self.label = QtWidgets.QLabel(text)
+        self.layout.addWidget(self.label)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+
+        self.type = float if use_float else int
+        if use_float is False:
+            self.input1 = QtWidgets.QSpinBox()
+        else:
+            self.input1 = QtWidgets.QDoubleSpinBox()
+        self.editingFinished = self.input1.valueChanged
+        self.layout.addWidget(self.input1)
+
+    def setLabel(self, text):
+        self.label.setLabel(text)
+
+    def setValue(self, text):
+        self.input1.setValue(text)
+
+    def value(self):
+        text = self.input1.value()
+        return text
+
+    def get(self):
+        return self.value()
+
+    def set(self, value):
+        self.setValue(value)
+
+    def getSerialized(self):
+        return self.get()
+
+
+class ComboWidget(QtWidgets.QWidget, Linkable):
+
+    def __init__(self, layout, text, values):
+        QtWidgets.QWidget.__init__(self)
+        layout.addWidget(self)
+        self.layout = QtWidgets.QHBoxLayout(self)
+        self.label = QtWidgets.QLabel(text)
+        self.layout.addWidget(self.label)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+
+        self.values = values
+
+        self.input1 = QtWidgets.QComboBox()
+        self.input1.addItems(values)
+        self.editingFinished = self.input1.currentIndexChanged
+        self.layout.addWidget(self.input1)
+
+    def setLabel(self, text):
+        self.label.setLabel(text)
+
+    def setText(self, text):
+        index = self.values.index(text)
+        self.input1.setCurrentIndex(index)
+
+    def text(self):
+        index = self.input1.currentIndex()
+        return self.values[index]
+
+    def get(self):
+        return self.text()
+
+    def set(self, value):
+        self.setText(value)
+
+    def getSerialized(self):
+        return "\""+str(self.get())+"\""
+
+
 class CheckWidget(QtWidgets.QWidget):
     stateChanged = QtCore.Signal(int)
     noSignal = False
@@ -321,17 +401,30 @@ class RadioWidget(QtWidgets.QWidget):
 
 
 
-class QColorWidget(QtWidgets.QPushButton):
+class QColorWidget(QtWidgets.QWidget, Linkable):
     valueChanged = QtCore.Signal(str)
 
-    def __init__(self, value):
-        super(QtWidgets.QPushButton, self).__init__()
-        self.clicked.connect(self.OpenDialog)
+    def __init__(self, layout, text=None, value=None):
+        super(QtWidgets.QWidget, self).__init__()
+        self.layout = QtWidgets.QHBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self)
+
+        if text is not None:
+            self.label = QtWidgets.QLabel(text)
+            self.layout.addWidget(self.label)
+
+        self.button = QtWidgets.QPushButton()
+        self.layout.addWidget(self.button)
+
+        self.button.clicked.connect(self.OpenDialog)
         # default value for the color
         if value is None:
             value = "#FF0000FF"
         # set the color
         self.setColor(value)
+
+        self.editingFinished = self.valueChanged
 
     def OpenDialog(self):
         # get new color from color picker
@@ -343,13 +436,24 @@ class QColorWidget(QtWidgets.QPushButton):
 
     def setColor(self, value):
         # display and save the new color
-        self.setStyleSheet("background-color: %s;" % value)
+        if value is None:
+            value = "#FF0000FF"
+        self.button.setStyleSheet("background-color: %s;" % value)
         self.color = value
         self.valueChanged.emit(self.color)
 
     def getColor(self):
         # return the color
         return self.color
+
+    def get(self):
+        return self.getColor()
+
+    def set(self, value):
+        self.setColor(mpl.colors.to_hex(value))
+
+    def getSerialized(self):
+        return "\""+self.color+"\""
 
 
 class TextPropertiesWidget(QtWidgets.QWidget):
@@ -381,9 +485,8 @@ class TextPropertiesWidget(QtWidgets.QWidget):
         self.button_italic.clicked.connect(self.changeStyle)
         self.layout.addWidget(self.button_italic)
 
-        self.button_color = QColorWidget("#000000FF")
+        self.button_color = QColorWidget(self.layout)
         self.button_color.valueChanged.connect(self.changeColor)
-        self.layout.addWidget(self.button_color)
 
         self.layout.addStretch()
 
@@ -660,6 +763,12 @@ class MyTreeView(QtWidgets.QTreeView):
                     continue
             except AttributeError:
                 pass
+            try:
+                label = entry.get_label()
+                if label == "_tmp_snap":
+                    continue
+            except AttributeError:
+                pass
             self.addChild(parent_item, entry)
 
     def addChild(self, parent_item, entry, row=None):
@@ -804,7 +913,7 @@ class MyTreeView(QtWidgets.QTreeView):
 
 
 class QTickEdit(QtWidgets.QWidget):
-    def __init__(self, axis):
+    def __init__(self, axis, signal_target_changed):
         QtWidgets.QWidget.__init__(self)
         self.setWindowTitle("Figure - "+axis+"-Axis - Ticks")
         self.setWindowIcon(QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", "ticks.ico")))
@@ -816,6 +925,9 @@ class QTickEdit(QtWidgets.QWidget):
 
         self.input_tick_labels = TextWidget(self.layout, axis + "-TickLabels:")
         self.input_tick_labels.editingFinished.connect(self.ticksLabelsChanged)
+
+        self.input_scale = ComboWidget(self.layout, axis + "-Scale", ["linear", "log", "symlog", "logit"])
+        self.input_scale.link(axis + "scale", signal_target_changed)
 
         self.button_ok = QtWidgets.QPushButton("Ok")
         self.layout.addWidget(self.button_ok)
@@ -869,7 +981,7 @@ class QAxesProperties(QtWidgets.QWidget):
         self.button_ticks.clicked.connect(self.showTickWidget)
         self.layout.addWidget(self.button_ticks)
 
-        self.tick_edit = QTickEdit(axis)
+        self.tick_edit = QTickEdit(axis, signal_target_changed)
 
     def showTickWidget(self):
         self.tick_edit.setTarget(self.element)
@@ -926,8 +1038,46 @@ class QItemProperties(QtWidgets.QWidget):
 
         self.input_font_properties = TextPropertiesWidget(self.layout)
 
+
+        layout = QtWidgets.QHBoxLayout()
+        self.layout.addLayout(layout)
+        QColorWidget(layout, "Color:").link("color", self.targetChanged)
+
+        TextWidget(layout, "Linestyle:").link("linestyle", self.targetChanged)
+
+        NumberWidget(layout, "Linewidth:").link("linewidth", self.targetChanged)
+
+        TextWidget(layout, "Markerstyle:").link("marker", self.targetChanged)
+
+        layout = QtWidgets.QHBoxLayout()
+        self.layout.addLayout(layout)
+
+        NumberWidget(layout, "Markersize:").link("markersize", self.targetChanged)
+
+        QColorWidget(layout, "markerfacecolor:").link("markerfacecolor", self.targetChanged)
+
+        layout = QtWidgets.QHBoxLayout()
+        self.layout.addLayout(layout)
+
+        NumberWidget(layout, "Markeredgewidth:").link("markeredgewidth", self.targetChanged)
+
+        QColorWidget(layout, "markeredgecolor:").link("markeredgecolor", self.targetChanged)
+
+        layout = QtWidgets.QHBoxLayout()
+        self.layout.addLayout(layout)
+
+        QColorWidget(layout, "Edgecolor:").link("edgecolor", self.targetChanged)
+
+        QColorWidget(layout, "Facecolor:").link("facecolor", self.targetChanged)
+
+
+
         self.layout_buttons = QtWidgets.QHBoxLayout()
         self.layout.addLayout(self.layout_buttons)
+
+        self.button_add_image = QtWidgets.QPushButton("add image")
+        #self.layout_buttons.addWidget(self.button_add_image)
+        self.button_add_image.clicked.connect(self.buttonAddImageClicked)
 
         self.button_add_text = QtWidgets.QPushButton("add text")
         self.layout_buttons.addWidget(self.button_add_text)
@@ -943,9 +1093,33 @@ class QItemProperties(QtWidgets.QWidget):
 
         self.fig = fig
 
-        #self.radio_buttons[0].setChecked(True)
+    def buttonAddImageClicked(self):
+        fig = self.fig
+        def addChange(element, command):
+            fig.figure_dragger.addChange(element, command)
+            return eval(getReference(element)+command)
+        filename = r"D:\Pictures\This Is A Shit\IMG_3567.jpg"
+        if isinstance(self.element, Figure):
+            axes = self.element.add_axes([0.25, 0.25, 0.5, 0.5], label=filename)
+            fig.ax_dict = {ax.get_label(): ax for ax in fig.axes}
+            self.fig.figure_dragger.addChange(self.element,
+                                              ".add_axes([0.25, 0.25, 0.5, 0.5], label=\"%s\")  # id=%s.new" % (
+                                              filename, getReference(axes)), axes, ".new")
+        addChange(axes, ".imshow(plt.imread(\"%s\"))" % filename)
+        addChange(axes, '.set_xticks([])')
+        addChange(axes, '.set_yticks([])')
+        addChange(axes, ".spines['right'].set_visible(False)")
+        addChange(axes, ".spines['left'].set_visible(False)")
+        addChange(axes, ".spines['top'].set_visible(False)")
+        addChange(axes, ".spines['bottom'].set_visible(False)")
 
-        self.fig = fig
+        self.tree.updateEntry(self.element, update_children=True)
+        self.fig.figure_dragger.make_dragable(axes)
+        self.fig.figure_dragger.select_element(axes)
+        self.fig.canvas.draw()
+        self.setElement(axes)
+        self.input_text.input1.selectAll()
+        self.input_text.input1.setFocus()
 
     def buttonAddTextClicked(self):
         if isinstance(self.element, Axes):
@@ -1270,7 +1444,6 @@ class PlotWindow(QtWidgets.QWidget):
         start_y = np.floor(trans.inverted().transform((0, +offset-h))[1])
         end_y = np.ceil(trans.inverted().transform((0, +offset))[1])
         dy = 0.1
-        print(start_y, end_y)
         for i, pos_cm in enumerate(np.arange(start_y, end_y, dy)):
             y = (-trans.transform((0, pos_cm))[1] + offset)
             if i % 10 == 0:
@@ -1333,7 +1506,6 @@ class PlotWindow(QtWidgets.QWidget):
         pos = trans.transform((event.x, event.y))
         self.footer_label.setText("%.2f, %.2f (cm)" % (pos[0], pos[1]))
 
-        print(event)
         if event.ydata is not None:
             self.footer_label2.setText("%.2f, %.2f" % (event.xdata, event.ydata))
         else:
