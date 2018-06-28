@@ -87,3 +87,11 @@ Note
 
 If you encounter any bugs or unexpected behaviour, you are encouraged to report a bug in our
 Bitbucket `bugtracker <https://bitbucket.org/fabry_biophysics/pylustrator/issues?status=new&status=open>`_.
+
+
+Citing Pylustrator
+------------------
+
+If you use Pylustrator for your publications I would highly appreciate it if you cite the Pylustrator:
+
+* Richard Gerum. (2018, June 21). `"Pylustrator: An interactive interface to style matplotlib plots." <https://zenodo.org/record/1294663>`_ Zenodo. doi:10.5281/zenodo.1294663
