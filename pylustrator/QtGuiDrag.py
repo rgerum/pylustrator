@@ -228,6 +228,8 @@ class DimensionsWidget(QtWidgets.QWidget, Linkable):
 
 
 class TextWidget(QtWidgets.QWidget, Linkable):
+    editingFinished = QtCore.Signal()
+    noSignal = False
 
     def __init__(self, layout, text):
         QtWidgets.QWidget.__init__(self)
@@ -238,15 +240,21 @@ class TextWidget(QtWidgets.QWidget, Linkable):
         self.layout.setContentsMargins(0, 0, 0, 0)
 
         self.input1 = QtWidgets.QLineEdit()
-        self.editingFinished = self.input1.editingFinished
+        self.input1.textChanged.connect(self.valueChangeEvent)
         self.layout.addWidget(self.input1)
+
+    def valueChangeEvent(self):
+        if not self.noSignal:
+            self.editingFinished.emit()
 
     def setLabel(self, text):
         self.label.setLabel(text)
 
     def setText(self, text):
+        self.noSignal = True
         text = text.replace("\n", "\\n")
         self.input1.setText(text)
+        self.noSignal = False
 
     def text(self):
         text = self.input1.text()
@@ -263,6 +271,8 @@ class TextWidget(QtWidgets.QWidget, Linkable):
 
 
 class NumberWidget(QtWidgets.QWidget, Linkable):
+    editingFinished = QtCore.Signal()
+    noSignal = False
 
     def __init__(self, layout, text, use_float=True):
         QtWidgets.QWidget.__init__(self)
@@ -277,14 +287,20 @@ class NumberWidget(QtWidgets.QWidget, Linkable):
             self.input1 = QtWidgets.QSpinBox()
         else:
             self.input1 = QtWidgets.QDoubleSpinBox()
-        self.editingFinished = self.input1.valueChanged
+        self.input1.valueChanged.connect(self.valueChangeEvent)
         self.layout.addWidget(self.input1)
+
+    def valueChangeEvent(self):
+        if not self.noSignal:
+            self.editingFinished.emit()
 
     def setLabel(self, text):
         self.label.setLabel(text)
 
     def setValue(self, text):
+        self.noSignal = True
         self.input1.setValue(text)
+        self.noSignal = False
 
     def value(self):
         text = self.input1.value()
@@ -301,6 +317,8 @@ class NumberWidget(QtWidgets.QWidget, Linkable):
 
 
 class ComboWidget(QtWidgets.QWidget, Linkable):
+    editingFinished = QtCore.Signal()
+    noSignal = False
 
     def __init__(self, layout, text, values):
         QtWidgets.QWidget.__init__(self)
@@ -314,15 +332,23 @@ class ComboWidget(QtWidgets.QWidget, Linkable):
 
         self.input1 = QtWidgets.QComboBox()
         self.input1.addItems(values)
-        self.editingFinished = self.input1.currentIndexChanged
         self.layout.addWidget(self.input1)
+
+        self.input1.currentIndexChanged.connect(self.valueChangeEvent)
+        self.layout.addWidget(self.input1)
+
+    def valueChangeEvent(self):
+        if not self.noSignal:
+            self.editingFinished.emit()
 
     def setLabel(self, text):
         self.label.setLabel(text)
 
     def setText(self, text):
+        self.noSignal = True
         index = self.values.index(text)
         self.input1.setCurrentIndex(index)
+        self.noSignal = False
 
     def text(self):
         index = self.input1.currentIndex()
@@ -446,6 +472,7 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
         if color.isValid():
             color = mpl.colors.to_hex(color.getRgbF())
             self.setColor(color)
+            self.valueChanged.emit(self.color)
 
     def setColor(self, value):
         # display and save the new color
@@ -453,7 +480,6 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
             value = "#FF0000FF"
         self.button.setStyleSheet("background-color: %s;" % value)
         self.color = value
-        self.valueChanged.emit(self.color)
 
     def getColor(self):
         # return the color
