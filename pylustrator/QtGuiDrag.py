@@ -112,11 +112,16 @@ def figure(num=None, size=None, *args, **kwargs):
 
 class Linkable:
 
-    def link(self, property_name,  signal=None):
+    def link(self, property_name,  signal=None, condition=None):
         self.element = None
         self.setLinkedProperty = lambda text: getattr(self.element, "set_"+property_name)(text)
         self.getLinkedProperty = lambda: getattr(self.element, "get_"+property_name)()
         self.serializeLinkedProperty = lambda x: ".set_"+property_name+"(%s)" % x
+
+        if condition is None:
+            self.condition = lambda x: True
+        else:
+            self.condition = condition
 
         self.editingFinished.connect(self.updateLink)
         signal.connect(self.setTarget)
@@ -125,6 +130,7 @@ class Linkable:
         self.element = element
         try:
             self.set(self.getLinkedProperty())
+            self.setEnabled(self.condition(element))
         except AttributeError:
             self.hide()
         else:
@@ -426,6 +432,13 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
 
         self.editingFinished = self.valueChanged
 
+    def changeEvent(self, event):
+        if event.type() == QtCore.QEvent.EnabledChange:
+            if not self.isEnabled():
+                self.button.setStyleSheet("background-color: #f0f0f0;")
+            else:
+                self.setColor(self.color)
+
     def OpenDialog(self):
         # get new color from color picker
         color = QtWidgets.QColorDialog.getColor(QtGui.QColor(*tuple(mpl.colors.to_rgba_array(self.getColor())[0]*255)), self.parent(), "Choose Color")
@@ -450,7 +463,10 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
         return self.getColor()
 
     def set(self, value):
-        self.setColor(mpl.colors.to_hex(value))
+        try:
+            self.setColor(mpl.colors.to_hex(value))
+        except ValueError:
+            self.setColor(None)
 
     def getSerialized(self):
         return "\""+self.color+"\""
@@ -1041,27 +1057,31 @@ class QItemProperties(QtWidgets.QWidget):
 
         layout = QtWidgets.QHBoxLayout()
         self.layout.addLayout(layout)
-        QColorWidget(layout, "Color:").link("color", self.targetChanged)
+
+        condition_line = lambda x: getattr(x, "get_linestyle")() not in ["None", " ", ""]
+        condition_marker = lambda x: getattr(x, "get_marker")() not in ["None", " ", ""]
 
         TextWidget(layout, "Linestyle:").link("linestyle", self.targetChanged)
 
-        NumberWidget(layout, "Linewidth:").link("linewidth", self.targetChanged)
+        NumberWidget(layout, "Linewidth:").link("linewidth", self.targetChanged, condition=condition_line)#lambda x: getattr(x, "get_linestyle") not in ["None", " ", ""])
+
+        QColorWidget(layout, "Color:").link("color", self.targetChanged, condition=condition_line)
+
+        layout = QtWidgets.QHBoxLayout()
+        self.layout.addLayout(layout)
 
         TextWidget(layout, "Markerstyle:").link("marker", self.targetChanged)
 
-        layout = QtWidgets.QHBoxLayout()
-        self.layout.addLayout(layout)
+        NumberWidget(layout, "Markersize:").link("markersize", self.targetChanged, condition=condition_marker)
 
-        NumberWidget(layout, "Markersize:").link("markersize", self.targetChanged)
-
-        QColorWidget(layout, "markerfacecolor:").link("markerfacecolor", self.targetChanged)
+        QColorWidget(layout, "markerfacecolor:").link("markerfacecolor", self.targetChanged, condition=condition_marker)
 
         layout = QtWidgets.QHBoxLayout()
         self.layout.addLayout(layout)
 
-        NumberWidget(layout, "Markeredgewidth:").link("markeredgewidth", self.targetChanged)
+        NumberWidget(layout, "Markeredgewidth:").link("markeredgewidth", self.targetChanged, condition=condition_marker)
 
-        QColorWidget(layout, "markeredgecolor:").link("markeredgecolor", self.targetChanged)
+        QColorWidget(layout, "markeredgecolor:").link("markeredgecolor", self.targetChanged, condition=condition_marker)
 
         layout = QtWidgets.QHBoxLayout()
         self.layout.addLayout(layout)
