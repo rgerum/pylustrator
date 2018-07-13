@@ -17,6 +17,8 @@ from .drag_bib import FigureDragger
 from .helper_functions import changeFigureSize
 from .drag_bib import getReference
 
+from drag_helper import DragManager
+
 import sys
 
 
@@ -77,7 +79,15 @@ def show():
         # get the window
         window = _pylab_helpers.Gcf.figs[figure].canvas.window
         # add dragger
-        FigureDragger(_pylab_helpers.Gcf.figs[figure].canvas.figure, [], [], "cm")
+        #FigureDragger(_pylab_helpers.Gcf.figs[figure].canvas.figure, [], [], "cm")
+        #% start: automatic generated code from pylustrator
+        fig = plt.figure(0)
+        fig.ax_dict = {ax.get_label(): ax for ax in fig.axes}
+        fig.ax_dict["a"].set_position([0.200000, 0.528305, 0.258983, 0.331356])
+        fig.ax_dict["b"].set_position([0.567175, 0.509661, 0.227941, 0.350000])
+        fig.ax_dict["c"].set_position([0.567175, 0.182114, 0.227941, 0.109412])
+        #% end: automatic generated code from pylustrator
+        DragManager(_pylab_helpers.Gcf.figs[figure].canvas.figure)
         window.update()
         # and show it
         window.show()
@@ -142,7 +152,7 @@ class Linkable:
             fig = self.element
         else:
             fig = self.element.figure
-        fig.figure_dragger.addChange(self.element, self.serializeLinkedProperty(self.getSerialized()))
+        fig.change_tracker.addChange(self.element, self.serializeLinkedProperty(self.getSerialized()))
         fig.canvas.draw()
 
     def set(self, value):
@@ -230,6 +240,7 @@ class DimensionsWidget(QtWidgets.QWidget, Linkable):
 class TextWidget(QtWidgets.QWidget, Linkable):
     editingFinished = QtCore.Signal()
     noSignal = False
+    last_text = None
 
     def __init__(self, layout, text):
         QtWidgets.QWidget.__init__(self)
@@ -240,11 +251,11 @@ class TextWidget(QtWidgets.QWidget, Linkable):
         self.layout.setContentsMargins(0, 0, 0, 0)
 
         self.input1 = QtWidgets.QLineEdit()
-        self.input1.textChanged.connect(self.valueChangeEvent)
+        self.input1.editingFinished.connect(self.valueChangeEvent)
         self.layout.addWidget(self.input1)
 
     def valueChangeEvent(self):
-        if not self.noSignal:
+        if not self.noSignal and self.input1.text() != self.last_text:
             self.editingFinished.emit()
 
     def setLabel(self, text):
@@ -253,6 +264,7 @@ class TextWidget(QtWidgets.QWidget, Linkable):
     def setText(self, text):
         self.noSignal = True
         text = text.replace("\n", "\\n")
+        self.last_text = text
         self.input1.setText(text)
         self.noSignal = False
 
@@ -572,7 +584,7 @@ class TextPropertiesWidget(QtWidgets.QWidget):
             self.target = None
 
             element.set_weight("bold" if checked else "normal")
-            element.figure.figure_dragger.addChange(element, ".set_weight(\"%s\")" % ("bold" if checked else "normal",))
+            element.figure.change_tracker.addChange(element, ".set_weight(\"%s\")" % ("bold" if checked else "normal",))
 
             self.target = element
             self.target.figure.canvas.draw()
@@ -583,7 +595,7 @@ class TextPropertiesWidget(QtWidgets.QWidget):
             self.target = None
 
             element.set_style("italic" if checked else "normal")
-            element.figure.figure_dragger.addChange(element, ".set_style(\"%s\")" % ("italic" if checked else "normal",))
+            element.figure.change_tracker.addChange(element, ".set_style(\"%s\")" % ("italic" if checked else "normal",))
 
             self.target = element
             self.target.figure.canvas.draw()
@@ -594,7 +606,7 @@ class TextPropertiesWidget(QtWidgets.QWidget):
             self.target = None
 
             element.set_color(color)
-            element.figure.figure_dragger.addChange(element, ".set_color(\"%s\")" % (color,))
+            element.figure.change_tracker.addChange(element, ".set_color(\"%s\")" % (color,))
 
             self.target = element
             self.target.figure.canvas.draw()
@@ -608,7 +620,7 @@ class TextPropertiesWidget(QtWidgets.QWidget):
             for index, button in enumerate(self.buttons_align):
                 button.setChecked(index == index_selected)
             element.set_ha(align)
-            element.figure.figure_dragger.addChange(element, ".set_ha(\"%s\")" % align)
+            element.figure.change_tracker.addChange(element, ".set_ha(\"%s\")" % align)
 
             self.target = element
             self.target.figure.canvas.draw()
@@ -616,7 +628,7 @@ class TextPropertiesWidget(QtWidgets.QWidget):
     def changeFontSize(self, value):
         if self.target:
             self.target.set_fontsize(value)
-            self.target.figure.figure_dragger.addChange(self.target, ".set_fontsize(%d)" % value)
+            self.target.figure.change_tracker.addChange(self.target, ".set_fontsize(%d)" % value)
             self.target.figure.canvas.draw()
 
 
@@ -697,7 +709,7 @@ class MyTreeView(QtWidgets.QTreeView):
                 super(QtWidgets.QTreeView, self).setCurrentIndex(item.index())
                 return
             try:
-                entry = entry.parent
+                entry = entry.tree_parent
             except AttributeError:
                 return
 
@@ -744,7 +756,7 @@ class MyTreeView(QtWidgets.QTreeView):
         return entry.get_children()
 
     def getParentEntry(self, entry):
-        return entry.parent
+        return entry.tree_parent
 
     def getNameOfEntry(self, entry):
         return str(entry)
@@ -794,23 +806,25 @@ class MyTreeView(QtWidgets.QTreeView):
         # add all marker types
         row = -1
         for row, entry in enumerate(query):
-            if(isinstance(entry, mpl.spines.Spine) or
-               isinstance(entry, mpl.axis.XAxis) or
-               isinstance(entry, mpl.axis.YAxis)):
-                continue
-            if isinstance(entry, mpl.text.Text) and entry.get_text() == "":
-                continue
-            try:
-                if entry == parent_entry.patch:
+            entry.tree_parent = parent_entry
+            if 1:
+                if(isinstance(entry, mpl.spines.Spine) or
+                   isinstance(entry, mpl.axis.XAxis) or
+                   isinstance(entry, mpl.axis.YAxis)):
                     continue
-            except AttributeError:
-                pass
-            try:
-                label = entry.get_label()
-                if label == "_tmp_snap":
+                if isinstance(entry, mpl.text.Text) and entry.get_text() == "":
                     continue
-            except AttributeError:
-                pass
+                try:
+                    if entry == parent_entry.patch:
+                        continue
+                except AttributeError:
+                    pass
+                try:
+                    label = entry.get_label()
+                    if label == "_tmp_snap":
+                        continue
+                except AttributeError:
+                    pass
             self.addChild(parent_item, entry)
 
     def addChild(self, parent_item, entry, row=None):
@@ -992,7 +1006,7 @@ class QTickEdit(QtWidgets.QWidget):
         except ValueError as err:
             print(err)
         self.setTarget(self.element)
-        self.fig.figure_dragger.addChange(self.element, ".set_" + self.axis + "ticks([%s])" % self.input_ticks.text())
+        self.fig.change_tracker.addChange(self.element, ".set_" + self.axis + "ticks([%s])" % self.input_ticks.text())
         self.fig.canvas.draw()
 
     def ticksLabelsChanged(self):
@@ -1000,7 +1014,7 @@ class QTickEdit(QtWidgets.QWidget):
         getattr(self.element, "set_" + self.axis + "ticklabels")(ticks)
         string = "\", \"".join(ticks)
         self.setTarget(self.element)
-        self.fig.figure_dragger.addChange(self.element, ".set_" + self.axis + "ticklabels([\"%s\"])" % string)
+        self.fig.change_tracker.addChange(self.element, ".set_" + self.axis + "ticklabels([\"%s\"])" % string)
         self.fig.canvas.draw()
 
 class QAxesProperties(QtWidgets.QWidget):
@@ -1142,13 +1156,13 @@ class QItemProperties(QtWidgets.QWidget):
     def buttonAddImageClicked(self):
         fig = self.fig
         def addChange(element, command):
-            fig.figure_dragger.addChange(element, command)
+            fig.change_tracker.addChange(element, command)
             return eval(getReference(element)+command)
         filename = r"D:\Pictures\This Is A Shit\IMG_3567.jpg"
         if isinstance(self.element, Figure):
             axes = self.element.add_axes([0.25, 0.25, 0.5, 0.5], label=filename)
             fig.ax_dict = {ax.get_label(): ax for ax in fig.axes}
-            self.fig.figure_dragger.addChange(self.element,
+            self.fig.change_tracker.addChange(self.element,
                                               ".add_axes([0.25, 0.25, 0.5, 0.5], label=\"%s\")  # id=%s.new" % (
                                               filename, getReference(axes)), axes, ".new")
         addChange(axes, ".imshow(plt.imread(\"%s\"))" % filename)
@@ -1170,25 +1184,25 @@ class QItemProperties(QtWidgets.QWidget):
     def buttonAddTextClicked(self):
         if isinstance(self.element, Axes):
             text = self.element.text(0.5, 0.5, "New Text", transform=self.element.transAxes)
-            self.fig.figure_dragger.addChange(self.element,
+            self.fig.change_tracker.addChange(self.element,
                                               ".text(0.5, 0.5, 'New Text', transform=%s.transAxes)  # id=%s.new" % (
                                               getReference(self.element), getReference(text)), text, ".new")
         if isinstance(self.element, Figure):
             text = self.element.text(0.5, 0.5, "New Text", transform=self.element.transFigure)
-            self.fig.figure_dragger.addChange(self.element,
+            self.fig.change_tracker.addChange(self.element,
                                               ".text(0.5, 0.5, 'New Text', transform=%s.transFigure)  # id=%s.new" % (
                                               getReference(self.element), getReference(text)), text, ".new")
         self.tree.updateEntry(self.element, update_children=True)
         self.fig.figure_dragger.make_dragable(text)
-        self.fig.figure_dragger.select_element(text)
         self.fig.canvas.draw()
+        self.fig.figure_dragger.select_element(text)
         self.setElement(text)
         self.input_text.input1.selectAll()
         self.input_text.input1.setFocus()
 
     def buttonAddAnnotationClicked(self):
         text = self.element.annotate("New Annotation", (self.element.get_xlim()[0], self.element.get_ylim()[0]), (np.mean(self.element.get_xlim()), np.mean(self.element.get_ylim())), arrowprops=dict(arrowstyle="->"))
-        self.fig.figure_dragger.addChange(self.element, ".annotate('New Annotation', %s, %s, arrowprops=dict(arrowstyle='->'))  # id=%s.new" % (text.xy, text.get_position(), getReference(text)),
+        self.fig.change_tracker.addChange(self.element, ".annotate('New Annotation', %s, %s, arrowprops=dict(arrowstyle='->'))  # id=%s.new" % (text.xy, text.get_position(), getReference(text)),
                                           text, ".new")
 
         self.tree.updateEntry(self.element, update_children=True)
@@ -1219,11 +1233,11 @@ class QItemProperties(QtWidgets.QWidget):
             pos.x1 = value[0]+w
             pos.y1 = value[1]+h
 
-            self.fig.figure_dragger.addChange(self.element, ".set_position([%f, %f, %f, %f])" % (pos.x0, pos.y0, pos.width, pos.height))
+            self.fig.change_tracker.addChange(self.element, ".set_position([%f, %f, %f, %f])" % (pos.x0, pos.y0, pos.width, pos.height))
         except AttributeError:
             pos = value
 
-            self.fig.figure_dragger.addChange(self.element, ".set_position([%f, %f])" % (pos[0], pos[1]))
+            self.fig.change_tracker.addChange(self.element, ".set_position([%f, %f])" % (pos[0], pos[1]))
         self.element.set_position(pos)
         self.fig.canvas.draw()
 
@@ -1232,19 +1246,19 @@ class QItemProperties(QtWidgets.QWidget):
 
             if self.scale_type == 0:
                 self.fig.set_size_inches(value)
-                self.fig.figure_dragger.addChange(self.element, ".set_size_inches(%f/2.54, %f/2.54, forward=True)" % (value[0]*2.54, value[1]*2.54))
+                self.fig.change_tracker.addChange(self.element, ".set_size_inches(%f/2.54, %f/2.54, forward=True)" % (value[0]*2.54, value[1]*2.54))
             else:
                 if self.scale_type == 1:
                     changeFigureSize(value[0], value[1], fig=self.fig)
                 elif self.scale_type == 2:
                     changeFigureSize(value[0], value[1], cut_from_top=True, cut_from_left=True, fig=self.fig)
-                self.fig.figure_dragger.addChange(self.element, ".set_size_inches(%f/2.54, %f/2.54, forward=True)" % (value[0] * 2.54, value[1] * 2.54))
+                self.fig.change_tracker.addChange(self.element, ".set_size_inches(%f/2.54, %f/2.54, forward=True)" % (value[0] * 2.54, value[1] * 2.54))
                 for axes in self.fig.axes:
                     pos = axes.get_position()
-                    self.fig.figure_dragger.addChange(axes, ".set_position([%f, %f, %f, %f])" % (pos.x0, pos.y0, pos.width, pos.height))
+                    self.fig.change_tracker.addChange(axes, ".set_position([%f, %f, %f, %f])" % (pos.x0, pos.y0, pos.width, pos.height))
                 for text in self.fig.texts:
                     pos = text.get_position()
-                    self.fig.figure_dragger.addChange(text, ".set_position([%f, %f])" % (pos[0], pos[1]))
+                    self.fig.change_tracker.addChange(text, ".set_position([%f, %f])" % (pos[0], pos[1]))
 
 
             self.fig.canvas.draw()
@@ -1256,7 +1270,7 @@ class QItemProperties(QtWidgets.QWidget):
             pos.y1 = pos.y0 + value[1]
             self.element.set_position(pos)
 
-            self.fig.figure_dragger.addChange(self.element, ".set_position([%f, %f, %f, %f])" % (pos.x0, pos.y0, pos.width, pos.height))
+            self.fig.change_tracker.addChange(self.element, ".set_position([%f, %f, %f, %f])" % (pos.x0, pos.y0, pos.width, pos.height))
 
             self.fig.canvas.draw()
 
@@ -1265,7 +1279,7 @@ class QItemProperties(QtWidgets.QWidget):
                     ".spines['top'].set_visible(False)"]
         for command in commands:
             eval("self.element"+command)
-            self.fig.figure_dragger.addChange(self.element, command)
+            self.fig.change_tracker.addChange(self.element, command)
         self.fig.canvas.draw()
 
     def changePickable(self):
@@ -1650,21 +1664,21 @@ class PlotWindow(QtWidgets.QWidget):
                 self.select_element(element)
                 return func(element, event)
             return newfunc
-        self.fig.figure_dragger.select_element = wrap(self.fig.figure_dragger.select_element)
+        #self.fig.figure_dragger.on_select = wrap(self.fig.figure_dragger.on_select)
 
         def wrap(func):
             def newfunc(*args):
                 self.updateTitle()
                 return func(*args)
             return newfunc
-        self.fig.figure_dragger.addChange = wrap(self.fig.figure_dragger.addChange)
+        self.fig.change_tracker.addChange = wrap(self.fig.change_tracker.addChange)
 
-        self.fig.figure_dragger.save = wrap(self.fig.figure_dragger.save)
+        self.fig.change_tracker.save = wrap(self.fig.change_tracker.save)
 
         self.treeView.setCurrentIndex(self.fig)
 
     def updateTitle(self):
-        if self.fig.figure_dragger.saved:
+        if self.fig.change_tracker.saved:
             self.setWindowTitle("Figure %s" % self.fig.number)
         else:
             self.setWindowTitle("Figure %s*" % self.fig.number)
@@ -1678,7 +1692,7 @@ class PlotWindow(QtWidgets.QWidget):
             self.input_properties.setElement(element)
 
     def closeEvent(self, event):
-        if not self.fig.figure_dragger.saved:
+        if not self.fig.change_tracker.saved:
             reply = QtWidgets.QMessageBox.question(self, 'Warning', 'The figure has not been saved. '
                                                                     'All data will be lost.\nDo you want to save it?',
                                                    QtWidgets.QMessageBox.Cancel | QtWidgets.QMessageBox.No | QtWidgets.QMessageBox.Yes,
@@ -1687,4 +1701,4 @@ class PlotWindow(QtWidgets.QWidget):
             if reply == QtWidgets.QMessageBox.Cancel:
                 event.ignore()
             if reply == QtWidgets.QMessageBox.Yes:
-                self.fig.figure_dragger.save()
+                self.fig.change_tracker.save()
