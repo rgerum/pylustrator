@@ -4,10 +4,12 @@ Enable picking on the legend to toggle the legended line on and off
 import numpy as np
 import matplotlib.pyplot as plt
 
-from pylustration import StartPylustration, fig_text, add_axes, StartDragger
+#from pylustration import StartPylustration, fig_text, add_axes, StartDragger
+import pylustrator
 #plt.ion()
 
-StartDragger()
+#StartDragger()
+pylustrator.start()
 
 t = np.arange(0.0, 0.2, 0.1)
 y1 = 2*np.sin(2*np.pi*t)
@@ -54,8 +56,8 @@ plt.axis()
 
 
 #plt.ylim(0, 5)
-fig_text(1, -1, "A", size=15)
-fig_text(5, -1, "B")
+#fig_text(1, -1, "A", size=15)
+#fig_text(5, -1, "B")
 
 plt.text(0, 0, "Heyhho", transform=ax2.transAxes, picker=True)
 plt.text(10, 10, "Heyhho", transform=ax2.transData, picker=True)

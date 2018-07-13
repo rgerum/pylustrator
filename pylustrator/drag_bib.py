@@ -302,6 +302,8 @@ class FigureDragger:
                 reference_obj = command_obj
                 reference_command = command
 
+            print("line:", line)
+            print(" commandobj", command_obj, "ref_obj", reference_obj)
             command_obj = eval(command_obj)
             reference_obj = eval(reference_obj)
 
@@ -472,207 +474,6 @@ def insertTextToFile(text, stack_pos):
     print("Save to", stack_pos.filename, "line", stack_pos.lineno)
 
 
-class snapBase(Line2D):
-    def __init__(self, ax_source, ax_target, edge):
-        self.ax_source = ax_source
-        self.ax_target = ax_target
-        self.edge = edge
-        Line2D.__init__(self, [], [], transform=None, clip_on=False, lw=1, zorder=100, linestyle="dashed",
-                        color="r", marker="o", ms=1, label="_tmp_snap")
-        plt.gca().add_artist(self)
-
-    def getPosition(self, axes):
-        return np.array(axes.figure.transFigure.transform(axes.get_position())).flatten()
-
-    def getDistance(self, p1):
-        pass
-
-    def checkSnap(self, index):
-        distance = self.getDistance(index)
-        if abs(distance) < 10:
-            return distance
-        return None
-
-    def checkSnapActive(self):
-        distance = min([self.getDistance(index) for index in [0, 1]])
-        if abs(distance) < 1:
-            self.show()
-        else:
-            self.hide()
-
-    def show(self):
-        pass
-
-    def hide(self):
-        self.set_data((), ())
-
-    def remove(self):
-        self.hide()
-        try:
-            self.axes.artists.remove(self)
-        except ValueError:
-            pass
-
-class snapSameEdge(snapBase):
-
-    def getDistance(self, index):
-        if self.edge % 2 != index:
-            return np.inf
-        p1 = self.getPosition(self.ax_source)
-        p2 = self.getPosition(self.ax_target)
-        return p1[self.edge] - p2[self.edge]
-
-    def show(self):
-        p1 = self.getPosition(self.ax_source)
-        p2 = self.getPosition(self.ax_target)
-        if self.edge % 2 == 0:
-            self.set_data((p1[self.edge], p1[self.edge], p2[self.edge], p2[self.edge]), (p1[self.edge-1], p1[self.edge+1], p2[self.edge-1], p2[self.edge+1]))
-        else:
-            self.set_data((p1[self.edge-1], p1[self.edge-3], p2[self.edge-1], p2[self.edge-3]), (p1[self.edge], p1[self.edge], p2[self.edge], p2[self.edge]))
-
-
-class snapSameDimension(snapBase):
-    def getDistance(self, index):
-        if self.edge % 2 != index:
-            return np.inf
-        p1 = self.getPosition(self.ax_source)
-        p2 = self.getPosition(self.ax_target)
-        return (p2[self.edge-2]-p2[self.edge]) - (p1[self.edge-2]-p1[self.edge])
-
-    def show(self):
-        p1 = self.getPosition(self.ax_source)
-        p2 = self.getPosition(self.ax_target)
-        if self.edge % 2 == 0:
-            self.set_data((p1[0], p1[2], np.nan, p2[0], p2[2]),
-                          (p1[1] * 0.5 + p1[3] * 0.5, p1[1] * 0.5 + p1[3] * 0.5, np.nan, p2[1] * 0.5 + p2[3] * 0.5,
-                           p2[1] * 0.5 + p2[3] * 0.5))
-        else:
-            self.set_data((p1[0] * 0.5 + p1[2] * 0.5, p1[0] * 0.5 + p1[2] * 0.5, np.nan, p2[0] * 0.5 + p2[2] * 0.5,
-                           p2[0] * 0.5 + p2[2] * 0.5),
-                          (p1[1], p1[3], np.nan, p2[1], p2[3]))
-
-
-class snapSamePos(snapBase):
-    def getPosition(self, text):
-        return np.array(text.get_transform().transform(text.get_position()))
-
-    def getDistance(self, index):
-        if self.edge % 2 != index:
-            return np.inf
-        p1 = self.getPosition(self.ax_source)
-        p2 = self.getPosition(self.ax_target)
-        return p1[self.edge] - p2[self.edge]
-
-    def show(self):
-        p1 = self.getPosition(self.ax_source)
-        p2 = self.getPosition(self.ax_target)
-        self.set_data((p1[0], p2[0]), (p1[1], p2[1]))
-
-
-class snapSameBorder(snapBase):
-    def overlap(self, p1, p2, dir):
-        if p1[dir + 2] < p2[dir] or p1[dir] > p2[dir + 2]:
-            return False
-        return True
-
-    def getBorders(self, p1, p2):
-        borders = []
-        for edge in [0, 1]:
-            if self.overlap(p1, p2, 1-edge):
-                if p1[edge + 2] < p2[edge]:
-                    dist = p2[edge] - p1[edge + 2]
-                    borders.append([edge*2+0, dist])
-                if p1[edge] > p2[edge + 2]:
-                    dist = p1[edge] - p2[edge + 2]
-                    borders.append([edge*2+1, dist])
-        return np.array(borders)
-
-    def getDistance(self, index):
-        self.ax_target2 = self.edge
-        p1 = self.getPosition(self.ax_source)
-        p2 = self.getPosition(self.ax_target)
-        p3 = self.getPosition(self.ax_target2)
-        for edge in [index]:
-            if (p1[edge+2] < p2[edge] or p1[edge] > p2[edge+2]) and self.overlap(p1, p2, 1-edge):
-                distances = np.array([p2[edge]-p1[edge + 2], p1[edge] - p2[edge + 2]])
-                index1 = np.argmax(distances)
-                distance = distances[index1]
-                borders = self.getBorders(p2, p3)
-                if len(borders):
-                    deltas = distance - borders[:, 1]
-                    index2 = np.argmin(np.abs(deltas))
-                    self.dir2 = borders[index2, 0]
-                    self.dir1 = edge*2+index1
-                    return deltas[index2]*(-1+2*index1)
-        return np.inf
-
-    def getConnection(self, p1, p2, dir):
-        edge, order = dir//2, dir%2
-        if order == 1:
-            p1, p2 = p2, p1
-        if edge == 0:
-            y = np.mean([max(p1[1], p2[1]), min(p1[3], p2[3])])
-            return [[p1[2], p2[0], np.nan], [y, y, np.nan]]
-        x = np.mean([max(p1[0], p2[0]), min(p1[2], p2[2])])
-        return [[x, x, np.nan], [p1[3], p2[1], np.nan]]
-
-    def show(self):
-        p1 = self.getPosition(self.ax_source)
-        p2 = self.getPosition(self.ax_target)
-        p3 = self.getPosition(self.edge)
-        x1, y1 = self.getConnection(p1, p2, self.dir1)
-        x2, y2 = self.getConnection(p2, p3, self.dir2)
-        x1.extend(x2)
-        y1.extend(y2)
-        self.set_data((x1, y1))
-
-
-
-def checkSnaps(snaps):
-    result = [0, 0]
-    for index in range(2):
-        best = np.inf
-        for snap in snaps:
-            delta = snap.checkSnap(index)
-            if delta is not None and abs(delta) < abs(best):
-                best = delta
-        if best < np.inf:
-            result[index] = best
-    return result
-
-def checkSnapsActive(snaps):
-    for snap in snaps:
-        snap.checkSnapActive()
-
-def getSnaps(target, dir, no_height=False):
-    snaps = []
-    for index, axes in enumerate(target.figure.axes):
-        if axes != target:
-            # axes edged
-            if dir & DIR_X0:
-                snaps.append(snapSameEdge(target, axes, 0))
-            if dir & DIR_Y0:
-                snaps.append(snapSameEdge(target, axes, 1))
-            if dir & DIR_X1:
-                snaps.append(snapSameEdge(target, axes, 2))
-            if dir & DIR_Y1:
-                snaps.append(snapSameEdge(target, axes, 3))
-
-            # snap same dimensions
-            if not no_height:
-                if dir & DIR_X0:
-                    snaps.append(snapSameDimension(target, axes, 0))
-                if dir & DIR_X1:
-                    snaps.append(snapSameDimension(target, axes, 2))
-                if dir & DIR_Y0:
-                    snaps.append(snapSameDimension(target, axes, 1))
-                if dir & DIR_Y1:
-                    snaps.append(snapSameDimension(target, axes, 3))
-
-            for axes2 in target.figure.axes:
-                if axes2 != axes and axes2 != target:
-                    snaps.append(snapSameBorder(target, axes, axes2))
-    return snaps
 
 
 class Grabber(object):
@@ -940,6 +741,7 @@ class GrabberRotate(Ellipse, Grabber):
             self.target.figure.figure_dragger.addEdit([lambda a=self.old_rotation: self.target.set_rotation(a), lambda a=angle: self.parent.redoPos2(a)])
             self.target.figure.figure_dragger.addChange(self.target, ".set_rotation(%f)" % angle)
 
+
 from matplotlib.offsetbox import DraggableBase
 from matplotlib.transforms import BboxTransformFrom
 
@@ -1111,6 +913,142 @@ class DraggableAxes(DraggableBase):
                 spine.set_visible(self.old_visible[key])
             spine.set_edgecolor(self.old_color[key])
             spine.set_linewidth(self.old_linewidth[key])
+
+    def on_select(self, evt):
+        if self.selected:
+            return
+        self.selected = True
+
+        self.addGrabber(0, 0, self.axes, DIR_X0 | DIR_Y0, GrabberRound)
+        self.addGrabber(0.5, 0, self.axes, DIR_Y0, GrabberRectangle)
+        self.addGrabber(1, 1, self.axes, DIR_X1 | DIR_Y1, GrabberRound)
+        self.addGrabber(1, 0.5, self.axes, DIR_X1, GrabberRectangle)
+        self.addGrabber(0, 1, self.axes, DIR_X0 | DIR_Y1, GrabberRound)
+        self.addGrabber(0.5, 1, self.axes, DIR_Y1, GrabberRectangle)
+        self.addGrabber(1, 0, self.axes, DIR_X1 | DIR_Y0, GrabberRound)
+        self.addGrabber(0, 0.5, self.axes, DIR_X0, GrabberRectangle)
+        self.axes.figure.canvas.draw()
+
+        self.snaps = []
+        # self.snaps.extend(self.parent.snaps)
+        self.snap_index_offset = 0  # len(self.snaps)
+        #self.snaps = [getSnaps(self.axes, DIR_X0, no_height=True), getSnaps(self.axes, DIR_X1, no_height=True), getSnaps(self.axes, DIR_Y0, no_height=True), getSnaps(self.axes, DIR_Y1, no_height=True)]
+        self.snaps = getSnaps(self.axes, DIR_X0 | DIR_X1 | DIR_Y0 | DIR_Y1, no_height=True)
+
+        self.old_visible = {key: self.ref_artist.spines[key].get_visible() for key in self.ref_artist.spines}
+        self.old_color = {key: self.ref_artist.spines[key].get_edgecolor() for key in self.ref_artist.spines}
+        self.old_linewidth = {key: self.ref_artist.spines[key].get_linewidth() for key in self.ref_artist.spines}
+        for key in self.ref_artist.spines:
+            self.ref_artist.spines[key].set_visible(True)
+            self.ref_artist.spines[key].set_edgecolor("r")
+            self.ref_artist.spines[key].set_linewidth(1.5)
+
+    def save_offset(self):
+        # get current position of the text
+        pos = self.axes.get_position()
+        self.old_pos = pos
+        self.ox, self.oy = self.axes.figure.transFigure.transform((pos.x0, pos.y0))
+        self.width = pos.width
+        self.height = pos.height
+        self.w, self.h = self.axes.figure.transFigure.transform((pos.width, pos.height))
+
+    def applyOffset(self, dx, dy):
+        x, y = self.ox + dx, self.oy + dy
+        x, y = self.axes.figure.transFigure.inverted().transform((x, y))
+
+        pos = self.axes.get_position()
+
+        pos.x0 = x
+        pos.y0 = y
+        pos.x1 = x + self.width
+        pos.y1 = y + self.height
+
+        # set the new position for the text
+        self.axes.set_position(pos)
+
+    def update_offset(self, dx, dy, event):
+        self.applyOffset(dx, dy)
+
+        if not ("shift" in event.key.split("+") if event.key is not None else False):
+            offx, offy = checkSnaps(self.snaps)
+            self.applyOffset(dx - offx, dy - offy)
+
+        checkSnapsActive(self.snaps)
+        self.updateGrabbers()
+
+    def redoPos(self, pos):
+        self.ref_artist.set_position(pos)
+        if self.ref_artist.figure.figure_dragger.selected_element == self.ref_artist:
+            self.ref_artist.figure.figure_dragger.select_element(None)
+        self.on_deselect(None)
+
+    def finalize_offset(self):
+        pos = self.ref_artist.get_position()
+        self.ref_artist.figure.figure_dragger.addEdit([lambda pos=self.old_pos: self.redoPos(pos), lambda pos=pos: self.redoPos(pos)])
+        self.ref_artist.figure.figure_dragger.addChange(self.ref_artist, ".set_position([%f, %f, %f, %f])" % (pos.x0, pos.y0, pos.width, pos.height))
+        for snap in self.snaps:
+            snap.hide()
+        self.axes.figure.canvas.draw()
+
+    def moveAxes(self, x, y):
+        pos = self.axes.get_position()
+        self.axes.set_position([pos.x0 + x, pos.y0 + y, pos.width, pos.height])
+        self.updateGrabbers()
+        self.axes.figure.canvas.draw()
+
+    def keyPressEvent(self, event):
+        if not self.selected:
+            return
+        # move last axis in z order
+        if event.key == 'pagedown':
+            self.axes.set_zorder(self.axes.get_zorder() - 1)
+            self.axes.figure.canvas.draw()
+        if event.key == 'pageup':
+            self.axes.set_zorder(self.axes.get_zorder() + 1)
+            self.axes.figure.canvas.draw()
+        if event.key == 'left':
+            self.moveAxes(-0.01, 0)
+        if event.key == 'right':
+            self.moveAxes(+0.01, 0)
+        if event.key == 'down':
+            self.moveAxes(0, -0.01)
+        if event.key == 'up':
+            self.moveAxes(0, +0.01)
+        if event.key == "escape":
+            self.deselectArtist()
+
+
+
+class DraggableRectangle(DraggableBase):
+
+    def __init__(self, target, use_blit=False):
+        DraggableBase.__init__(self, target, use_blit=use_blit)
+        self.target = target
+
+    def addGrabber(self, x, y, artist, dir, GrabberClass):
+        # add a grabber object at the given coordinates
+        self.grabbers.append(GrabberClass(self, x, y, artist, dir))
+
+    def on_deselect(self, evt):
+        # remove all grabbers when an artist is deselected
+        for grabber in self.grabbers[::-1]:
+            # remove the grabber from the list
+            self.grabbers.remove(grabber)
+            # and from the figure (if it is drawn on the figure)
+            try:
+                self.target.figure.patches.remove(grabber)
+            except ValueError:
+                pass
+        self.target.figure.canvas.draw()
+        self.selected = False
+
+        #
+        # for key in self.old_visible:
+        #     spine = self.ref_artist.spines[key]
+        #    if spine.get_visible():
+        #        spine.set_visible(self.old_visible[key])
+        #    spine.set_edgecolor(self.old_color[key])
+        #    spine.set_linewidth(self.old_linewidth[key])
 
     def on_select(self, evt):
         if self.selected:
