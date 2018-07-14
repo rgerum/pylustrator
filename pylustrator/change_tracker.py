@@ -56,16 +56,6 @@ class ChangeTracker:
         for index, axes in enumerate(self.figure.axes):
             # axes.set_title(index)
             axes.number = index
-            axes.set_picker(True)
-        #    leg = axes.get_legend()
-        #    if leg:
-        #        self.make_dragable(leg)
-        #    for text in axes.texts:
-        #        self.make_dragable(text)#
-
-        #    self.make_dragable(axes)
-        #for text in self.figure.texts:
-        #    self.make_dragable(text)
 
         # store the position where StartPylustrator was called
         self.stack_position = traceback.extract_stack()[-3]

@@ -4,6 +4,7 @@ from matplotlib.lines import Line2D
 from matplotlib.axes._subplots import Axes
 from matplotlib.patches import Rectangle, Ellipse
 from matplotlib.text import Text
+from matplotlib.legend import Legend
 import matplotlib as mpl
 
 DIR_X0 = 1
@@ -53,6 +54,14 @@ class TargetWrapper(object):
             p1, p2 = np.array(self.target.get_position())
             points.append(p1)
             points.append(p2)
+        elif isinstance(self.target, Legend):
+            renderer = self.target._legend_box.figure._cachedRenderer
+            w, h, xd, yd = self.target._legend_box.get_extent(renderer)
+            points.append(self.target._legend_box.get_offset(w, h, xd, yd, renderer))
+
+            bbox = self.target.get_frame().get_bbox()
+            points.append([bbox.x0, bbox.y0])
+            points.append([bbox.x1, bbox.y1])
         return self.transform_points(points)
 
     def set_positions(self, points):
@@ -76,6 +85,9 @@ class TargetWrapper(object):
         elif isinstance(self.target, Text):
             self.target.set_position(points[0])
             self.figure.change_tracker.addChange(self.target, ".set_position([%f, %f])" % self.target.get_position())
+        elif isinstance(self.target, Legend):
+            self.target._legend_box.set_offset(points[0])
+            self.figure.change_tracker.addChange(self.target, "._legend_box.set_offset([%f, %f])" % tuple(points[0]))
         elif isinstance(self.target, Axes):
             position = np.array([points[0], points[1]-points[0]]).flatten()
             if self.fixed_aspect:
@@ -292,6 +304,8 @@ def getSnaps(targets, dir, no_height=False):
     #if isinstance(target, TargetWrapper):
     #    target = target.target
     for target in targets:
+        if isinstance(target, Legend):
+            continue
         if isinstance(target, Text):
             for ax in target.figure.axes + [target.figure]:
                 for txt in ax.texts:

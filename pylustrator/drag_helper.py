@@ -1,15 +1,8 @@
 from __future__ import division, print_function
 import numpy as np
-import traceback
 import matplotlib.pyplot as plt
 from matplotlib.text import Text
-from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle, Ellipse
-from matplotlib.figure import Figure
-from matplotlib.axes._subplots import Axes
-import matplotlib
-import uuid
-import re
 
 import snap
 from snap import TargetWrapper
@@ -32,7 +25,6 @@ class GrabFunctions(object):
     def __init__(self, parent, dir, no_height=False):
         self.figure = parent.figure
         self.parent = parent
-        print("GrabFunct", type(self), parent)
         self.dir = dir
         self.snaps = []
         self.no_height = no_height
@@ -50,12 +42,10 @@ class GrabFunctions(object):
         self.clickedEvent(evt)
 
     def button_release_event(self, event):
-        print("release Event", event)
         if self.got_artist:
             self.got_artist = False
             self.figure.canvas.mpl_disconnect(self._c1)
             self.releasedEvent(event)
-            print("release")
 
     def clickedEvent(self, event):
         self.parent.start_move()
@@ -95,7 +85,6 @@ class GrabbableRectangleSelection(GrabFunctions):
         self.grabbers.append(GrabberClass(self, x, y, dir))
 
     def __init__(self, figure):
-
         self.grabbers = []
         pos = [0, 0, 0, 0]
         self.positions = np.array(pos, dtype=float)
@@ -161,8 +150,11 @@ class GrabbableRectangleSelection(GrabFunctions):
             self.hide_grabber()
 
     def update_grabber(self):
-        for grabber in self.grabbers:
-            grabber.updatePos()
+        if self.do_target_scale():
+            for grabber in self.grabbers:
+                grabber.updatePos()
+        else:
+            self.hide_grabber()
 
     def hide_grabber(self):
         for grabber in self.grabbers:
@@ -341,14 +333,27 @@ class DragManager:
         self.c2 = self.figure.canvas.mpl_connect('button_press_event', self.button_press_event0)
         self.c4 = self.figure.canvas.mpl_connect('key_press_event', self.key_press_event)
 
+        # make all the subplots pickable
+        for index, axes in enumerate(self.figure.axes):
+            axes.set_picker(True)
+            leg = axes.get_legend()
+            if leg:
+                self.make_dragable(leg)
+            for text in axes.texts:
+                self.make_dragable(text)
+
+            self.make_dragable(axes)
+        for text in self.figure.texts:
+            self.make_dragable(text)
+
         self.selection = GrabbableRectangleSelection(figure)
-        self.figure.selection = GrabbableRectangleSelection(figure)
+        self.figure.selection = self.selection
         self.change_tracker = ChangeTracker(figure)
         self.figure.change_tracker = self.change_tracker
 
     def make_dragable(self, target):
+        target.set_picker(True)
         if isinstance(target, Text):
-            target.set_picker(True)
             target.set_bbox(dict(facecolor="none", edgecolor="none"))
 
     def get_picked_element(self, event, element=None, picked_element=None, last_selected=None):
@@ -407,7 +412,6 @@ class DragManager:
                 self.selection.button_press_event(event)
 
     def select_element(self, element, event=None):
-        print("################## select element", element, self.selection.targets)
         # do nothing if it is already selected
         if element == self.selected_element:
             return
@@ -421,7 +425,6 @@ class DragManager:
             self.on_select(element, event)
             self.selected_element = element
         self.figure.canvas.draw()
-        print("################## select element", element, self.selection.targets)
 
     def on_deselect(self, event):
         modifier = "shift" in event.key.split("+") if event is not None and event.key is not None else False
