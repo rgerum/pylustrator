@@ -321,7 +321,7 @@ def getSnaps(targets, dir, no_height=False):
             for ax in target.figure.axes + [target.figure]:
                 for txt in ax.texts:
                     # for other texts
-                    if txt in targets:
+                    if txt in targets or not txt.get_visible():
                         continue
                     # snap to the x and the y coordinate
                     x, y = txt.get_transform().transform(txt.get_position())
@@ -329,7 +329,7 @@ def getSnaps(targets, dir, no_height=False):
                     snaps.append(snapSamePos(target, txt, 1))
             continue
         for index, axes in enumerate(target.figure.axes):
-            if axes not in targets:
+            if axes not in targets and axes.get_visible():
                 # axes edged
                 if dir & DIR_X0:
                     snaps.append(snapSameEdge(target, axes, 0))
@@ -352,6 +352,6 @@ def getSnaps(targets, dir, no_height=False):
                         snaps.append(snapSameDimension(target, axes, 3))
 
                 for axes2 in target.figure.axes:
-                    if axes2 != axes and axes2 not in targets:
+                    if axes2 != axes and axes2 not in targets and axes2.get_visible():
                         snaps.append(snapSameBorder(target, axes, axes2, dir))
     return snaps

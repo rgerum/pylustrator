@@ -140,7 +140,10 @@ class Linkable:
             self.show()
 
     def updateLink(self):
-        self.setLinkedProperty(self.get())
+        try:
+            self.setLinkedProperty(self.get())
+        except AttributeError:
+            return
         if isinstance(self.element, mpl.figure.Figure):
             fig = self.element
         else:
