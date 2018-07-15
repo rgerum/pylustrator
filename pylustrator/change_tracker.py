@@ -85,8 +85,7 @@ class ChangeTracker:
             element.set_visible(False)
         else:
             element.remove()
-        if self.selected_element == element:
-            self.selected_element = None
+        self.figure.selection.remove_target(element)
 
     def addEdit(self, edit):
         if self.last_edit < len(self.edits) - 1:

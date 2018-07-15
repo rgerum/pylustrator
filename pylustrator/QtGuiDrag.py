@@ -546,7 +546,6 @@ class TextPropertiesWidget(QtWidgets.QWidget):
         self.layout.addWidget(self.label)
 
         self.button_delete = QtWidgets.QPushButton(qta.icon("fa.trash"), "")
-        self.button_delete.setCheckable(True)
         self.button_delete.clicked.connect(self.delete)
         self.layout.addWidget(self.button_delete)
 
@@ -565,11 +564,12 @@ class TextPropertiesWidget(QtWidgets.QWidget):
         self.target = element
 
     def delete(self):
-        fig = self.target.figure
-        fig.figure_dragger.removeElement(self.target)
-        self.target = None
-        #self.target.set_visible(False)
-        fig.canvas.draw()
+        if self.target is not None:
+            fig = self.target.figure
+            fig.change_tracker.removeElement(self.target)
+            self.target = None
+            #self.target.set_visible(False)
+            fig.canvas.draw()
 
     def changeWeight(self, checked):
         if self.target:
@@ -1122,8 +1122,6 @@ class QItemProperties(QtWidgets.QWidget):
         QColorWidget(layout, "Edgecolor:").link("edgecolor", self.targetChanged)
 
         QColorWidget(layout, "Facecolor:").link("facecolor", self.targetChanged)
-
-
 
         self.layout_buttons = QtWidgets.QHBoxLayout()
         self.layout.addLayout(self.layout_buttons)
