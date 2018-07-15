@@ -199,6 +199,8 @@ class ChangeTracker:
         """
         for line in self.sorted_changes():
             output.append(line)
+            if line.startswith("fig.add_axes"):
+                output.append(header[1])
         output.append("#% end: automatic generated code from pylustrator")
         print("\n".join(output))
         insertTextToFile(output, self.stack_position)
