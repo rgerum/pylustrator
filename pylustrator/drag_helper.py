@@ -335,6 +335,11 @@ class GrabbableRectangleSelection(GrabFunctions):
         if event.key == "escape":
             self.clear_targets()
             self.figure.canvas.draw()
+        if event.key == "delete":
+            for target in self.targets:
+                self.figure.change_tracker.removeElement(target.target)
+            self.figure.canvas.draw()
+        print("event", event.key)
 
 
 class DragManager:
@@ -384,7 +389,7 @@ class DragManager:
             # check if the element is contained in the event and has an active dragger
             #if child.contains(event)[0] and ((getattr(child, "_draggable", None) and getattr(child, "_draggable",
             #                                                                               None).connected) or isinstance(child, GrabberGeneric) or isinstance(child, GrabbableRectangleSelection)):
-            if child.contains(event)[0] and (child.pickable() or isinstance(child, GrabberGeneric)) and not (child.get_label() is not None and child.get_label().startswith("_")):
+            if child.get_visible() and child.contains(event)[0] and (child.pickable() or isinstance(child, GrabberGeneric)) and not (child.get_label() is not None and child.get_label().startswith("_")):
                 # if the element is the last selected, finish the search
                 if child == last_selected:
                     return picked_element, True
