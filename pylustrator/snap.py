@@ -27,6 +27,12 @@ class TargetWrapper(object):
             if self.target.get_aspect() != "auto" and self.target.get_adjustable() != "datalim":
                 self.fixed_aspect = True
             self.get_transform = lambda: self.target.figure.transFigure
+        elif isinstance(self.target, Text):
+            if getattr(self.target, "xy", None) is not None:
+                self.do_scale = True
+            else:
+                self.do_scale = False
+            self.get_transform = self.target.get_transform
         else:
             self.get_transform = self.target.get_transform
             self.do_scale = False
@@ -45,11 +51,13 @@ class TargetWrapper(object):
             points.append((c[0]+w/2, c[1]+h/2))
         elif isinstance(self.target, Text):
             points.append(self.target.get_position())
+            if getattr(self.target, "xy", None) is not None:
+                points.append(self.target.xy)
             bbox = self.target.get_bbox_patch()
             if bbox:
                 points.append(bbox.get_transform().transform((bbox.get_x(), bbox.get_y())))
                 points.append(bbox.get_transform().transform((bbox.get_x()+bbox.get_width(), bbox.get_y()+bbox.get_height())))
-            points[1:] = self.transform_inverted_points(points[1:])
+            points[-2:] = self.transform_inverted_points(points[-2:])
         elif isinstance(self.target, Axes):
             p1, p2 = np.array(self.target.get_position())
             points.append(p1)
@@ -85,6 +93,9 @@ class TargetWrapper(object):
         elif isinstance(self.target, Text):
             self.target.set_position(points[0])
             self.figure.change_tracker.addChange(self.target, ".set_position([%f, %f])" % self.target.get_position())
+            if getattr(self.target, "xy", None) is not None:
+                self.target.xy = points[1]
+                self.figure.change_tracker.addChange(self.target, ".xy = (%f, %f)" % tuple(self.target.xy))
         elif isinstance(self.target, Legend):
             self.target._legend_box.set_offset(points[0])
             self.figure.change_tracker.addChange(self.target, "._legend_box.set_offset([%f, %f])" % tuple(points[0]))
