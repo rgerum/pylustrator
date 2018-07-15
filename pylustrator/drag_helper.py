@@ -127,6 +127,9 @@ class GrabbableRectangleSelection(GrabFunctions):
         self.targets_rects.append(rect1)
         self.targets_rects.append(rect2)
 
+        self.update_extent()
+
+    def update_extent(self):
         points = None
         for target in self.targets:
             new_points = np.array(target.get_positions())
@@ -148,6 +151,21 @@ class GrabbableRectangleSelection(GrabFunctions):
             self.update_grabber()
         else:
             self.hide_grabber()
+
+    def remove_target(self, target):
+        targets_non_wrapped = [t.target for t in self.targets]
+        if target not in targets_non_wrapped:
+            return
+        index = targets_non_wrapped.index(target)
+        self.targets.pop(index)
+        rect1 = self.targets_rects.pop(index*2)
+        rect2 = self.targets_rects.pop(index*2)
+        self.figure.patches.remove(rect1)
+        self.figure.patches.remove(rect2)
+        if len(self.targets) == 0:
+            self.clear_targets()
+        else:
+            self.update_extent()
 
     def update_grabber(self):
         if self.do_target_scale():
