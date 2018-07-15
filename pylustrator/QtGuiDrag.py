@@ -80,20 +80,6 @@ def show():
         window = _pylab_helpers.Gcf.figs[figure].canvas.window
         # add dragger
         #FigureDragger(_pylab_helpers.Gcf.figs[figure].canvas.figure, [], [], "cm")
-        #% start: automatic generated code from pylustrator
-        fig = plt.figure(0)
-        fig.ax_dict = {ax.get_label(): ax for ax in fig.axes}
-        fig.ax_dict["a"].set_position([0.084181, 0.604576, 0.258983, 0.331356])
-        fig.ax_dict["b"].set_position([0.567175, 0.585932, 0.227941, 0.350000])
-        fig.ax_dict["b"].spines['right'].set_visible(False)
-        fig.ax_dict["b"].spines['top'].set_visible(False)
-        fig.ax_dict["c"].set_position([0.567175, 0.182114, 0.227941, 0.109412])
-        fig.ax_dict["b"].get_legend()._legend_box.set_offset([525.428239, 535.699990])
-        fig.axes[3].set_position([0.084181, 0.182114, 0.258983, 0.331356])
-        fig.axes[3].spines['right'].set_visible(False)
-        fig.axes[3].spines['top'].set_visible(False)
-        fig.axes[3].get_legend()._legend_box.set_offset([213.346267, 234.497430])
-        #% end: automatic generated code from pylustrator
         DragManager(_pylab_helpers.Gcf.figs[figure].canvas.figure)
         window.update()
         # and show it
