@@ -336,7 +336,7 @@ class GrabbableRectangleSelection(GrabFunctions):
             self.clear_targets()
             self.figure.canvas.draw()
         if event.key == "delete":
-            for target in self.targets:
+            for target in self.targets[::-1]:
                 self.figure.change_tracker.removeElement(target.target)
             self.figure.canvas.draw()
         print("event", event.key)
