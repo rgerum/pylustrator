@@ -755,7 +755,10 @@ class MyTreeView(QtWidgets.QTreeView):
         return entry.tree_parent
 
     def getNameOfEntry(self, entry):
-        return str(entry)
+        try:
+            return str(entry)
+        except AttributeError:
+            return "unknown"
 
     def getIconOfEntry(self, entry):
         if getattr(entry, "_draggable", None):
@@ -1130,7 +1133,7 @@ class QItemProperties(QtWidgets.QWidget):
         self.layout.addLayout(self.layout_buttons)
 
         self.button_add_image = QtWidgets.QPushButton("add image")
-        #self.layout_buttons.addWidget(self.button_add_image)
+        self.layout_buttons.addWidget(self.button_add_image)
         self.button_add_image.clicked.connect(self.buttonAddImageClicked)
 
         self.button_add_text = QtWidgets.QPushButton("add text")
@@ -1152,7 +1155,16 @@ class QItemProperties(QtWidgets.QWidget):
         def addChange(element, command):
             fig.change_tracker.addChange(element, command)
             return eval(getReference(element)+command)
-        filename = r"D:\Pictures\This Is A Shit\IMG_3567.jpg"
+
+        path = QtWidgets.QFileDialog.getOpenFileName(self, "Open Image", os.getcwd(),
+                                                     "Image *.jpg *.png *.tif")
+        if isinstance(path, tuple):
+            path = str(path[0])
+        else:
+            path = str(path)
+        if not path:
+            return
+        filename = path
         if isinstance(self.element, Figure):
             axes = self.element.add_axes([0.25, 0.25, 0.5, 0.5], label=filename)
             fig.ax_dict = {ax.get_label(): ax for ax in fig.axes}
@@ -1319,6 +1331,7 @@ class QItemProperties(QtWidgets.QWidget):
         self.input_transform.hide()
         self.button_add_annotation.hide()
         self.button_despine.hide()
+        self.button_add_image.hide()
         if isinstance(element, Figure):
             pos = element.get_size_inches()
             self.input_shape.setTransform(self.getTransform(element))
@@ -1327,6 +1340,7 @@ class QItemProperties(QtWidgets.QWidget):
             self.input_transform.show()
             self.input_shape_transform.show()
             self.button_add_text.show()
+            self.button_add_image.show()
         elif isinstance(element, Axes):
             pos = element.get_position()
             self.input_shape.setTransform(self.getTransform(element))
