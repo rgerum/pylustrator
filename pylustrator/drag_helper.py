@@ -4,9 +4,8 @@ import matplotlib.pyplot as plt
 from matplotlib.text import Text
 from matplotlib.patches import Rectangle, Ellipse
 
-import snap
-from snap import TargetWrapper
-from change_tracker import ChangeTracker
+from .snap import TargetWrapper, getSnaps, checkSnaps, checkSnapsActive
+from .change_tracker import ChangeTracker
 
 DIR_X0 = 1
 DIR_Y0 = 2
@@ -55,7 +54,7 @@ class GrabFunctions(object):
             s.remove()
         self.snaps = []
 
-        self.snaps = snap.getSnaps(self.targets, self.dir, no_height=self.no_height)
+        self.snaps = getSnaps(self.targets, self.dir, no_height=self.no_height)
 
     def releasedEvent(self, event):
         for snap in self.snaps:
@@ -285,12 +284,12 @@ class GrabbableRectangleSelection(GrabFunctions):
         self.addOffset(pos, dir, keep_aspect_ratio)
 
         if not ignore_snaps:
-            offx, offy = snap.checkSnaps(snaps)
+            offx, offy = checkSnaps(snaps)
             self.addOffset((pos[0]-offx, pos[1]-offy), dir, keep_aspect_ratio)
 
-            offx, offy = snap.checkSnaps(self.snaps)
+            offx, offy = checkSnaps(self.snaps)
 
-        snap.checkSnapsActive(snaps)
+        checkSnapsActive(snaps)
 
         self.figure.canvas.draw()
 
