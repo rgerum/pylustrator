@@ -17,7 +17,7 @@ from .drag_bib import FigureDragger
 from .helper_functions import changeFigureSize
 from .drag_bib import getReference
 
-from drag_helper import DragManager
+from .drag_helper import DragManager
 
 import sys
 
