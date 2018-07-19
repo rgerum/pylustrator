@@ -984,6 +984,8 @@ class QTickEdit(QtWidgets.QWidget):
         self.input_scale = ComboWidget(self.layout, axis + "-Scale", ["linear", "log", "symlog", "logit"])
         self.input_scale.link(axis + "scale", signal_target_changed)
 
+        self.input_font = TextPropertiesWidget(self.layout)
+
         self.button_ok = QtWidgets.QPushButton("Ok")
         self.layout.addWidget(self.button_ok)
         self.button_ok.clicked.connect(self.hide)
@@ -997,6 +999,8 @@ class QTickEdit(QtWidgets.QWidget):
 
         labels = getattr(self.element, "get_" + self.axis + "ticklabels")()
         self.input_tick_labels.setText(", ".join(x.get_text() for x in labels))
+
+        self.input_font.setTarget(getattr(self.element, "get_"+self.axis+"axis")().get_label())
 
     def ticksChanged(self):
         try:

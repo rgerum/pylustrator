@@ -29,10 +29,22 @@ def getReference(element):
         return "fig.patches[%d]" % (index)
     if isinstance(element, matplotlib.text.Text):
         if element.axes:
-            index = element.axes.texts.index(element)
-            return getReference(element.axes) + ".texts[%d]" % index
-        index = element.figure.texts.index(element)
-        return "fig.texts[%d]" % (index)
+            try:
+                index = element.axes.texts.index(element)
+            except ValueError:
+                pass
+            else:
+                return getReference(element.axes) + ".texts[%d]" % index
+        try:
+            index = element.figure.texts.index(element)
+            return "fig.texts[%d]" % (index)
+        except ValueError:
+            pass
+        for axes in element.figure.axes:
+            if element == axes.get_xaxis().get_label():
+                return getReference(axes) + ".get_xaxis().get_label()"
+            if element == axes.get_yaxis().get_label():
+                return getReference(axes) + ".get_yaxis().get_label()"
     if isinstance(element, matplotlib.axes._axes.Axes):
         if element.get_label():
             return "fig.ax_dict[\"%s\"]" % element.get_label()
