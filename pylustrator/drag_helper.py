@@ -219,14 +219,31 @@ class GrabbableRectangleSelection(GrabFunctions):
     def get_pos(self, pos):
         return self.transform(pos)
 
+    def get_save_point(self):
+        targets = [target.target for target in self.targets]
+        positions = [target.get_positions() for target in self.targets]
+
+        def undo():
+            self.clear_targets()
+            for target, pos in zip(targets, positions):
+                target = TargetWrapper(target)
+                target.set_positions(pos)
+                self.add_target(target.target)
+        return undo
+
     def start_move(self):
         self.start_p1 = self.p1.copy()
         self.start_p2 = self.p2.copy()
         self.hide_grabber()
 
+        self.store_start = self.get_save_point()
+
     def end_move(self):
         self.update_grabber()
         self.figure.canvas.draw()
+
+        self.store_end = self.get_save_point()
+        self.figure.change_tracker.addEdit([self.store_start, self.store_end])
 
     def addOffset(self, pos, dir, keep_aspect_ratio=True):
         pos = list(pos)
