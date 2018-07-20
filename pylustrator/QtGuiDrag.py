@@ -565,13 +565,20 @@ class TextPropertiesWidget(QtWidgets.QWidget):
         self.layout.addWidget(self.font_size)
         self.font_size.valueChanged.connect(self.changeFontSize)
 
-        self.label = QtWidgets.QLabel()
-        self.label.setPixmap(qta.icon("fa.font").pixmap(16))
+        self.label = QtWidgets.QPushButton(qta.icon("fa.font"), "")#.pixmap(16))
         self.layout.addWidget(self.label)
+        self.label.clicked.connect(self.selectFont)
 
         self.button_delete = QtWidgets.QPushButton(qta.icon("fa.trash"), "")
         self.button_delete.clicked.connect(self.delete)
         self.layout.addWidget(self.button_delete)
+
+    def selectFont(self):
+        font, x = QtWidgets.QFontDialog.getFont(QtGui.QFont(), self)
+        print(font, x, font.family())
+        self.target.set_fontname(font.family())
+        self.target.figure.change_tracker.addChange(self.target, ".set_fontname(\"%s\")" % (self.target.get_fontname(),))
+        self.target.figure.canvas.draw()
 
     def setTarget(self, element):
         self.target = None
