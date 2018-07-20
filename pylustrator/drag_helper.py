@@ -334,19 +334,19 @@ class GrabbableRectangleSelection(GrabFunctions):
             self.figure.canvas.draw()
         if event.key == 'left':
             self.start_move()
-            self.addOffset((-10, 0), self.dir)
+            self.addOffset((-1, 0), self.dir)
             self.end_move()
         if event.key == 'right':
             self.start_move()
-            self.addOffset((+10, 0), self.dir)
+            self.addOffset((+1, 0), self.dir)
             self.end_move()
         if event.key == 'down':
             self.start_move()
-            self.addOffset((0, -10), self.dir)
+            self.addOffset((0, -1), self.dir)
             self.end_move()
         if event.key == 'up':
             self.start_move()
-            self.addOffset((0, +10), self.dir)
+            self.addOffset((0, +1), self.dir)
             self.end_move()
         if event.key == "escape":
             self.clear_targets()
