@@ -115,11 +115,30 @@ def figure(num=None, size=None, *args, **kwargs):
 
 class Linkable:
 
-    def link(self, property_name,  signal=None, condition=None):
+    def link(self, property_name,  signal=None, condition=None, direct=False):
         self.element = None
-        self.setLinkedProperty = lambda text: getattr(self.element, "set_"+property_name)(text)
-        self.getLinkedProperty = lambda: getattr(self.element, "get_"+property_name)()
-        self.serializeLinkedProperty = lambda x: ".set_"+property_name+"(%s)" % x
+        self.direct = direct
+        if direct:
+            parts = property_name.split(".")
+            s = self
+            def get():
+                target = s.element
+                for part in parts:
+                    target = getattr(target, part)
+                return target
+            def set(v):
+                get()
+                target = s.element
+                for part in parts[:-1]:
+                    target = getattr(target, part)
+                return setattr(target, parts[-1], v)
+            self.setLinkedProperty = set
+            self.getLinkedProperty = get
+            self.serializeLinkedProperty = lambda x: "." + property_name + " = %s" % x
+        else:
+            self.setLinkedProperty = lambda text: getattr(self.element, "set_"+property_name)(text)
+            self.getLinkedProperty = lambda: getattr(self.element, "get_"+property_name)()
+            self.serializeLinkedProperty = lambda x: ".set_"+property_name+"(%s)" % x
 
         if condition is None:
             self.condition = lambda x: True
@@ -282,7 +301,7 @@ class NumberWidget(QtWidgets.QWidget, Linkable):
     editingFinished = QtCore.Signal()
     noSignal = False
 
-    def __init__(self, layout, text, use_float=True):
+    def __init__(self, layout, text, min=None, use_float=True):
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
         self.layout = QtWidgets.QHBoxLayout(self)
@@ -295,6 +314,8 @@ class NumberWidget(QtWidgets.QWidget, Linkable):
             self.input1 = QtWidgets.QSpinBox()
         else:
             self.input1 = QtWidgets.QDoubleSpinBox()
+        if min is not None:
+            self.input1.setMinimum(min)
         self.input1.valueChanged.connect(self.valueChangeEvent)
         self.layout.addWidget(self.input1)
 
@@ -985,6 +1006,9 @@ class QTickEdit(QtWidgets.QWidget):
         self.input_scale.link(axis + "scale", signal_target_changed)
 
         self.input_font = TextPropertiesWidget(self.layout)
+
+        self.input_labelpad = NumberWidget(self.layout, axis+"-Labelpad", min=-999)
+        self.input_labelpad.link(axis + "axis.labelpad", signal_target_changed, direct=True)
 
         self.button_ok = QtWidgets.QPushButton("Ok")
         self.layout.addWidget(self.button_ok)
