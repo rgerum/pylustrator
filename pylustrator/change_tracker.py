@@ -126,7 +126,7 @@ class ChangeTracker:
         command_obj_regexes = [r"fig",
                                r"\.ax_dict\[\"[^\"]*\"\]",
                                r"\.axes\[\d*\]",
-                               r"\.text\[\d*\]",
+                               r"\.texts\[\d*\]",
                                r"\.patches\[\d*\]",
                                r"\.get_legend()",
                                ]
