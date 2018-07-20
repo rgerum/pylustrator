@@ -80,7 +80,7 @@ class ChangeTracker:
         if reference_obj is None:
             reference_obj = command_obj
         if reference_command is None:
-            reference_command, = re.match(r"(\.[^(]*)", command).groups()
+            reference_command, = re.match(r"(\.[^(=]*)", command).groups()
         self.changes[reference_obj, reference_command] = (command_obj, command)
         self.saved = False
 
@@ -122,7 +122,15 @@ class ChangeTracker:
         self.figure.canvas.draw()
 
     def load(self):
-        regex = re.compile(r"([^\(=]*)(\.[^\(= ]*)(.*)")
+        regex = re.compile(r"(\.[^\(= ]*)(.*)")
+        command_obj_regexes = [r"fig",
+                               r"\.ax_dict\[\"[^\"]*\"\]",
+                               r"\.axes\[\d*\]",
+                               r"\.text\[\d*\]",
+                               r"\.patches\[\d*\]",
+                               r"\.get_legend()",
+                               ]
+        command_obj_regexes = [re.compile(r) for r in command_obj_regexes]
 
         fig = self.figure
         header = ["fig = plt.figure(%s)" % self.figure.number, "fig.ax_dict = {ax.get_label(): ax for ax in fig.axes}"]
@@ -133,15 +141,20 @@ class ChangeTracker:
             if line == "" or line in header or line.startswith("#"):
                 continue
 
+            # try to identify the command object of the line
+            command_obj = ""
+            for r in command_obj_regexes:
+                try:
+                    found = r.match(line).group()
+                    line = line[len(found):]
+                    command_obj += found
+                except AttributeError:
+                    pass
+
             try:
-                command_obj, command, parameter = regex.match(line).groups()
+                command, parameter = regex.match(line).groups()
             except AttributeError:  # no regex match
                 continue
-
-            m = re.match(r"(.*)(.spines\[[^\]]*\])", command_obj)
-            if m:
-                command_obj, extra = m.groups()
-                command = extra + command
 
             m = re.match(r".*# id=(.*)", line)
             if m:
