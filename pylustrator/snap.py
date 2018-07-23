@@ -13,6 +13,16 @@ DIR_X1 = 4
 DIR_Y1 = 8
 
 
+def get_loc_in_canvas(legend):
+    offsetbox = legend._legend_box
+    renderer = offsetbox.figure._cachedRenderer
+    w, h, xd, yd = offsetbox.get_extent(renderer)
+    ox, oy = offsetbox._offset()
+    loc_in_canvas = (ox - xd, oy - yd)
+
+    return loc_in_canvas
+
+
 class TargetWrapper(object):
     target = None
 
@@ -63,11 +73,12 @@ class TargetWrapper(object):
             points.append(p1)
             points.append(p2)
         elif isinstance(self.target, Legend):
-            renderer = self.target._legend_box.figure._cachedRenderer
-            w, h, xd, yd = self.target._legend_box.get_extent(renderer)
-            points.append(self.target._legend_box.get_offset(w, h, xd, yd, renderer))
-
             bbox = self.target.get_frame().get_bbox()
+            if isinstance(self.target._get_loc(), int):
+                # if the legend doesn't have a location yet, use the left bottom corner of the bounding box
+                self.target._set_loc(tuple(self.target.axes.transAxes.inverted().transform(tuple([bbox.x0, bbox.y0]))))
+            points.append(self.target.axes.transAxes.transform(self.target._get_loc()))
+            # add points to span bouning box around the frame
             points.append([bbox.x0, bbox.y0])
             points.append([bbox.x1, bbox.y1])
         return self.transform_points(points)
@@ -97,8 +108,9 @@ class TargetWrapper(object):
                 self.target.xy = points[1]
                 self.figure.change_tracker.addChange(self.target, ".xy = (%f, %f)" % tuple(self.target.xy))
         elif isinstance(self.target, Legend):
-            self.target._legend_box.set_offset(points[0])
-            self.figure.change_tracker.addChange(self.target, "._legend_box.set_offset([%f, %f])" % tuple(points[0]))
+            point = self.target.axes.transAxes.inverted().transform(self.transform_inverted_points(points)[0])
+            self.target._loc = tuple(point)
+            self.figure.change_tracker.addChange(self.target, "._set_loc((%f, %f))" % tuple(point))
         elif isinstance(self.target, Axes):
             position = np.array([points[0], points[1]-points[0]]).flatten()
             if self.fixed_aspect:
