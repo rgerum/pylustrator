@@ -1179,6 +1179,10 @@ class QItemProperties(QtWidgets.QWidget):
         self.layout_buttons.addWidget(self.button_add_annotation)
         self.button_add_annotation.clicked.connect(self.buttonAddAnnotationClicked)
 
+        self.button_add_arrow = QtWidgets.QPushButton("add arrow")
+        self.layout_buttons.addWidget(self.button_add_arrow)
+        self.button_add_arrow.clicked.connect(self.buttonAddArrowClicked)
+
         self.button_despine = QtWidgets.QPushButton("despine")
         self.layout_buttons.addWidget(self.button_despine)
         self.button_despine.clicked.connect(self.buttonDespineClicked)
@@ -1251,6 +1255,21 @@ class QItemProperties(QtWidgets.QWidget):
         self.fig.figure_dragger.select_element(text)
         self.fig.canvas.draw()
         self.setElement(text)
+        self.input_text.input1.selectAll()
+        self.input_text.input1.setFocus()
+
+    def buttonAddArrowClicked(self):
+        p = mpl.patches.FancyArrowPatch((self.element.get_xlim()[0], self.element.get_ylim()[0]), (np.mean(self.element.get_xlim()), np.mean(self.element.get_ylim())), arrowstyle="Simple,head_length=10,head_width=10,tail_width=2", facecolor="black", clip_on=False, zorder=2)
+        self.element.add_patch(p)
+
+        self.fig.change_tracker.addChange(self.element, ".add_patch(mpl.patches.FancyArrowPatch(%s, %s, arrowstyle='Simple,head_length=10,head_width=10,tail_width=2', facecolor='black', clip_on=False, zorder=2))  # id=%s.new" % (p._posA_posB[0], p._posA_posB[1], getReference(p)),
+                                          p, ".new")
+
+        self.tree.updateEntry(self.element, update_children=True)
+        self.fig.figure_dragger.make_dragable(p)
+        self.fig.figure_dragger.select_element(p)
+        self.fig.canvas.draw()
+        self.setElement(p)
         self.input_text.input1.selectAll()
         self.input_text.input1.setFocus()
 
@@ -1367,6 +1386,7 @@ class QItemProperties(QtWidgets.QWidget):
         self.button_add_annotation.hide()
         self.button_despine.hide()
         self.button_add_image.hide()
+        self.button_add_arrow.hide()
         if isinstance(element, Figure):
             pos = element.get_size_inches()
             self.input_shape.setTransform(self.getTransform(element))
@@ -1385,6 +1405,7 @@ class QItemProperties(QtWidgets.QWidget):
             self.button_add_text.show()
             self.button_add_annotation.show()
             self.button_despine.show()
+            self.button_add_arrow.show()
         else:
             self.input_shape.hide()
             self.button_add_text.hide()

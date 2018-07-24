@@ -385,12 +385,16 @@ class DragManager:
                 self.make_dragable(leg)
             for text in axes.texts:
                 self.make_dragable(text)
+            for patch in axes.patches:
+                self.make_dragable(patch)
             self.make_dragable(axes.xaxis.get_label())
             self.make_dragable(axes.yaxis.get_label())
 
             self.make_dragable(axes)
         for text in self.figure.texts:
             self.make_dragable(text)
+        for patch in self.figure.patches:
+            self.make_dragable(patch)
 
         self.selection = GrabbableRectangleSelection(figure)
         self.figure.selection = self.selection

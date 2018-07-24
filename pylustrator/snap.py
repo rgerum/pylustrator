@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
 from matplotlib.axes._subplots import Axes
-from matplotlib.patches import Rectangle, Ellipse
+from matplotlib.patches import Rectangle, Ellipse, FancyArrowPatch
 from matplotlib.text import Text
 from matplotlib.legend import Legend
 import matplotlib as mpl
@@ -80,6 +80,10 @@ class TargetWrapper(object):
             h = self.target.height
             points.append((c[0]-w/2, c[1]-h/2))
             points.append((c[0]+w/2, c[1]+h/2))
+        elif isinstance(self.target, FancyArrowPatch):
+            points.append(self.target._posA_posB[0])
+            points.append(self.target._posA_posB[1])
+            points.extend(self.target.get_path().vertices)
         elif isinstance(self.target, Text):
             points.append(self.target.get_position())
             if checkXLabel(self.target):
@@ -126,6 +130,9 @@ class TargetWrapper(object):
             self.figure.change_tracker.addChange(self.target, ".center = (%f, %f)" % tuple(self.target.center))
             self.figure.change_tracker.addChange(self.target, ".width = %f" % self.target.width)
             self.figure.change_tracker.addChange(self.target, ".height = %f" % self.target.height)
+        elif isinstance(self.target, FancyArrowPatch):
+            self.target.set_positions(points[0], points[1])
+            self.figure.change_tracker.addChange(self.target, ".set_positions(%s, %s)" % (tuple(points[0]), tuple(points[1])))
         elif isinstance(self.target, Text):
             if checkXLabel(self.target):
                 axes = checkXLabel(self.target)
