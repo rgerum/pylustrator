@@ -23,6 +23,17 @@ def get_loc_in_canvas(legend):
     return loc_in_canvas
 
 
+def checkXLabel(target):
+    for axes in target.figure.axes:
+        if axes.xaxis.get_label() == target:
+            return axes
+
+def checkYLabel(target):
+    for axes in target.figure.axes:
+        if axes.yaxis.get_label() == target:
+            return axes
+
+
 class TargetWrapper(object):
     target = None
 
@@ -42,6 +53,16 @@ class TargetWrapper(object):
                 self.do_scale = True
             else:
                 self.do_scale = False
+            if checkXLabel(self.target):
+                self.label_factor = self.figure.dpi / 72.0
+                if getattr(self.target, "pad_offset", None) is None:
+                    self.target.pad_offset = self.target.get_position()[1] - checkXLabel(self.target).xaxis.labelpad * self.label_factor
+                self.label_y = self.target.get_position()[1]
+            elif checkYLabel(self.target):
+                self.label_factor = self.figure.dpi / 72.0
+                if getattr(self.target, "pad_offset", None) is None:
+                    self.target.pad_offset = self.target.get_position()[0] - checkYLabel(self.target).yaxis.labelpad * self.label_factor
+                self.label_x = self.target.get_position()[0]
             self.get_transform = self.target.get_transform
         else:
             self.get_transform = self.target.get_transform
@@ -61,6 +82,10 @@ class TargetWrapper(object):
             points.append((c[0]+w/2, c[1]+h/2))
         elif isinstance(self.target, Text):
             points.append(self.target.get_position())
+            if checkXLabel(self.target):
+                points[0] = (points[0][0], self.label_y)
+            elif checkYLabel(self.target):
+                points[0] = (self.label_x, points[0][1])
             if getattr(self.target, "xy", None) is not None:
                 points.append(self.target.xy)
             bbox = self.target.get_bbox_patch()
@@ -102,11 +127,24 @@ class TargetWrapper(object):
             self.figure.change_tracker.addChange(self.target, ".width = %f" % self.target.width)
             self.figure.change_tracker.addChange(self.target, ".height = %f" % self.target.height)
         elif isinstance(self.target, Text):
-            self.target.set_position(points[0])
-            self.figure.change_tracker.addChange(self.target, ".set_position([%f, %f])" % self.target.get_position())
-            if getattr(self.target, "xy", None) is not None:
-                self.target.xy = points[1]
-                self.figure.change_tracker.addChange(self.target, ".xy = (%f, %f)" % tuple(self.target.xy))
+            if checkXLabel(self.target):
+                axes = checkXLabel(self.target)
+                axes.xaxis.labelpad = -(points[0][1]-self.target.pad_offset)/self.label_factor
+
+                self.target.set_position(points[0])
+                self.label_y = points[0][1]
+            elif checkYLabel(self.target):
+                axes = checkYLabel(self.target)
+                axes.yaxis.labelpad = -(points[0][0]-self.target.pad_offset)/self.label_factor
+
+                self.target.set_position(points[0])
+                self.label_x = points[0][0]
+            else:
+                self.target.set_position(points[0])
+                self.figure.change_tracker.addChange(self.target, ".set_position([%f, %f])" % self.target.get_position())
+                if getattr(self.target, "xy", None) is not None:
+                    self.target.xy = points[1]
+                    self.figure.change_tracker.addChange(self.target, ".xy = (%f, %f)" % tuple(self.target.xy))
         elif isinstance(self.target, Legend):
             point = self.target.axes.transAxes.inverted().transform(self.transform_inverted_points(points)[0])
             self.target._loc = tuple(point)
@@ -303,6 +341,30 @@ class snapSameBorder(snapBase):
         self.set_data((x1, y1))
 
 
+class snapCenterWith(snapBase):
+    def getPosition(self, text):
+        return np.array(text.get_transform().transform(text.target.get_position()))
+
+    def getPosition2(self, axes):
+        pos = np.array(axes.figure.transFigure.transform(axes.target.get_position()))
+        p = pos[0, :]
+        p[self.edge] = np.mean(pos, axis=0)[self.edge]
+        return p
+
+    def getDistance(self, index):
+        if self.edge % 2 != index:
+            return np.inf
+        p1 = self.getPosition(self.ax_source)
+        p2 = self.getPosition2(self.ax_target)
+        return p1[self.edge] - p2[self.edge]
+
+    def show(self):
+        p1 = self.getPosition(self.ax_source)
+        p2 = self.getPosition2(self.ax_target)
+        self.set_data((p1[0], p2[0]), (p1[1], p2[1]))
+
+
+
 def checkSnaps(snaps):
     result = [0, 0]
     for index in range(2):
@@ -330,6 +392,10 @@ def getSnaps(targets, dir, no_height=False):
         if isinstance(target, Legend):
             continue
         if isinstance(target, Text):
+            if checkXLabel(target):
+                snaps.append(snapCenterWith(target, checkXLabel(target), 0))
+            elif checkYLabel(target):
+                snaps.append(snapCenterWith(target, checkYLabel(target), 1))
             for ax in target.figure.axes + [target.figure]:
                 for txt in ax.texts:
                     # for other texts
