@@ -30,6 +30,12 @@ def getReference(element):
             return getReference(element.axes)+".texts[%d]" % index
         index = element.figure.texts.index(element)
         return "fig.texts[%d]" % (index)
+    if isinstance(element, matplotlib.patches.Patch):
+        if element.axes:
+            index = element.axes.patches.index(element)
+            return getReference(element.axes)+".patches[%d]" % index
+        index = element.figure.patches.index(element)
+        return "fig.patches[%d]" % (index)
     if isinstance(element, matplotlib.axes._axes.Axes):
         if element.get_label():
             return "fig.ax_dict[\"%s\"]" % element.get_label()
