@@ -146,6 +146,11 @@ class GrabbableRectangleSelection(GrabFunctions):
         self.positions[2] = np.max(points[:, 0])
         self.positions[3] = np.max(points[:, 1])
 
+        if self.positions[2]-self.positions[0] < 0.01:
+            self.positions[0], self.positions[2] = self.positions[0] - 0.01, self.positions[0] + 0.01
+        if self.positions[3]-self.positions[1] < 0.01:
+            self.positions[1], self.positions[3] = self.positions[1] - 0.01, self.positions[1] + 0.01
+
         if self.do_target_scale():
             self.update_grabber()
         else:
@@ -380,6 +385,8 @@ class DragManager:
                 self.make_dragable(leg)
             for text in axes.texts:
                 self.make_dragable(text)
+            self.make_dragable(axes.xaxis.get_label())
+            self.make_dragable(axes.yaxis.get_label())
 
             self.make_dragable(axes)
         for text in self.figure.texts:
