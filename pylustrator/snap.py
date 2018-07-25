@@ -137,12 +137,16 @@ class TargetWrapper(object):
             if checkXLabel(self.target):
                 axes = checkXLabel(self.target)
                 axes.xaxis.labelpad = -(points[0][1]-self.target.pad_offset)/self.label_factor
+                self.figure.change_tracker.addChange(axes,
+                                                     ".xaxis.labelpad = %f" % axes.xaxis.labelpad)
 
                 self.target.set_position(points[0])
                 self.label_y = points[0][1]
             elif checkYLabel(self.target):
                 axes = checkYLabel(self.target)
                 axes.yaxis.labelpad = -(points[0][0]-self.target.pad_offset)/self.label_factor
+                self.figure.change_tracker.addChange(axes,
+                                                     ".yaxis.labelpad = %f" % axes.yaxis.labelpad)
 
                 self.target.set_position(points[0])
                 self.label_x = points[0][0]
