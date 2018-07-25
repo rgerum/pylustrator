@@ -353,9 +353,6 @@ class GrabbableRectangleSelection(GrabFunctions):
             self.start_move()
             self.addOffset((0, +1), self.dir)
             self.end_move()
-        if event.key == "escape":
-            self.clear_targets()
-            self.figure.canvas.draw()
         if event.key == "delete":
             for target in self.targets[::-1]:
                 self.figure.change_tracker.removeElement(target.target)
@@ -468,12 +465,10 @@ class DragManager:
         # if there was was previously selected element, deselect it
         if self.selected_element is not None:
             self.on_deselect(event)
-            self.selected_element = None
 
         # if there is a new element, select it
-        if element is not None:
-            self.on_select(element, event)
-            self.selected_element = element
+        self.on_select(element, event)
+        self.selected_element = element
         self.figure.canvas.draw()
 
     def on_deselect(self, event):
@@ -482,7 +477,8 @@ class DragManager:
             self.selection.clear_targets()
 
     def on_select(self, element, event):
-        self.selection.add_target(element)
+        if element is not None:
+            self.selection.add_target(element)
 
     def key_press_event(self, event):
         # space: print code to restore current configuration
@@ -492,6 +488,11 @@ class DragManager:
             self.figure.change_tracker.backEdit()
         if event.key == "ctrl+y":
             self.figure.change_tracker.forwardEdit()
+        if event.key == "escape":
+            self.selection.clear_targets()
+            self.selected_element = None
+            self.on_select(None, None)
+            self.figure.canvas.draw()
 
 class GrabberGeneric(GrabFunctions):
 
