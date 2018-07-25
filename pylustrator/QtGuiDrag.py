@@ -1432,6 +1432,8 @@ class QItemProperties(QtWidgets.QWidget):
 
 
 class PlotWindow(QtWidgets.QWidget):
+    fitted_to_view = False
+
     def __init__(self, number, size, *args, **kwargs):
         QtWidgets.QWidget.__init__(self)
 
@@ -1459,6 +1461,16 @@ class PlotWindow(QtWidgets.QWidget):
         self.canvas_wrapper_layout.addWidget(self.canvas)
         self.fig = self.canvas.figure
         self.fig.widget = self.canvas
+
+        def mousePress(event):
+            self.canvas.mousePressEvent(event)
+
+        self.canvas_canvas.mousePressEvent = mousePress
+
+        def mouseRelease(event):
+            self.canvas.mouseReleaseEvent(event)
+
+        self.canvas_canvas.mouseReleaseEvent = mouseRelease
 
         # widget layout and elements
         self.setWindowTitle("Figure %s" % number)
@@ -1614,7 +1626,10 @@ class PlotWindow(QtWidgets.QWidget):
         self.updateRuler()
 
     def resizeEvent(self, event):
-        self.updateRuler()
+        if self.fitted_to_view:
+            self.fitToView(True)
+        else:
+            self.updateRuler()
 
     def button_press_event(self, event):
         if event.button == 2:
@@ -1628,7 +1643,7 @@ class PlotWindow(QtWidgets.QWidget):
             self.moveCanvasCanvas(*offset)
         trans = transforms.Affine2D().scale(2.54, 2.54) + self.fig.dpi_scale_trans.inverted()
         pos = trans.transform((event.x, event.y))
-        self.footer_label.setText("%.2f, %.2f (cm)" % (pos[0], pos[1]))
+        self.footer_label.setText("%.2f, %.2f (cm) [%d, %d]" % (pos[0], pos[1], event.x, event.y))
 
         if event.ydata is not None:
             self.footer_label2.setText("%.2f, %.2f" % (event.xdata, event.ydata))
@@ -1666,14 +1681,34 @@ class PlotWindow(QtWidgets.QWidget):
             self.moveCanvasCanvas(0, 10)
 
         if event.key() == QtCore.Qt.Key_F:
-            self.fitToView()
+            self.fitToView(True)
 
-    def fitToView(self):
-        w, h = self.canvas.get_width_height()
-        self.canvas_canvas.setMinimumWidth(w+30)
-        self.canvas_canvas.setMinimumHeight(h+30)
-        self.canvas_container.move((self.canvas_canvas.width() - w) / 2 + 5, (self.canvas_canvas.height() - h) / 2 + 5)
-        self.updateRuler()
+    def fitToView(self, change_dpi=False):
+        self.fitted_to_view = True
+        if change_dpi:
+            w, h = self.canvas.get_width_height()
+            factor = min( (self.canvas_canvas.width() - 30) / w, (self.canvas_canvas.height() - 30) / h)
+            self.fig.set_dpi(self.fig.get_dpi() * factor)
+            self.fig.canvas.draw()
+
+            self.canvas.updateGeometry()
+            w, h = self.canvas.get_width_height()
+            self.canvas_container.setMinimumSize(w, h)
+            self.canvas_container.setMaximumSize(w, h)
+
+            self.canvas_container.move((self.canvas_canvas.width() - w) / 2 + 5,
+                                       (self.canvas_canvas.height() - h) / 2 + 5)
+
+            self.updateRuler()
+            self.fig.canvas.draw()
+
+        else:
+            w, h = self.canvas.get_width_height()
+            self.canvas_canvas.setMinimumWidth(w+30)
+            self.canvas_canvas.setMinimumHeight(h+30)
+
+            self.canvas_container.move((self.canvas_canvas.width() - w) / 2 + 5, (self.canvas_canvas.height() - h) / 2 + 5)
+            self.updateRuler()
 
     def keyReleaseEvent(self, event):
         if event.key() == QtCore.Qt.Key_Control:
