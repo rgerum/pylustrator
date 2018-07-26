@@ -573,11 +573,45 @@ class TextPropertiesWidget(QtWidgets.QWidget):
         self.button_delete.clicked.connect(self.delete)
         self.layout.addWidget(self.button_delete)
 
+    def convertMplWeightToQtWeight(self, weight):
+        weight_dict = {'normal': QtGui.QFont.Normal, 'bold': QtGui.QFont.Bold, 'heavy': QtGui.QFont.ExtraBold,
+                       'light': QtGui.QFont.Light, 'ultrabold': QtGui.QFont.Black, 'ultralight': QtGui.QFont.ExtraLight}
+        if weight in weight_dict:
+            return weight_dict[weight]
+        return weight_dict["normal"]
+
+    def convertQtWeightToMplWeight(self, weight):
+        weight_dict = {QtGui.QFont.Normal:'normal', QtGui.QFont.Bold:'bold', QtGui.QFont.ExtraBold:'heavy',
+                       QtGui.QFont.Light:'light', QtGui.QFont.Black:'ultrabold', QtGui.QFont.ExtraLight:'ultralight'}
+        if weight in weight_dict:
+            return weight_dict[weight]
+        return "normal"
+
     def selectFont(self):
-        font, x = QtWidgets.QFontDialog.getFont(QtGui.QFont(), self)
-        print(font, x, font.family())
+        font0 = QtGui.QFont()
+        font0.setFamily(self.target.get_fontname())
+        font0.setWeight(self.convertMplWeightToQtWeight(self.target.get_weight()))
+        font0.setItalic(self.target.get_style() == "italic")
+        font0.setPointSizeF(self.target.get_fontsize())
+        font, x = QtWidgets.QFontDialog.getFont(font0, self)
+
         self.target.set_fontname(font.family())
         self.target.figure.change_tracker.addChange(self.target, ".set_fontname(\"%s\")" % (self.target.get_fontname(),))
+
+        if font.weight() != font0.weight():
+            weight = self.convertQtWeightToMplWeight(font.weight())
+            self.target.set_weight(weight)
+            self.target.figure.change_tracker.addChange(self.target, ".set_weight(\"%s\")" % (weight,))
+
+        if font.pointSizeF() != font0.pointSizeF():
+            self.target.set_fontsize(font.pointSizeF())
+            self.target.figure.change_tracker.addChange(self.target, ".set_fontsize(%f)" % (font.pointSizeF(),))
+
+        if font.italic() != font0.italic():
+            style = "italic" if font.italic() else "normal"
+            self.target.set_style(style)
+            self.target.figure.change_tracker.addChange(self.target, ".set_style(\"%s\")" % (style,))
+
         self.target.figure.canvas.draw()
 
     def setTarget(self, element):
