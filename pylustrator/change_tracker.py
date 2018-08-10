@@ -199,7 +199,10 @@ class ChangeTracker:
         output = []
         for s in srt:
             command_obj, command = s[1]
-            output.append(getReference(command_obj) + command)
+            try:
+                output.append(getReference(command_obj) + command)
+            except TypeError as err:
+                print(err)
         return output
 
     def save(self):

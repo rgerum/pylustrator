@@ -332,10 +332,12 @@ class GrabbableRectangleSelection(GrabFunctions):
         if event.key == 'pagedown':
             for target in self.targets:
                 target.target.set_zorder(target.target.get_zorder() - 1)
+                self.figure.change_tracker.addChange(target, ".set_zorder(%d)" % target.target.get_zorder())
             self.figure.canvas.draw()
         if event.key == 'pageup':
             for target in self.targets:
                 target.target.set_zorder(target.target.get_zorder() + 1)
+                self.figure.change_tracker.addChange(target, ".set_zorder(%d)" % target.target.get_zorder())
             self.figure.canvas.draw()
         if event.key == 'left':
             self.start_move()
