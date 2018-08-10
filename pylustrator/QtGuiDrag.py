@@ -74,6 +74,11 @@ def initialize():
 
 def show():
     global figures
+    # set an application id, so that windows properly stacks them in the task bar
+    if sys.platform[:3] == 'win':
+        import ctypes
+        myappid = 'rgerum.pylustrator'  # arbitrary string
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
     # iterate over figures
     for figure in _pylab_helpers.Gcf.figs:
         # get the window
