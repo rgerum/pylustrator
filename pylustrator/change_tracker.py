@@ -133,7 +133,7 @@ class ChangeTracker:
         command_obj_regexes = [re.compile(r) for r in command_obj_regexes]
 
         fig = self.figure
-        header = ["fig = plt.figure(%s)" % self.figure.number, "fig.ax_dict = {ax.get_label(): ax for ax in fig.axes}"]
+        header = ["fig = plt.figure(%s)" % self.figure.number, "import matplotlib as mpl", "fig.ax_dict = {ax.get_label(): ax for ax in fig.axes}"]
 
         block = getTextFromFile(header[0], self.stack_position)
         for lineno, line in block:
@@ -206,7 +206,7 @@ class ChangeTracker:
         return output
 
     def save(self):
-        header = ["fig = plt.figure(%s)" % self.figure.number, "fig.ax_dict = {ax.get_label(): ax for ax in fig.axes}"]
+        header = ["fig = plt.figure(%s)" % self.figure.number, "import matplotlib as mpl", "fig.ax_dict = {ax.get_label(): ax for ax in fig.axes}"]
 
         # block = getTextFromFile(header[0], self.stack_position)
         output = ["#% start: automatic generated code from pylustrator"]
