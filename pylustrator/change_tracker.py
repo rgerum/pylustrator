@@ -10,6 +10,7 @@ from matplotlib.axes._subplots import Axes
 import matplotlib
 import uuid
 import re
+from natsort import natsorted
 
 
 def getReference(element):
@@ -194,7 +195,8 @@ class ChangeTracker:
                 obj_indices = (getReference(reference_obj.axes), getReference(reference_obj), index)
             indices.append(
                 [(reference_obj, reference_command), self.changes[reference_obj, reference_command], obj_indices])
-        srt = sorted(indices, key=lambda a: a[2])
+
+        srt = natsorted(indices, key=lambda a: a[2])
         output = []
         for s in srt:
             command_obj, command = s[1]
