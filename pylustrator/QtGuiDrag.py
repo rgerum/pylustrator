@@ -1218,6 +1218,10 @@ class QItemProperties(QtWidgets.QWidget):
         self.layout_buttons.addWidget(self.button_add_annotation)
         self.button_add_annotation.clicked.connect(self.buttonAddAnnotationClicked)
 
+        self.button_add_rectangle = QtWidgets.QPushButton("add rectangle")
+        self.layout_buttons.addWidget(self.button_add_rectangle)
+        self.button_add_rectangle.clicked.connect(self.buttonAddRectangleClicked)
+
         self.button_add_arrow = QtWidgets.QPushButton("add arrow")
         self.layout_buttons.addWidget(self.button_add_arrow)
         self.button_add_arrow.clicked.connect(self.buttonAddArrowClicked)
@@ -1294,6 +1298,24 @@ class QItemProperties(QtWidgets.QWidget):
         self.fig.figure_dragger.select_element(text)
         self.fig.canvas.draw()
         self.setElement(text)
+        self.input_text.input1.selectAll()
+        self.input_text.input1.setFocus()
+
+    def buttonAddRectangleClicked(self):
+        p = mpl.patches.Rectangle((self.element.get_xlim()[0], self.element.get_ylim()[0]),
+                                        width=np.mean(self.element.get_xlim()), height=np.mean(self.element.get_ylim()),)
+        self.element.add_patch(p)
+
+        self.fig.change_tracker.addChange(self.element,
+                                          ".add_patch(mpl.patches.Rectangle(%s, width=%s, height=%s))  # id=%s.new" % (
+                                          p.get_xy(), p.get_width(), p.get_height(), getReference(p)),
+                                          p, ".new")
+
+        self.tree.updateEntry(self.element, update_children=True)
+        self.fig.figure_dragger.make_dragable(p)
+        self.fig.figure_dragger.select_element(p)
+        self.fig.canvas.draw()
+        self.setElement(p)
         self.input_text.input1.selectAll()
         self.input_text.input1.setFocus()
 
@@ -1423,6 +1445,7 @@ class QItemProperties(QtWidgets.QWidget):
         self.input_shape_transform.hide()
         self.input_transform.hide()
         self.button_add_annotation.hide()
+        self.button_add_rectangle.hide()
         self.button_despine.hide()
         self.button_add_image.hide()
         self.button_add_arrow.hide()
@@ -1445,6 +1468,7 @@ class QItemProperties(QtWidgets.QWidget):
             self.button_add_annotation.show()
             self.button_despine.show()
             self.button_add_arrow.show()
+            self.button_add_rectangle.show()
         else:
             self.input_shape.hide()
             self.button_add_text.hide()
