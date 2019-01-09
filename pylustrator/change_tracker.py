@@ -162,7 +162,7 @@ class ChangeTracker:
             else:
                 key = command_obj + command
 
-            if command == ".text" or command == ".annotate":
+            if command == ".text" or command == ".annotate" or command == ".add_patch":
                 # if lineno in plt.keys_for_lines:
                 #    key = plt.keys_for_lines[lineno]
                 #    print("linoeno", key)
@@ -172,8 +172,6 @@ class ChangeTracker:
                 reference_obj = command_obj
                 reference_command = command
 
-            print("line:", line)
-            print(" commandobj", command_obj, "ref_obj", reference_obj)
             command_obj = eval(command_obj)
             reference_obj = eval(reference_obj)
 
@@ -183,11 +181,12 @@ class ChangeTracker:
     def sorted_changes(self):
         indices = []
         for reference_obj, reference_command in self.changes:
+            obj_indices = ("", "", "")
             if isinstance(reference_obj, Figure):
                 obj_indices = ("", "", "")
             if isinstance(reference_obj, matplotlib.axes._axes.Axes):
                 obj_indices = (getReference(reference_obj), "", "")
-            if isinstance(reference_obj, matplotlib.text.Text):
+            if isinstance(reference_obj, matplotlib.text.Text) or isinstance(reference_obj, matplotlib.patches.Patch):
                 if reference_command == ".new":
                     index = "0"
                 else:
