@@ -499,6 +499,7 @@ class DragManager:
 class GrabberGeneric(GrabFunctions):
 
     def __init__(self, parent, x, y, dir):
+        self._animated = True
         GrabFunctions.__init__(self, parent, dir)
         self.pos = (x, y)
         self.updatePos()
@@ -534,6 +535,10 @@ class GrabberGenericRectangle(Rectangle, GrabberGeneric):
     d = 10
 
     def __init__(self, parent, x, y, dir):
+        # somehow the original "self" rectangle does not show up in the current matplotlib version, therefore this doubling
+        self.rect = Rectangle((0, 0), self.d, self.d, figure=parent.figure, edgecolor="k", facecolor="r", zorder=1000, label="grabber")
+        self.figure.patches.append(self.rect)
+
         Rectangle.__init__(self, (0, 0), self.d, self.d, picker=True, figure=parent.figure, edgecolor="k", facecolor="r", zorder=1000, label="grabber")
         GrabberGeneric.__init__(self, parent, x, y, dir)
         self.figure.patches.append(self)
@@ -545,3 +550,4 @@ class GrabberGenericRectangle(Rectangle, GrabberGeneric):
 
     def set_xy(self, xy):
         Rectangle.set_xy(self, (xy[0] - self.d / 2, xy[1] - self.d / 2))
+        self.rect.set_xy((xy[0] - self.d / 2, xy[1] - self.d / 2))
