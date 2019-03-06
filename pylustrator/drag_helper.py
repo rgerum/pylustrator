@@ -537,7 +537,7 @@ class GrabberGenericRectangle(Rectangle, GrabberGeneric):
     def __init__(self, parent, x, y, dir):
         # somehow the original "self" rectangle does not show up in the current matplotlib version, therefore this doubling
         self.rect = Rectangle((0, 0), self.d, self.d, figure=parent.figure, edgecolor="k", facecolor="r", zorder=1000, label="grabber")
-        self.figure.patches.append(self.rect)
+        parent.figure.patches.append(self.rect)
 
         Rectangle.__init__(self, (0, 0), self.d, self.d, picker=True, figure=parent.figure, edgecolor="k", facecolor="r", zorder=1000, label="grabber")
         GrabberGeneric.__init__(self, parent, x, y, dir)
