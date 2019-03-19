@@ -83,6 +83,8 @@ def show():
     for figure in _pylab_helpers.Gcf.figs:
         # get the window
         window = _pylab_helpers.Gcf.figs[figure].canvas.window
+        # warn about ticks not fitting tick labels
+        warnAboutTicks(window.fig)
         # add dragger
         #FigureDragger(_pylab_helpers.Gcf.figs[figure].canvas.figure, [], [], "cm")
         DragManager(_pylab_helpers.Gcf.figs[figure].canvas.figure)
@@ -115,6 +117,26 @@ def figure(num=None, size=None, *args, **kwargs):
     _pylab_helpers.Gcf.set_active(manager)
     # return the figure
     return manager.canvas.figure
+
+def warnAboutTicks(fig):
+    import sys
+    for index, ax in enumerate(fig.axes):
+        ticks = ax.get_yticks()
+        labels = [t.get_text() for t in ax.get_yticklabels()]
+        for t, l in zip(ticks, labels):
+            if l == "":
+                continue
+            try:
+                l = float(l)
+            except ValueError:
+                pass
+            if t != l:
+                ax_name = ax.get_label()
+                if ax_name == "":
+                    ax_name = "#%d" % index
+                else:
+                    ax_name = '"' + ax_name + '"'
+                print("Warning tick and label differ", t, l, "for axes", ax_name, file=sys.stderr)
 
 """ Window """
 
