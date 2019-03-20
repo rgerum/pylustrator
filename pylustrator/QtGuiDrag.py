@@ -284,16 +284,25 @@ class TextWidget(QtWidgets.QWidget, Linkable):
     noSignal = False
     last_text = None
 
-    def __init__(self, layout, text):
+    def __init__(self, layout, text, multiline=False, horizontal=True):
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
-        self.layout = QtWidgets.QHBoxLayout(self)
+        if horizontal:
+            self.layout = QtWidgets.QHBoxLayout(self)
+        else:
+            self.layout = QtWidgets.QVBoxLayout(self)
         self.label = QtWidgets.QLabel(text)
         self.layout.addWidget(self.label)
         self.layout.setContentsMargins(0, 0, 0, 0)
 
-        self.input1 = QtWidgets.QLineEdit()
-        self.input1.editingFinished.connect(self.valueChangeEvent)
+        self.multiline = multiline
+        if multiline:
+            self.input1 = QtWidgets.QTextEdit()
+            self.input1.textChanged.connect(self.valueChangeEvent)
+            self.input1.text = self.input1.toPlainText
+        else:
+            self.input1 = QtWidgets.QLineEdit()
+            self.input1.editingFinished.connect(self.valueChangeEvent)
         self.layout.addWidget(self.input1)
 
     def valueChangeEvent(self):
@@ -307,7 +316,10 @@ class TextWidget(QtWidgets.QWidget, Linkable):
         self.noSignal = True
         text = text.replace("\n", "\\n")
         self.last_text = text
-        self.input1.setText(text)
+        if self.multiline:
+            self.input1.setText(text)
+        else:
+            self.input1.setText(text)
         self.noSignal = False
 
     def text(self):
@@ -1064,11 +1076,17 @@ class QTickEdit(QtWidgets.QWidget):
         self.layout = QtWidgets.QVBoxLayout(self)
         self.axis = axis
 
-        self.input_ticks = TextWidget(self.layout, axis + "-Ticks:")
+        self.label = QtWidgets.QLabel("Ticks can be specified, one tick pre line.\nOptionally a label can be provided, e.g. 1 \"First\",")
+        self.layout.addWidget(self.label)
+
+        self.layout2 = QtWidgets.QHBoxLayout(self)
+        self.layout.addLayout(self.layout2)
+
+        self.input_ticks = TextWidget(self.layout2, axis + "-Ticks:", multiline=True, horizontal=False)
         self.input_ticks.editingFinished.connect(self.ticksChanged)
 
-        self.input_tick_labels = TextWidget(self.layout, axis + "-TickLabels:")
-        self.input_tick_labels.editingFinished.connect(self.ticksLabelsChanged)
+        self.input_ticks2 = TextWidget(self.layout2, axis + "-Ticks (minor):", multiline=True, horizontal=False)
+        self.input_ticks2.editingFinished.connect(self.ticksChanged2)
 
         self.input_scale = ComboWidget(self.layout, axis + "-Scale", ["linear", "log", "symlog", "logit"])
         self.input_scale.link(axis + "scale", signal_target_changed)
@@ -1082,34 +1100,164 @@ class QTickEdit(QtWidgets.QWidget):
         self.layout.addWidget(self.button_ok)
         self.button_ok.clicked.connect(self.hide)
 
+    def parseTickLabel(self, line):
+        import re
+        line = line.replace("−", "-")
+        match = re.match(r"\$\\mathdefault{(([-.\d]*)\\times)?([-.\d]+)\^{([-.\d]+)}}\$", line)
+        if match:
+            _, factor, base, exponent = match.groups()
+            if factor is not None:
+                number = float(factor) * float(base)**float(exponent)
+                line = "%s x %s^%s" % (factor, base, exponent)
+            else:
+                number = float(base) ** float(exponent)
+                line = "%s^%s" % (base, exponent)
+        else:
+            try:
+                number = float(line)
+            except ValueError:
+                number = np.nan
+        return number, line
+
+    def formatTickLabel(self, line):
+        import re
+        line = line.replace("−", "-")
+        match = re.match(r"\s*(([-.\d]*)\s*x)?\s*([-.\d]+)\s*\^\s*([-.\d]+)\s*\"(.+)?\"", line)
+        match2 = re.match(r"\s*(([-.\d]*)\s*x)?\s*([-.\d]+)\s*\^\s*([-.\d]+)\s*(.+)?", line)
+        if match:
+            _, factor, base, exponent, label = match.groups()
+            if factor is not None:
+                number = float(factor) * float(base) ** float(exponent)
+                line = r"$\mathdefault{%s\times%s^{%s}}$" % (factor, base, exponent)
+            else:
+                number = float(base) ** float(exponent)
+                line = r"$\mathdefault{%s^{%s}}$" % (base, exponent)
+            if label is not None:
+                line = label
+        elif match2:
+            _, factor, base, exponent, label = match2.groups()
+            if factor is not None:
+                number = float(factor) * float(base) ** float(exponent)
+                line = r"$\mathdefault{%s\times%s^{%s}}$" % (factor, base, exponent)
+            else:
+                number = float(base) ** float(exponent)
+                line = r"$\mathdefault{%s^{%s}}$" % (base, exponent)
+            if label is not None:
+                line = label
+        else:
+            try:
+                number = float(line)
+            except ValueError:
+                number = np.nan
+        return number, line
+
+
     def setTarget(self, element):
         self.element = element
         self.fig = element.figure
+        min, max = getattr(self.element, "get_" + self.axis + "lim")()
+        self.range = [min, max]
 
-        labels = getattr(self.element, "get_"+self.axis+"ticks")()
-        self.input_ticks.setText(", ".join(str(x) for x in labels))
-
+        ticks = getattr(self.element, "get_"+self.axis+"ticks")()
         labels = getattr(self.element, "get_" + self.axis + "ticklabels")()
-        self.input_tick_labels.setText(", ".join(x.get_text() for x in labels))
+        text = []
+        for t, l in zip(ticks, labels):
+            l, l_text = self.parseTickLabel(l.get_text())
+            try:
+                l = float(l)
+            except ValueError:
+                pass
+            if min <= t <= max:
+                if l != t:
+                    text.append("%s \"%s\"" % (str(t), l_text))
+                else:
+                    text.append("%s" % l_text)
+        self.input_ticks.setText(",<br>".join(text))
+
+        ticks = getattr(self.element, "get_" + self.axis + "ticks")(minor=True)
+        labels = getattr(self.element, "get_" + self.axis + "ticklabels")(minor=True)
+        text = []
+        for t, l in zip(ticks, labels):
+            l, l_text = self.parseTickLabel(l.get_text())
+            try:
+                l = float(l)
+            except ValueError:
+                pass
+            if min <= t <= max:
+                if l != t:
+                    text.append("%s \"%s\"" % (str(t), l_text))
+                else:
+                    text.append("%s" % l_text)
+        self.input_ticks2.setText(",<br>".join(text))
 
         self.input_font.setTarget(getattr(self.element, "get_"+self.axis+"axis")().get_label())
 
-    def ticksChanged(self):
+    def parseTicks(self, string):
         try:
-            ticks = [float(x) for x in self.input_ticks.text().split(",")]
-            getattr(self.element, "set_" + self.axis + "ticks")(ticks)
-        except ValueError as err:
-            print(err)
-        self.setTarget(self.element)
-        self.fig.change_tracker.addChange(self.element, ".set_" + self.axis + "ticks([%s])" % self.input_ticks.text())
+            ticks = []
+            labels = []
+            for line in string.split("\n"):
+                line = line.strip().strip(",")
+                two_parts = line.split(" ", 1)
+                try:
+                    tick, _ = self.formatTickLabel(line)
+                    if np.isnan(tick) and len(two_parts) == 2:
+                        tick = float(two_parts[0].replace("−", "-"))
+                        label = two_parts[1].strip("\"")
+                    else:
+                        tick, label = self.formatTickLabel(line)
+                except ValueError as err:
+                    pass
+                else:
+                    ticks.append(tick)
+                    labels.append(label)
+        except Exception as err:
+            pass
+        return ticks, labels
+
+    def str(self, object):
+        if str(object) == "nan":
+            return "np.nan"
+        return str(object)
+
+    def ticksChanged2(self):
+        ticks, labels = self.parseTicks(self.input_ticks2.text())
+
+        getattr(self.element, "set_" + self.axis + "lim")(self.range)
+        getattr(self.element, "set_" + self.axis + "ticks")(ticks, minor=True)
+        getattr(self.element, "set_" + self.axis + "ticklabels")(labels, minor=True)
+        min, max = getattr(self.element, "get_" + self.axis + "lim")()
+        if min != self.range[0] or max != self.range[1]:
+            self.fig.change_tracker.addChange(self.element,
+                                              ".set_" + self.axis + "lim(%s, %s)" % (str(min), str(max)))
+        else:
+            self.fig.change_tracker.addChange(self.element,
+                                              ".set_" + self.axis + "lim(%s, %s)" % (str(self.range[0]), str(self.range[1])))
+
+        # self.setTarget(self.element)
+        self.fig.change_tracker.addChange(self.element,
+                                          ".set_" + self.axis + "ticks([%s], minor=True)" % ", ".join(self.str(t) for t in ticks), self.element, ".set_" + self.axis + "ticks_minor")
+        self.fig.change_tracker.addChange(self.element, ".set_" + self.axis + "ticklabels([%s], minor=True)" % ", ".join(
+            '"' + l + '"' for l in labels), self.element, ".set_" + self.axis + "labels_minor")
         self.fig.canvas.draw()
 
-    def ticksLabelsChanged(self):
-        ticks = [x.strip() for x in self.input_tick_labels.text().split(",")]
-        getattr(self.element, "set_" + self.axis + "ticklabels")(ticks)
-        string = "\", \"".join(ticks)
-        self.setTarget(self.element)
-        self.fig.change_tracker.addChange(self.element, ".set_" + self.axis + "ticklabels([\"%s\"])" % string)
+    def ticksChanged(self):
+        ticks, labels = self.parseTicks(self.input_ticks.text())
+
+        getattr(self.element, "set_" + self.axis + "lim")(self.range)
+        getattr(self.element, "set_" + self.axis + "ticks")(ticks)
+        getattr(self.element, "set_" + self.axis + "ticklabels")(labels)
+        min, max = getattr(self.element, "get_" + self.axis + "lim")()
+        if min != self.range[0] or max != self.range[1]:
+            self.fig.change_tracker.addChange(self.element,
+                                              ".set_" + self.axis + "lim(%s, %s)" % (str(min), str(max)))
+        else:
+            self.fig.change_tracker.addChange(self.element,
+                                              ".set_" + self.axis + "lim(%s, %s)" % (str(self.range[0]), str(self.range[1])))
+
+        #self.setTarget(self.element)
+        self.fig.change_tracker.addChange(self.element, ".set_" + self.axis + "ticks([%s])" % ", ".join(self.str(t) for t in ticks))
+        self.fig.change_tracker.addChange(self.element, ".set_" + self.axis + "ticklabels([%s])" % ", ".join('"'+l+'"' for l in labels))
         self.fig.canvas.draw()
 
 class QAxesProperties(QtWidgets.QWidget):
