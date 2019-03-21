@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='pylustrator',
-      version="0.8.2",
+      version="0.9",
       description='Adds interactivity to arrange panels in matplotlib',
       long_description=open('readme.rst').read(),
       url='https://bitbucket.org/fabry_biophysics/pylustrator',
