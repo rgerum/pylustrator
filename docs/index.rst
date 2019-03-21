@@ -1,9 +1,17 @@
 
+.. figure:: images/logo.png
+    :align: left
+
 Welcome to the Pylustrator Documentation
-========================================   
+========================================
 
 Pylustrator is a program to style your matplotlib plots for publication. Subplots can be resized and dragged around by
 the mouse, text and annotations can be added. The changes can be saved to the initial plot file as python code.
+
+.. raw:: html
+
+    <div style="clear:both"></div>
+    <hr>
 
 Installation
 ------------
