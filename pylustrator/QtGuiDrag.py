@@ -1332,6 +1332,10 @@ class QItemProperties(QtWidgets.QWidget):
         self.input_text = TextWidget(self.layout, "Text:")
         self.input_text.link("text", self.targetChanged)
 
+        self.input_rotation = NumberWidget(self.layout, "Rotation:")
+        self.input_rotation.link("rotation", self.targetChanged)
+        self.input_rotation.input1.setRange(-360, 360)
+
         self.input_xaxis = QAxesProperties(self.layout, "x", self.targetChanged)
         self.input_yaxis = QAxesProperties(self.layout, "y", self.targetChanged)
 
