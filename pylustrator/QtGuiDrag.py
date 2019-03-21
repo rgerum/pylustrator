@@ -1707,7 +1707,7 @@ class PlotWindow(QtWidgets.QWidget):
 
         # widget layout and elements
         self.setWindowTitle("Figure %s" % number)
-        self.setWindowIcon(qta.icon("fa.bar-chart"))
+        self.setWindowIcon(QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", "logo.ico")))
         self.layout_main = QtWidgets.QHBoxLayout(self)
 
         #
