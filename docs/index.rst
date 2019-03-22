@@ -65,7 +65,7 @@ You can test pylustrator with the following example code:
     # show the plot in a pylustrator window
     plt.show()
 
-Saving by pressing ``Space`` or confirming to save when closing the window will add some lines of code at the end of your
+Saving by pressing ``Ctrl+S`` or confirming to save when closing the window will add some lines of code at the end of your
 python script (before your ``plt.show()``) that defines these changes:
 
 .. code-block:: python
