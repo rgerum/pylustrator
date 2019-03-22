@@ -64,10 +64,10 @@ def initialize():
                         break
             return func(axes, *args, **kwargs)
         return f
-    Axes.text = wrap(Axes.text, fig=False, text="New Text")
-    Axes.annotate = wrap(Axes.annotate, fig=False, text="New Annotation")
+    #Axes.text = wrap(Axes.text, fig=False, text="New Text")
+    #Axes.annotate = wrap(Axes.annotate, fig=False, text="New Annotation")
 
-    Figure.text = wrap(Figure.text, fig=True, text="New Text")
+    #Figure.text = wrap(Figure.text, fig=True, text="New Text")
     #Figure.annotate = wrap(Figure.annotate, fig=True, text="New Annotation")
     plt.keys_for_lines = keys_for_lines
 
