@@ -1071,7 +1071,7 @@ class MyTreeView(QtWidgets.QTreeView):
 class QTickEdit(QtWidgets.QWidget):
     def __init__(self, axis, signal_target_changed):
         QtWidgets.QWidget.__init__(self)
-        self.setWindowTitle("Figure - "+axis+"-Axis - Ticks")
+        self.setWindowTitle("Figure - "+axis+"-Axis - Ticks - Pylustrator")
         self.setWindowIcon(QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", "ticks.ico")))
         self.layout = QtWidgets.QVBoxLayout(self)
         self.axis = axis
@@ -1710,7 +1710,7 @@ class PlotWindow(QtWidgets.QWidget):
         self.canvas_canvas.mouseReleaseEvent = mouseRelease
 
         # widget layout and elements
-        self.setWindowTitle("Figure %s" % number)
+        self.setWindowTitle("Figure %s - Pylustrator" % number)
         self.setWindowIcon(QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", "logo.ico")))
         self.layout_main = QtWidgets.QHBoxLayout(self)
 
@@ -2015,9 +2015,9 @@ class PlotWindow(QtWidgets.QWidget):
 
     def updateTitle(self):
         if self.fig.change_tracker.saved:
-            self.setWindowTitle("Figure %s" % self.fig.number)
+            self.setWindowTitle("Figure %s - Pylustrator" % self.fig.number)
         else:
-            self.setWindowTitle("Figure %s*" % self.fig.number)
+            self.setWindowTitle("Figure %s* - Pylustrator" % self.fig.number)
 
     def select_element(self, element):
         if element is None:
@@ -2029,7 +2029,7 @@ class PlotWindow(QtWidgets.QWidget):
 
     def closeEvent(self, event):
         if not self.fig.change_tracker.saved:
-            reply = QtWidgets.QMessageBox.question(self, 'Warning', 'The figure has not been saved. '
+            reply = QtWidgets.QMessageBox.question(self, 'Warning - Pylustrator', 'The figure has not been saved. '
                                                                     'All data will be lost.\nDo you want to save it?',
                                                    QtWidgets.QMessageBox.Cancel | QtWidgets.QMessageBox.No | QtWidgets.QMessageBox.Yes,
                                                    QtWidgets.QMessageBox.Yes)
