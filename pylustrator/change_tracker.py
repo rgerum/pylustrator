@@ -78,6 +78,7 @@ class ChangeTracker:
         self.load()
 
     def addChange(self, command_obj, command, reference_obj=None, reference_command=None):
+        command = command.replace("\n", "\\n")
         if reference_obj is None:
             reference_obj = command_obj
         if reference_command is None:
