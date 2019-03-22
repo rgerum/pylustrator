@@ -164,6 +164,10 @@ class ChangeTracker:
             else:
                 key = command_obj + command
 
+            if command == ".set_xticks" or command == ".set_yticks" or command == ".set_xlabels" or command == ".set_ylabels":
+                if line.find("minor=True"):
+                    reference_command = command+"_minor"
+
             if command == ".text" or command == ".annotate" or command == ".add_patch":
                 # if lineno in plt.keys_for_lines:
                 #    key = plt.keys_for_lines[lineno]
