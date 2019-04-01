@@ -1,15 +1,14 @@
 from __future__ import division, print_function
-import numpy as np
-import traceback
-import matplotlib.pyplot as plt
-from matplotlib.text import Text
-from matplotlib.lines import Line2D
-from matplotlib.patches import Rectangle, Ellipse
-from matplotlib.figure import Figure
-from matplotlib.axes._subplots import Axes
-import matplotlib
-import uuid
+
 import re
+import traceback
+
+import matplotlib
+from matplotlib.axes._subplots import Axes
+from matplotlib.figure import Figure
+from matplotlib.lines import Line2D
+from matplotlib.patches import Rectangle
+from matplotlib.text import Text
 from natsort import natsorted
 
 
@@ -60,6 +59,7 @@ class ChangeTracker:
     saved = True
 
     def __init__(self, figure):
+        global stack_position
         self.figure = figure
         self.edits = []
         self.last_edit = -1
@@ -71,7 +71,7 @@ class ChangeTracker:
             axes.number = index
 
         # store the position where StartPylustrator was called
-        self.stack_position = traceback.extract_stack()[-4]
+        stack_position = traceback.extract_stack()[-4]
 
         self.fig_inch_size = self.figure.get_size_inches()
 
@@ -135,10 +135,11 @@ class ChangeTracker:
         command_obj_regexes = [re.compile(r) for r in command_obj_regexes]
 
         fig = self.figure
-        header = ["fig = plt.figure(%s)" % self.figure.number, "import matplotlib as mpl", "fig.ax_dict = {ax.get_label(): ax for ax in fig.axes}"]
+        header = ["fig = plt.figure(%s)" % self.figure.number, "import matplotlib as mpl",
+                  "fig.ax_dict = {ax.get_label(): ax for ax in fig.axes}"]
 
-        block = getTextFromFile(header[0], self.stack_position)
-        for lineno, line in block:
+        block = getTextFromFile(header[0], stack_position)
+        for line in block:
             line = line.strip()
             if line == "" or line in header or line.startswith("#"):
                 continue
@@ -164,19 +165,18 @@ class ChangeTracker:
             else:
                 key = command_obj + command
 
+            # by default reference and command object are the same
+            reference_obj = command_obj
+            reference_command = command
+
             if command == ".set_xticks" or command == ".set_yticks" or command == ".set_xlabels" or command == ".set_ylabels":
                 if line.find("minor=True"):
-                    reference_command = command+"_minor"
+                    reference_command = command + "_minor"
 
+            # for new created texts, the reference object is the text and not the axis/figure
             if command == ".text" or command == ".annotate" or command == ".add_patch":
-                # if lineno in plt.keys_for_lines:
-                #    key = plt.keys_for_lines[lineno]
-                #    print("linoeno", key)
                 reference_obj, _ = re.match(r"(.*)(\..*)", key).groups()
                 reference_command = ".new"
-            else:
-                reference_obj = command_obj
-                reference_command = command
 
             command_obj = eval(command_obj)
             reference_obj = eval(reference_obj)
@@ -212,96 +212,162 @@ class ChangeTracker:
         return output
 
     def save(self):
-        header = ["fig = plt.figure(%s)" % self.figure.number, "import matplotlib as mpl", "fig.ax_dict = {ax.get_label(): ax for ax in fig.axes}"]
+        header = ["fig = plt.figure(%s)" % self.figure.number, "import matplotlib as mpl",
+                  "fig.ax_dict = {ax.get_label(): ax for ax in fig.axes}"]
 
         # block = getTextFromFile(header[0], self.stack_position)
         output = ["#% start: automatic generated code from pylustrator"]
+        # add the lines from the header
         for line in header:
             output.append(line)
-        """
-        for lineno, line in block:
-            line = line.strip()
-            if line == "":
-                continue
-            if line in header:
-                continue
-            for key in self.changes:
-                if line.startswith(key) or line.endswith(key):
-                    break
-            else:
-                output.append(line)
-        """
+        # add all lines from the changes
         for line in self.sorted_changes():
             output.append(line)
             if line.startswith("fig.add_axes"):
                 output.append(header[1])
         output.append("#% end: automatic generated code from pylustrator")
-        print("\n".join(output))
-        insertTextToFile(output, self.stack_position)
+        # print("\n".join(output))
+        insertTextToFile(output, stack_position, header[0])
         self.saved = True
-        
-        
 
-def getTextFromFile(marker, stack_pos):
-    block_active = False
-    block = []
-    last_block = -10
-    written = False
+
+def getTextFromFile(block_id, stack_pos):
+    print("getTextFromFile", ">%s<" % block_id)
+    block = None
     with open(stack_pos.filename, 'r', encoding="utf-8") as fp1:
-        for lineno, line in enumerate(fp1):
-            if block_active:
+        for lineno, line in enumerate(fp1, start=1):
+            # if we are currently reading a pylustrator block
+            if block is not None:
+                # add the line to the block
+                block.add(line)
+                # and see if we have found the end
                 if line.strip().startswith("#% end:"):
-                    block_active = False
-                    last_block = lineno
-                    if block[0][1].strip() == marker.strip():
-                        break
-                    block = []
-                block.append([lineno+1, line])
+                    block.end()
+            # if there is a new pylustrator block
             elif line.strip().startswith("#% start:"):
-                #block = block + line
-                block_active = True
-            if block_active:
+                block = Block(line)
+
+            # if we are currently reading a block, continue with the next line
+            if block is not None and not block.finished:
                 continue
-    return block
+
+            if block is not None and block.finished:
+                print("test", block.id, block_id)
+                if block.id == block_id:
+                    return block
+            block = None
+    return []
 
 
-def insertTextToFile(text, stack_pos):
-    block_active = False
-    block = ""
-    last_block = -10
+class Block:
+    id = None
+    finished = False
+
+    def __init__(self, line):
+        self.text = line
+        self.size = 1
+        self.indent = getIndent(line)
+
+    def add(self, line):
+        if self.id is None:
+            self.id = line.strip()
+        self.text += line
+        self.size += 1
+
+    def end(self):
+        self.finished = True
+
+    def __iter__(self):
+        return iter(self.text.split("\n"))
+
+
+def getIndent(line):
+    i = 0
+    for i in range(len(line)):
+        if line[i] != " " and line[i] != "\t":
+            break
+    indent = line[:i]
+    return indent
+
+
+def addLineCounter(fp):
+    fp.lineno = 0
+    write = fp.write
+
+    def write_with_linenumbers(line):
+        write(line)
+        fp.lineno += line.count("\n")
+
+    fp.write = write_with_linenumbers
+
+
+def insertTextToFile(new_block, stack_pos, figure_id_line):
+    block = None
     written = False
+    written_end = False
+    lineno_stack = None
+    # open a temporary file with the same name for writing
     with open(stack_pos.filename + ".tmp", 'w', encoding="utf-8") as fp2:
+        addLineCounter(fp2)
+        # open the current python file for reading
         with open(stack_pos.filename, 'r', encoding="utf-8") as fp1:
-            for lineno, line in enumerate(fp1):
-                if block_active:
-                    block = block + line
+            # iterate over all lines and line numbers
+            for fp1.lineno, line in enumerate(fp1, start=1):
+                # if we are currently reading a pylustrator block
+                if block is not None:
+                    # add the line to the block
+                    block.add(line)
+                    # and see if we have found the end
                     if line.strip().startswith("#% end:"):
-                        block_active = False
-                        last_block = lineno
-                        continue
+                        block.end()
+                        line = ""
+                # if there is a new pylustrator block
                 elif line.strip().startswith("#% start:"):
-                    block = block + line
-                    block_active = True
-                if block_active:
+                    block = Block(line)
+
+                # if we are currently reading a block, continue with the next line
+                if block is not None and not block.finished:
                     continue
-                # print(lineno, stack_pos.lineno, last_block)
-                if not written and (lineno == stack_pos.lineno - 1 or last_block == lineno - 1):
-                    for i in range(len(line)):
-                        if line[i] != " " and line[i] != "\t":
-                            break
-                    indent = line[:i]
-                    for line_text in text:
-                        fp2.write(indent + line_text + "\n")
-                    written = True
-                    last_block = -10
-                    block = ""
-                elif last_block == lineno - 1:
-                    fp2.write(block)
+
+                # the current block is finished
+                if block is not None:
+                    # either it is the block we want to save, then replace the old block with the new
+                    if block.id == figure_id_line:
+                        # remember that we wrote the new block
+                        written = fp2.lineno + 1
+                        # write the new block to the target file instead of the current block
+                        indent = block.indent
+                        for line_text in new_block:
+                            fp2.write(indent + line_text + "\n")
+                        written_end = fp2.lineno
+                    # or it is another block, then we just write it
+                    else:
+                        # the we just copy the current block into the new file
+                        fp2.write(block.text)
+                    # we already handled this block
+                    block = None
+
+                # if we are at the entry point (e.g. plt.show())
+                if fp1.lineno == stack_pos.lineno:
+                    # and if we not have written the new block
+                    if not written:
+                        written = fp2.lineno + 1
+                        # we write it now to the target file
+                        indent = getIndent(line)
+                        for line_text in new_block:
+                            fp2.write(indent + line_text + "\n")
+                        written_end = fp2.lineno
+                    # and we store the position where we will write the entry point (e.g. the plt.show())
+                    lineno_stack = fp2.lineno + 1
+                # transfer the current line to the new file
                 fp2.write(line)
 
+    # update the position of the entry point, as we have inserted stuff in the new file which can change the position
+    stack_pos.lineno = lineno_stack
+
+    # now copy the temporary file over the old file
     with open(stack_pos.filename + ".tmp", 'r', encoding="utf-8") as fp2:
         with open(stack_pos.filename, 'w', encoding="utf-8") as fp1:
             for line in fp2:
                 fp1.write(line)
-    print("Save to", stack_pos.filename, "line", stack_pos.lineno)
-
+    print("Save", figure_id_line, "to", stack_pos.filename, "line %d-%d" % (written, written_end))
