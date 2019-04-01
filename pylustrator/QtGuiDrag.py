@@ -1079,7 +1079,7 @@ class QTickEdit(QtWidgets.QWidget):
         self.label = QtWidgets.QLabel("Ticks can be specified, one tick pre line.\nOptionally a label can be provided, e.g. 1 \"First\",")
         self.layout.addWidget(self.label)
 
-        self.layout2 = QtWidgets.QHBoxLayout(self)
+        self.layout2 = QtWidgets.QHBoxLayout()
         self.layout.addLayout(self.layout2)
 
         self.input_ticks = TextWidget(self.layout2, axis + "-Ticks:", multiline=True, horizontal=False)
