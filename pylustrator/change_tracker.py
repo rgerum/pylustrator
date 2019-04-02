@@ -232,7 +232,6 @@ class ChangeTracker:
 
 
 def getTextFromFile(block_id, stack_pos):
-    print("getTextFromFile", ">%s<" % block_id)
     block = None
     with open(stack_pos.filename, 'r', encoding="utf-8") as fp1:
         for lineno, line in enumerate(fp1, start=1):
@@ -252,7 +251,6 @@ def getTextFromFile(block_id, stack_pos):
                 continue
 
             if block is not None and block.finished:
-                print("test", block.id, block_id)
                 if block.id == block_id:
                     return block
             block = None
@@ -370,4 +368,4 @@ def insertTextToFile(new_block, stack_pos, figure_id_line):
         with open(stack_pos.filename, 'w', encoding="utf-8") as fp1:
             for line in fp2:
                 fp1.write(line)
-    print("Save", figure_id_line, "to", stack_pos.filename, "line %d-%d" % (written, written_end))
+    print("save", figure_id_line, "to", stack_pos.filename, "line %d-%d" % (written, written_end))
