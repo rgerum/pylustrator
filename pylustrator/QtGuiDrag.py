@@ -535,7 +535,15 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
 
     def OpenDialog(self):
         # get new color from color picker
-        color = QtWidgets.QColorDialog.getColor(QtGui.QColor(*tuple(mpl.colors.to_rgba_array(self.getColor())[0]*255)), self.parent(), "Choose Color")
+        current_color = QtGui.QColor(*tuple(mpl.colors.to_rgba_array(self.getColor())[0]*255))
+        self.dialog = QtWidgets.QColorDialog(current_color, self.parent())
+        for index, color in enumerate(plt.rcParams['axes.prop_cycle'].by_key()['color']):
+            self.dialog.setCustomColor(index, QtGui.QColor(color))
+        self.dialog.open(self.dialog_finished)
+
+    def dialog_finished(self):
+        color = self.dialog.selectedColor()
+        self.dialog = None
         # if a color is set, apply it
         if color.isValid():
             color = mpl.colors.to_hex(color.getRgbF())
