@@ -359,7 +359,7 @@ class GrabbableRectangleSelection(GrabFunctions):
             for target in self.targets[::-1]:
                 self.figure.change_tracker.removeElement(target.target)
             self.figure.canvas.draw()
-        print("event", event.key)
+        #print("event", event.key)
 
 
 class DragManager:
