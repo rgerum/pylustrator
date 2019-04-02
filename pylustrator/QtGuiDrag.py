@@ -535,18 +535,35 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
 
     def OpenDialog(self):
         # get new color from color picker
-        current_color = QtGui.QColor(*tuple(mpl.colors.to_rgba_array(self.getColor())[0]*255))
-        self.dialog = QtWidgets.QColorDialog(current_color, self.parent())
+        self.current_color = QtGui.QColor(*tuple(mpl.colors.to_rgba_array(self.getColor())[0]*255))
+        self.dialog = QtWidgets.QColorDialog(self.current_color, self.parent())
+        self.dialog.setOptions(QtWidgets.QColorDialog.ShowAlphaChannel)
         for index, color in enumerate(plt.rcParams['axes.prop_cycle'].by_key()['color']):
             self.dialog.setCustomColor(index, QtGui.QColor(color))
         self.dialog.open(self.dialog_finished)
+        self.dialog.currentColorChanged.connect(self.dialog_changed)
+        self.dialog.rejected.connect(self.dialog_rejected)
+
+    def dialog_rejected(self):
+        color = self.current_color
+        color = color.name()+"%0.2x" % color.alpha()
+        self.setColor(color)
+        self.valueChanged.emit(self.color)
+
+    def dialog_changed(self):
+        color = self.dialog.currentColor()
+        # if a color is set, apply it
+        if color.isValid():
+            color = color.name()+"%0.2x" % color.alpha()
+            self.setColor(color)
+            self.valueChanged.emit(self.color)
 
     def dialog_finished(self):
         color = self.dialog.selectedColor()
         self.dialog = None
         # if a color is set, apply it
         if color.isValid():
-            color = mpl.colors.to_hex(color.getRgbF())
+            color = color.name()+"%0.2x" % color.alpha()
             self.setColor(color)
             self.valueChanged.emit(self.color)
 
@@ -554,7 +571,11 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
         # display and save the new color
         if value is None:
             value = "#FF0000FF"
-        self.button.setStyleSheet("background-color: %s;" % value)
+        self.button.setAttribute(QtCore.Qt.WA_TranslucentBackground, True)
+        if len(value) == 9:
+            self.button.setStyleSheet("background-color: rgba(%d, %d, %d, %d%%);" % (int(value[1:3], 16), int(value[3:5], 16), int(value[5:7], 16), int(value[7:], 16)*100/255))
+        else:
+            self.button.setStyleSheet("background-color: %s;" % value)
         self.color = value
 
     def getColor(self):
@@ -566,7 +587,10 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
 
     def set(self, value):
         try:
-            self.setColor(mpl.colors.to_hex(value))
+            if len(value) == 4:
+                self.setColor(mpl.colors.to_hex(value) + "%02X" % int(value[-1]*255))
+            else:
+                self.setColor(mpl.colors.to_hex(value))
         except ValueError:
             self.setColor(None)
 
