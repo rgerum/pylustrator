@@ -1,7 +1,7 @@
 """ Colormap """
 import numpy as np
 from matplotlib.colors import Colormap, ListedColormap, to_rgb
-from skimage.color import rgb2lab, lab2rgb
+#from skimage.color import rgb2lab, lab2rgb
 
 
 class CmapColor(list):
