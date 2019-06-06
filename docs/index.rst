@@ -23,6 +23,14 @@ Just get pylustrator over the pip installation:
 Usage
 -----
 
+.. raw:: html
+
+    <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; height: auto;">
+        <iframe src="//www.youtube.com/embed/xXPI4LLrNuM" frameborder="0" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe>
+    </div>
+    <br/>
+
+
 Using pylustrator is very easy and does not require substantial modifications to your code. Just add
 
 .. code-block:: python
