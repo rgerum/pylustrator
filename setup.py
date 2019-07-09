@@ -10,6 +10,7 @@ setup(name='pylustrator',
       author_email='richard.gerum@fau.de',
       packages=['pylustrator'],
       install_requires=[
+          'natsort',
           'numpy',
           'matplotlib',
           'pyqt5',

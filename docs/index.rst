@@ -57,18 +57,23 @@ You can test pylustrator with the following example code:
     # activate pylustrator
     pylustrator.start()
 
-    # some test data
-    x = np.arange(100)
-    y1 = plt.plot(x, x**2)
-    y2 = plt.plot(x, 0.5*x**2+x)
+    # build plots as you normally would
+    np.random.seed(1)
+    t = np.arange(0.0, 2, 0.001)
+    y = 2 * np.sin(np.pi * t)
+    a, b = np.random.normal(loc=(5., 3.), scale=(2., 4.), size=(100,2)).T
+    b += a
 
-    # create a plot
-    plt.subplot(121)
-    plt.plot(x, y1)
+    plt.figure(1)
+    plt.subplot(131)
+    plt.plot(t, y)
 
-    # create another plot
-    plt.subplot(122)
-    plt.plot(x, x**3)
+    plt.subplot(132)
+    plt.plot(a, b, "o")
+
+    plt.subplot(133)
+    plt.bar(0, np.mean(a))
+    plt.bar(1, np.mean(b))
 
     # show the plot in a pylustrator window
     plt.show()
@@ -91,6 +96,11 @@ python script (before your ``plt.show()``) that defines these changes:
     fig.axes[1].set_ylabel("data y")
     fig.axes[1].set_ylim(-40.0, 90.0)
     #% end: automatic generated code from pylustrator
+
+.. note::
+   Because pylustrator can save optionally save changes you've made in the GUI to update your source
+   code, it cannot be used from a shell or a notebook. To use pylustrator, call it directly from a
+   python file and use the command line to execute.
 
 The good thing is that this generated code is plain matplotlib code, so it will still work when you remove pylustrator
 from your code! This is especially useful if you want to distribute your code and do not want to require pylustrator as
