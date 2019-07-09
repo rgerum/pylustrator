@@ -25,4 +25,4 @@ from .helper_functions import fig_text, add_axes, add_image, despine, changeFigu
 from .QtGui import initialize as StartColorChooser
 from .lab_colormap import LabColormap
 
-__version__ = '0.9.2'
+__version__ = '0.9.3'
