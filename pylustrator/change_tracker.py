@@ -233,6 +233,10 @@ class ChangeTracker:
 
 def getTextFromFile(block_id, stack_pos):
     block = None
+
+    if not stack_pos.filename.endswith('.py'):
+        raise RuntimeError("pylustrator must used in a python file (*.py); not a shell session or notebook.")
+
     with open(stack_pos.filename, 'r', encoding="utf-8") as fp1:
         for lineno, line in enumerate(fp1, start=1):
             # if we are currently reading a pylustrator block
