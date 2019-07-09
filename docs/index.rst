@@ -121,3 +121,11 @@ Citing Pylustrator
 If you use Pylustrator for your publications I would highly appreciate it if you cite the Pylustrator:
 
 * Richard Gerum. (2018, June 21). `"Pylustrator: An interactive interface to style matplotlib plots." <https://zenodo.org/record/1294663>`_ Zenodo. doi:10.5281/zenodo.1294663
+
+License
+-------
+
+Pylustrator is released under the `GPLv3 <https://choosealicense.com/licenses/gpl-3.0/>`_ license. The generated output
+code of Pylustrator can be freely used according to the `MIT <https://choosealicense.com/licenses/mit/>`_ license, but as
+it relys on Matplotlib also the `Matplotlib License <https://matplotlib.org/users/license.html>`_ has to be taken into
+account.

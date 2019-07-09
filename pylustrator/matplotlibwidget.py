@@ -2,22 +2,22 @@
 # -*- coding: utf-8 -*-
 # matplotlibwidget.py
 
-# Copyright (c) 2015-2016, Richard Gerum, Sebastian Richter
+# Copyright (c) 2016-2019, Richard Gerum
 #
-# This file is part of ClickPoints.
+# This file is part of Pylustrator.
 #
-# ClickPoints is free software: you can redistribute it and/or modify
+# Pylustrator is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# ClickPoints is distributed in the hope that it will be useful,
+# Pylustrator is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
+# along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
 """
 MatplotlibWidget
