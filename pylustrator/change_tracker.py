@@ -150,6 +150,7 @@ class ChangeTracker:
                                r"\.ax_dict\[\"[^\"]*\"\]",
                                r"\.axes\[\d*\]",
                                r"\.texts\[\d*\]",
+                               r"\.lines\[\d*\]",
                                r"\.patches\[\d*\]",
                                r"\.get_legend()",
                                ]
