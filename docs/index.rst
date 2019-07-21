@@ -42,41 +42,12 @@ Using pylustrator is very easy and does not require substantial modifications to
 before creating your first figure in your code. When calling ``plt.show()`` the plot will be displayed in a pylustrator
 window.
 
-You can test pylustrator with the following example code:
+You can test pylustrator with the following example code `example_pylustrator.py <example_pylustrator.py>`_:
 
-.. code-block:: python
-    :linenos:
-
-    # import matplotlib and numpy as usual
-    import matplotlib.pyplot as plt
-    import numpy as np
-
-    # now import pylustrator
-    import pylustrator
-
-    # activate pylustrator
-    pylustrator.start()
-
-    # build plots as you normally would
-    np.random.seed(1)
-    t = np.arange(0.0, 2, 0.001)
-    y = 2 * np.sin(np.pi * t)
-    a, b = np.random.normal(loc=(5., 3.), scale=(2., 4.), size=(100,2)).T
-    b += a
-
-    plt.figure(1)
-    plt.subplot(131)
-    plt.plot(t, y)
-
-    plt.subplot(132)
-    plt.plot(a, b, "o")
-
-    plt.subplot(133)
-    plt.bar(0, np.mean(a))
-    plt.bar(1, np.mean(b))
-
-    # show the plot in a pylustrator window
-    plt.show()
+.. literalinclude:: example_pylustrator.py
+   :language: python
+   :emphasize-lines: 6,9
+   :linenos:
 
 Saving by pressing ``Ctrl+S`` or confirming to save when closing the window will add some lines of code at the end of your
 python script (before your ``plt.show()``) that defines these changes:
