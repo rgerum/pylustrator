@@ -1888,13 +1888,17 @@ class PlotWindow(QtWidgets.QWidget):
         #self.layout_plot.addStretch()
         #self.layout_main.addStretch()
 
+        from .QtGui import ColorChooserWidget
+        self.colorWidget = ColorChooserWidget(self, self.canvas)
+        self.layout_main.addWidget(self.colorWidget)
+
     def actionSave(self):
         self.fig.change_tracker.save()
-        if getattr(self.fig, "_last_saved_figure"):
+        if getattr(self.fig, "_last_saved_figure", None):
             self.fig.savefig(self.fig._last_saved_figure)
 
     def actionSaveImage(self):
-        path = QtWidgets.QFileDialog.getSaveFileName(self, "Save Image", getattr(self.fig, "_last_saved_figure"),
+        path = QtWidgets.QFileDialog.getSaveFileName(self, "Save Image", getattr(self.fig, "_last_saved_figure", None),
                                                 "Images (*.png *.jpg *.pdf)")
         if isinstance(path, tuple):
             path = str(path[0])
@@ -2003,6 +2007,7 @@ class PlotWindow(QtWidgets.QWidget):
     def showEvent(self, event):
         self.fitToView()
         self.updateRuler()
+        self.colorWidget.updateColors()
 
     def resizeEvent(self, event):
         if self.fitted_to_view:
