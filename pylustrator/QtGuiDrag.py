@@ -92,6 +92,13 @@ def initialize():
     #Figure.annotate = wrap(Figure.annotate, fig=True, text="New Annotation")
     plt.keys_for_lines = keys_for_lines
 
+    # store the last figure save filename
+    sf = Figure.savefig
+    def savefig(self, filename, *args, **kwargs):
+        self._last_saved_figure = filename
+        sf(self, filename, *args, **kwargs)
+    Figure.savefig = savefig
+
 
 def show():
     global figures
@@ -1721,6 +1728,39 @@ class QItemProperties(QtWidgets.QWidget):
         self.targetChanged.emit(element)
 
 
+class InfoDialog(QtWidgets.QWidget):
+    def __init__(self, parent):
+        QtWidgets.QWidget.__init__(self)
+        self.setWindowTitle("Pylustrator - Info")
+        self.setWindowIcon(QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", "logo.ico")))
+        self.layout = QtWidgets.QVBoxLayout(self)
+
+        self.label = QtWidgets.QLabel("")
+
+        pixmap = QtGui.QPixmap(os.path.join(os.path.dirname(__file__), "icons", "logo.png"))
+        self.label.setPixmap(pixmap)
+        self.label.setMask(pixmap.mask())
+        self.layout.addWidget(self.label)
+
+        import pylustrator
+        self.label = QtWidgets.QLabel("<b>Version "+pylustrator.__version__+"</b>")
+        font = self.label.font()
+        font.setPointSize(16)
+        self.label.setFont(font)
+        self.label.setAlignment(QtCore.Qt.AlignCenter)
+        self.layout.addWidget(self.label)
+
+        self.label = QtWidgets.QLabel("Copyright © 2016-2019, Richard Gerum")
+        self.label.setAlignment(QtCore.Qt.AlignCenter)
+        self.layout.addWidget(self.label)
+
+        self.label = QtWidgets.QLabel("<a href=https://pylustrator.readthedocs.io>Documentation</a>")
+        self.label.setAlignment(QtCore.Qt.AlignCenter)
+        self.label.setTextInteractionFlags(QtCore.Qt.TextBrowserInteraction)
+        self.label.setOpenExternalLinks(True)
+        self.layout.addWidget(self.label)
+
+
 class PlotWindow(QtWidgets.QWidget):
     fitted_to_view = False
 
@@ -1765,7 +1805,35 @@ class PlotWindow(QtWidgets.QWidget):
         # widget layout and elements
         self.setWindowTitle("Figure %s - Pylustrator" % number)
         self.setWindowIcon(QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", "logo.ico")))
-        self.layout_main = QtWidgets.QHBoxLayout(self)
+        layout_parent = QtWidgets.QVBoxLayout(self)
+
+        self.menuBar = QtWidgets.QMenuBar()
+        fileMenu = self.menuBar.addMenu("&File")
+
+        openAct = QtWidgets.QAction("&Save", self)
+        openAct.setShortcut("Ctrl+S")
+        openAct.triggered.connect(self.actionSave)
+        fileMenu.addAction(openAct)
+
+        openAct = QtWidgets.QAction("Save &Image...", self)
+        openAct.setShortcut("Ctrl+I")
+        openAct.triggered.connect(self.actionSaveImage)
+        fileMenu.addAction(openAct)
+
+        openAct = QtWidgets.QAction("Exit", self)
+        openAct.triggered.connect(self.close)
+        openAct.setShortcut("Ctrl+Q")
+        fileMenu.addAction(openAct)
+
+        infoAct = QtWidgets.QAction("&Info", self)
+        infoAct.triggered.connect(self.showInfo)
+
+        self.menuBar.addAction(infoAct)
+        layout_parent.addWidget(self.menuBar)
+        layout_parent.setContentsMargins(0, 0, 0, 0)
+
+        self.layout_main = QtWidgets.QHBoxLayout()
+        layout_parent.addLayout(self.layout_main)
 
         #
         self.layout_tools = QtWidgets.QVBoxLayout()
@@ -1819,6 +1887,27 @@ class PlotWindow(QtWidgets.QWidget):
 
         #self.layout_plot.addStretch()
         #self.layout_main.addStretch()
+
+    def actionSave(self):
+        self.fig.change_tracker.save()
+        if getattr(self.fig, "_last_saved_figure"):
+            self.fig.savefig(self.fig._last_saved_figure)
+
+    def actionSaveImage(self):
+        path = QtWidgets.QFileDialog.getSaveFileName(self, "Save Image", getattr(self.fig, "_last_saved_figure"),
+                                                "Images (*.png *.jpg *.pdf)")
+        if isinstance(path, tuple):
+            path = str(path[0])
+        else:
+            path = str(path)
+        if not path:
+            return
+        self.fig.savefig(path)
+        print("Saved plot image as", path)
+
+    def showInfo(self):
+        self.info_dialog = InfoDialog(self)
+        self.info_dialog.show()
 
     def updateRuler(self):
         trans = transforms.Affine2D().scale(1./2.54, 1./2.54) + self.fig.dpi_scale_trans
