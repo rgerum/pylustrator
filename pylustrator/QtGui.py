@@ -108,7 +108,7 @@ def addChildren(color_artists, parent):
         for color_type_name in ["edgecolor", "facecolor", "color", "markeredgecolor", "markerfacecolor"]:
             colors = getattr(artist, "get_" + color_type_name, lambda: None)()
             # ignore colors that are not set
-            if colors is None:
+            if colors is None or len(colors) == 0:
                 continue
 
             # test if it is a colormap
