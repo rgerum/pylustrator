@@ -87,7 +87,7 @@ class QDragableColor(QtWidgets.QLineEdit):
     def openDialog(self):
         # get new color from color picker
         qcolor = QtGui.QColor(*np.array(mpl.colors.to_rgb(self.getColor())) * 255)
-        color = QtWidgets.QColorDialog.getColor(qcolor)
+        color = QtWidgets.QColorDialog.getColor(qcolor, self.parent())
         # if a color is set, apply it
         if color.isValid():
             color = "#%02x%02x%02x" % color.getRgb()[:3]
