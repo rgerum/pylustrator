@@ -234,12 +234,49 @@ class Linkable:
     def getSerialized(self):
         return ""
 
+
+class FreeNumberInput(QtWidgets.QLineEdit):
+    send_signal = True
+    valueChanged = QtCore.Signal(float)
+
+    def __init__(self):
+        QtWidgets.QLineEdit.__init__(self)
+        self.textChanged.connect(self.emitValueChanged)
+
+    def emitValueChanged(self, value):
+        if self.send_signal:
+            try:
+                value = self.value()
+                self.valueChanged.emit(value)
+                self.setStyleSheet("")
+            except TypeError:
+                self.setStyleSheet("background: #d56060; border: red")
+                pass
+
+    def value(self):
+        try:
+            return float(self.text())
+        except ValueError:
+            try:
+                return float(self.text().replace(",", "."))
+            except ValueError:
+                return None
+
+    def setValue(self, value):
+        self.send_signal = False
+        try:
+            self.setText(str(value))
+            self.setCursorPosition(0)
+        finally:
+            self.send_signal = True
+
+
 class DimensionsWidget(QtWidgets.QWidget, Linkable):
     valueChanged = QtCore.Signal(tuple)
     transform = None
     noSignal = False
 
-    def __init__(self, layout, text, join, unit):
+    def __init__(self, layout, text, join, unit, free=False):
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
         self.layout = QtWidgets.QHBoxLayout(self)
@@ -247,24 +284,30 @@ class DimensionsWidget(QtWidgets.QWidget, Linkable):
         self.layout.addWidget(self.text)
         self.layout.setContentsMargins(0, 0, 0, 0)
 
-        self.input1 = QtWidgets.QDoubleSpinBox()
-        self.input1.setSuffix(" "+unit)
-        self.input1.setSingleStep(0.1)
+        if free:
+            self.input1 = FreeNumberInput()
+        else:
+            self.input1 = QtWidgets.QDoubleSpinBox()
+            self.input1.setSuffix(" "+unit)
+            self.input1.setSingleStep(0.1)
+            self.input1.setMaximum(99999)
+            self.input1.setMinimum(-99999)
         self.input1.valueChanged.connect(self.onValueChanged)
-        self.input1.setMaximum(99999)
-        self.input1.setMinimum(-99999)
         self.layout.addWidget(self.input1)
 
         self.text2 = QtWidgets.QLabel(join)
         self.text2.setMaximumWidth(self.text2.fontMetrics().width(join))
         self.layout.addWidget(self.text2)
 
-        self.input2 = QtWidgets.QDoubleSpinBox()
-        self.input2.setSuffix(" "+unit)
-        self.input2.setSingleStep(0.1)
+        if free:
+            self.input2 = FreeNumberInput()
+        else:
+            self.input2 = QtWidgets.QDoubleSpinBox()
+            self.input2.setSuffix(" "+unit)
+            self.input2.setSingleStep(0.1)
+            self.input2.setMaximum(99999)
+            self.input2.setMinimum(-99999)
         self.input2.valueChanged.connect(self.onValueChanged)
-        self.input2.setMaximum(99999)
-        self.input2.setMinimum(-99999)
         self.layout.addWidget(self.input2)
 
         self.editingFinished = self.valueChanged
@@ -1333,7 +1376,7 @@ class QAxesProperties(QtWidgets.QWidget):
         self.input_label = TextWidget(self.layout, axis+"-Label:")
         self.input_label.link(axis+"label", signal=self.targetChanged)
 
-        self.input_lim = DimensionsWidget(self.layout, axis+"-Lim:", "-", "")
+        self.input_lim = DimensionsWidget(self.layout, axis+"-Lim:", "-", "", free=True)
         self.input_lim.link(axis+"lim", signal=self.targetChanged)
 
         self.button_ticks = QtWidgets.QPushButton(QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", "ticks.ico")), "")
