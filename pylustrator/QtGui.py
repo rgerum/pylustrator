@@ -191,6 +191,15 @@ class ColorChooserWidget(QtWidgets.QWidget):
         self.layout_colors2 = QtWidgets.QVBoxLayout()
         self.layout_right.addLayout(self.layout_colors2)
 
+        self.layout_buttons = QtWidgets.QVBoxLayout()
+        self.layout_right.addLayout(self.layout_buttons)
+        self.button_save = QtWidgets.QPushButton("Save Colors")
+        self.button_save.clicked.connect(self.saveColors)
+        self.layout_buttons.addWidget(self.button_save)
+        self.button_load = QtWidgets.QPushButton("Load Colors")
+        self.button_load.clicked.connect(self.loadColors)
+        self.layout_buttons.addWidget(self.button_load)
+
         self.canvas = canvas
 
         # add a text widget to allow easy copy and paste
@@ -198,6 +207,32 @@ class ColorChooserWidget(QtWidgets.QWidget):
         self.colors_text_widget.setAcceptRichText(False)
         self.layout_colors2.addWidget(self.colors_text_widget)
         self.colors_text_widget.textChanged.connect(self.colors_changed)
+
+    def saveColors(self):
+        path = QtWidgets.QFileDialog.getSaveFileName(self, "Save Color File", getattr(self, "last_save_folder", None),
+                                                     "Text File *.txt")
+        if isinstance(path, tuple):
+            path = str(path[0])
+        else:
+            path = str(path)
+        if not path:
+            return
+        self.last_save_folder = path
+        with open(path, "w") as fp:
+            fp.write(self.colors_text_widget.toPlainText())
+
+    def loadColors(self):
+        path = QtWidgets.QFileDialog.getOpenFileName(self, "Open Color File", getattr(self, "last_save_folder", None),
+                                                     "Text File *.txt")
+        if isinstance(path, tuple):
+            path = str(path[0])
+        else:
+            path = str(path)
+        if not path:
+            return
+        self.last_save_folder = path
+        with open(path, "r") as fp:
+            self.colors_text_widget.setText(fp.read())
 
     def addColorButton(self, color, basecolor=None):
         button = QDragableColor(mpl.colors.to_hex(color))
