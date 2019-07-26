@@ -181,15 +181,23 @@ def figureSwapColor(figure, new_color, color_base):
                     cmap = plt.get_cmap(new_color)
                 else:
                     getattr(artist, "set_" + color_type_name)(new_color)
+                    artist.figure.change_tracker.addChange(artist,
+                                                           ".set_" + color_type_name + "(\"%s\")" % (new_color,))
                     continue
             # use the attributes setter method
             getattr(artist, "set_" + color_type_name)(cmap(value))
+            artist.figure.change_tracker.addChange(artist, ".set_" + color_type_name + "(plt.get_cmap(\"%s\")(%s))" % (cmap.name, str(value)))
         else:
             if new_color in maps:
-                new_color = plt.get_cmap(new_color)(0)
-            # use the attributes setter method
-            getattr(artist, "set_" + color_type_name)(new_color)
-            artist.figure.change_tracker.addChange(artist, ".set_"+color_type_name+"(\"%s\")" % (new_color,))
+                cmap = plt.get_cmap(new_color)
+                getattr(artist, "set_" + color_type_name)(cmap(0))
+                artist.figure.change_tracker.addChange(artist,
+                                                       ".set_" + color_type_name + "(plt.get_cmap(\"%s\")(%s))" % (
+                                                       cmap.name, str(0)))
+            else:
+                # use the attributes setter method
+                getattr(artist, "set_" + color_type_name)(new_color)
+                artist.figure.change_tracker.addChange(artist, ".set_"+color_type_name+"(\"%s\")" % (new_color,))
 
 """ Window """
 class ColorChooserWidget(QtWidgets.QWidget):
