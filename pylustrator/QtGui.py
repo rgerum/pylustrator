@@ -245,7 +245,7 @@ class ColorChooserWidget(QtWidgets.QWidget):
     def updateColors(self):
         # add recursively all artists of the figure
         figureListColors(self.canvas.figure)
-        self.color_artists = self.canvas.figure.color_artists
+        self.color_artists = list(self.canvas.figure.color_artists)
 
         # iterate over all colors
         self.color_buttons = {}
@@ -259,10 +259,14 @@ class ColorChooserWidget(QtWidgets.QWidget):
         #    color_button.set
         self.color_buttons_list = []
 
-        for color in self.color_artists:
+        for color in self.color_artists[:10]:
             self.addColorButton(color, color)
 
-        self.colors_text_widget.setText("\n".join([mpl.colors.to_hex(color) for color in self.color_artists]))
+        self.trigger_no_update = True
+        try:
+            self.colors_text_widget.setText("\n".join([mpl.colors.to_hex(color) for color in self.color_artists[:10]]))
+        finally:
+            self.trigger_no_update = False
 
         # update the canvas dimensions
         self.canvas.updateGeometry()
