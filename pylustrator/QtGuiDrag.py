@@ -136,8 +136,9 @@ def patchColormapsWithMetaInfo():
 
     def new_call(self, *args, **kwargs):
         c = cm_call(self, *args, **kwargs)
-        c = CmapColor(c)
-        c.setMeta(args[0], self.name)
+        if isinstance(c, (tuple, list)):
+            c = CmapColor(c)
+            c.setMeta(args[0], self.name)
         return c
 
     Colormap.__call__ = new_call
