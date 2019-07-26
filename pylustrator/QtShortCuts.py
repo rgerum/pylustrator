@@ -45,15 +45,30 @@ class QDragableColor(QtWidgets.QLineEdit):
         self.setAlignment(QtCore.Qt.AlignHCenter)
         self.setColor(value, True)
 
+    def getBackground(self):
+        import matplotlib.pyplot as plt
+        import matplotlib as mpl
+        try:
+            cmap = plt.get_cmap(self.color)
+        except:
+            return ""
+        text = "background-color: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0, "
+        N = 10
+        for i in range(N):
+            i = i / (N - 1)
+            text += "stop: %.2f %s, " % (i, mpl.colors.to_hex(cmap(i)))
+        text = text[:-2] + ");"
+        return text
+
     def setColor(self, value, no_signal=False):
         # display and save the new color
-        if value in self.maps:
-            self.setStyleSheet("text-align: center; border: 2px solid black")
-        else:
-            self.setStyleSheet("text-align: center; background-color: %s; border: 2px solid black" % value)
         self.color = value
         self.setText(value)
         self.color_changed.emit(value)
+        if value in self.maps:
+            self.setStyleSheet("text-align: center; border: 2px solid black; "+self.getBackground())
+        else:
+            self.setStyleSheet("text-align: center; background-color: %s; border: 2px solid black" % value)
 
     def getColor(self):
         # return the color
@@ -73,7 +88,7 @@ class QDragableColor(QtWidgets.QLineEdit):
             self.setText(self.color)
             self.setDisabled(False)
             if self.color in self.maps:
-                self.setStyleSheet("text-align: center; border: 2px solid black")
+                self.setStyleSheet("text-align: center; border: 2px solid black; "+self.getBackground())
             else:
                 self.setStyleSheet("text-align: center; background-color: %s; border: 2px solid black" % self.color)
         elif event.button() == QtCore.Qt.RightButton:
@@ -83,13 +98,13 @@ class QDragableColor(QtWidgets.QLineEdit):
         if event.mimeData().hasFormat("text/plain") and event.source() != self:
             event.acceptProposedAction()
             if self.color in self.maps:
-                self.setStyleSheet("border: 2px solid red")
+                self.setStyleSheet("border: 2px solid red; "+self.getBackground())
             else:
                 self.setStyleSheet("background-color: %s; border: 2px solid red" % self.color)
 
     def dragLeaveEvent(self, event):
         if self.color in self.maps:
-            self.setStyleSheet("border: 2px solid black")
+            self.setStyleSheet("border: 2px solid black; "+self.getBackground())
         else:
             self.setStyleSheet("background-color: %s; border: 2px solid black" % self.color)
 
