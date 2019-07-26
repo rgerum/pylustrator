@@ -1581,7 +1581,10 @@ class QItemProperties(QtWidgets.QWidget):
         self.tree.updateEntry(self.element, update_children=True)
         self.fig.figure_dragger.make_dragable(text)
         self.fig.canvas.draw()
-        self.fig.figure_dragger.select_element(text)
+        self.fig.figure_dragger.on_deselect(None)
+        self.fig.figure_dragger.selection.clear_targets()
+        if isinstance(self.element, Axes):
+            self.fig.figure_dragger.select_element(text)
         self.setElement(text)
         self.input_text.input1.selectAll()
         self.input_text.input1.setFocus()
