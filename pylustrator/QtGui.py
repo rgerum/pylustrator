@@ -158,13 +158,16 @@ def figureListColors(figure):
 def figureSwapColor(figure, new_color, color_base):
     if getattr(figure, "color_artists", None) is None:
         figureListColors(figure)
+    changed_cmaps = []
     for data in figure.color_artists[color_base]:
         # get the data
         color_type_name, artist, value, cmap, index = data
         # if the color is part of a colormap, update the colormap
         if cmap:
             # update colormap
-            cmap.set_color(new_color, index)
+            if cmap not in changed_cmaps:
+                cmap.set_color(new_color, index)
+                changed_cmaps.append(cmap)
             # use the attributes setter method
             getattr(artist, "set_" + color_type_name)(cmap(value))
         else:
@@ -174,6 +177,8 @@ def figureSwapColor(figure, new_color, color_base):
 
 """ Window """
 class ColorChooserWidget(QtWidgets.QWidget):
+    trigger_no_update = False
+
     def __init__(self, parent, canvas):
         QtWidgets.QWidget.__init__(self)
         # initialize color artist dict
@@ -272,6 +277,8 @@ class ColorChooserWidget(QtWidgets.QWidget):
         self.canvas.updateGeometry()
 
     def colors_changed(self):
+        if self.trigger_no_update:
+            return
         # when the colors in the text edit changed
         for index, color in enumerate(self.colors_text_widget.toPlainText().split("\n")):
             try:
