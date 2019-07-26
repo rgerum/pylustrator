@@ -39,13 +39,18 @@ class QDragableColor(QtWidgets.QLineEdit):
 
     def __init__(self, value):
         QtWidgets.QLineEdit.__init__(self, value)
+        import matplotlib.pyplot as plt
+        self.maps = plt.colormaps()
         self.setAcceptDrops(True)
         self.setAlignment(QtCore.Qt.AlignHCenter)
         self.setColor(value, True)
 
     def setColor(self, value, no_signal=False):
         # display and save the new color
-        self.setStyleSheet("text-align: center; background-color: %s; border: 2px solid black" % value)
+        if value in self.maps:
+            self.setStyleSheet("text-align: center; border: 2px solid black")
+        else:
+            self.setStyleSheet("text-align: center; background-color: %s; border: 2px solid black" % value)
         self.color = value
         self.setText(value)
         self.color_changed.emit(value)
@@ -67,17 +72,26 @@ class QDragableColor(QtWidgets.QLineEdit):
             drag.exec()
             self.setText(self.color)
             self.setDisabled(False)
-            self.setStyleSheet("text-align: center; background-color: %s; border: 2px solid black" % self.color)
+            if self.color in self.maps:
+                self.setStyleSheet("text-align: center; border: 2px solid black")
+            else:
+                self.setStyleSheet("text-align: center; background-color: %s; border: 2px solid black" % self.color)
         elif event.button() == QtCore.Qt.RightButton:
             self.openDialog()
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasFormat("text/plain") and event.source() != self:
             event.acceptProposedAction()
-            self.setStyleSheet("background-color: %s; border: 2px solid red" % self.color)
+            if self.color in self.maps:
+                self.setStyleSheet("border: 2px solid red")
+            else:
+                self.setStyleSheet("background-color: %s; border: 2px solid red" % self.color)
 
     def dragLeaveEvent(self, event):
-        self.setStyleSheet("background-color: %s; border: 2px solid black" % self.color)
+        if self.color in self.maps:
+            self.setStyleSheet("border: 2px solid black")
+        else:
+            self.setStyleSheet("background-color: %s; border: 2px solid black" % self.color)
 
     def dropEvent(self, event):
         color = event.source().getColor()
@@ -85,13 +99,20 @@ class QDragableColor(QtWidgets.QLineEdit):
         self.setColor(color)
 
     def openDialog(self):
-        # get new color from color picker
-        qcolor = QtGui.QColor(*np.array(mpl.colors.to_rgb(self.getColor())) * 255)
-        color = QtWidgets.QColorDialog.getColor(qcolor, self.parent())
-        # if a color is set, apply it
-        if color.isValid():
-            color = "#%02x%02x%02x" % color.getRgb()[:3]
-            self.setColor(color)
+        if self.color in self.maps:
+            colormap, selected = QtWidgets.QInputDialog.getItem(self.parent(), "Select Colormap", "Colormap:", self.maps,
+                                                                self.maps.index(self.color), False)
+            if selected is False:
+                return
+            self.setColor(colormap)
+        else:
+            # get new color from color picker
+            qcolor = QtGui.QColor(*np.array(mpl.colors.to_rgb(self.getColor())) * 255)
+            color = QtWidgets.QColorDialog.getColor(qcolor, self.parent())
+            # if a color is set, apply it
+            if color.isValid():
+                color = "#%02x%02x%02x" % color.getRgb()[:3]
+                self.setColor(color)
 
 
 def AddQColorChoose(layout, text, value=None, strech=False):

@@ -61,6 +61,7 @@ def initialize():
         app = QtWidgets.QApplication(sys.argv)
     plt.show = show
     plt.figure = figure
+    patchColormapsWithMetaInfo()
 
     import traceback
     stack_call_position = traceback.extract_stack()[-2]
@@ -121,6 +122,25 @@ def show():
         window.show()
     # execute the application
     app.exec_()
+
+
+def patchColormapsWithMetaInfo():
+    from matplotlib.colors import Colormap
+
+    class CmapColor(list):
+        def setMeta(self, value, cmap):
+            self.value = value
+            self.cmap = cmap
+
+    cm_call = Colormap.__call__
+
+    def new_call(self, *args, **kwargs):
+        c = cm_call(self, *args, **kwargs)
+        c = CmapColor(c)
+        c.setMeta(args[0], self.name)
+        return c
+
+    Colormap.__call__ = new_call
 
 
 def figure(num=None, size=None, *args, **kwargs):

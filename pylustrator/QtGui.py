@@ -128,15 +128,21 @@ def addChildren(color_artists, parent):
 
             # if we have a colormap
             if cmap:
-                # iterate over the colors of the colormap
-                for index, color in enumerate(cmap.get_color()):
-                    # convert to hex
-                    color = mpl.colors.to_hex(color)
+                if getattr(cmap, "get_color", None):
+                    # iterate over the colors of the colormap
+                    for index, color in enumerate(cmap.get_color()):
+                        # convert to hex
+                        color = mpl.colors.to_hex(color)
+                        # check if it is already in the dictionary
+                        if color not in color_artists:
+                            color_artists[color] = []
+                        # add the artist
+                        color_artists[color].append([color_type_name, artist, value, cmap, index])
+                else:
                     # check if it is already in the dictionary
-                    if color not in color_artists:
-                        color_artists[color] = []
-                    # add the artist
-                    color_artists[color].append([color_type_name, artist, value, cmap, index])
+                    if cmap not in color_artists:
+                        color_artists[cmap] = []
+                    color_artists[cmap].append([color_type_name, artist, value, cmap, value])
             else:
                 # iterate over the colors
                 for color in colors:
@@ -159,6 +165,7 @@ def figureSwapColor(figure, new_color, color_base):
     if getattr(figure, "color_artists", None) is None:
         figureListColors(figure)
     changed_cmaps = []
+    maps = plt.colormaps()
     for data in figure.color_artists[color_base]:
         # get the data
         color_type_name, artist, value, cmap, index = data
@@ -166,11 +173,20 @@ def figureSwapColor(figure, new_color, color_base):
         if cmap:
             # update colormap
             if cmap not in changed_cmaps:
-                cmap.set_color(new_color, index)
                 changed_cmaps.append(cmap)
+                if getattr(cmap, "set_color", None) is not None:
+                    cmap.set_color(new_color, index)
+            if getattr(cmap, "set_color", None) is None:
+                if new_color in maps:
+                    cmap = plt.get_cmap(new_color)
+                else:
+                    getattr(artist, "set_" + color_type_name)(new_color)
+                    continue
             # use the attributes setter method
             getattr(artist, "set_" + color_type_name)(cmap(value))
         else:
+            if new_color in maps:
+                new_color = plt.get_cmap(new_color)(0)
             # use the attributes setter method
             getattr(artist, "set_" + color_type_name)(new_color)
             artist.figure.change_tracker.addChange(artist, ".set_"+color_type_name+"(\"%s\")" % (new_color,))
@@ -240,7 +256,10 @@ class ColorChooserWidget(QtWidgets.QWidget):
             self.colors_text_widget.setText(fp.read())
 
     def addColorButton(self, color, basecolor=None):
-        button = QDragableColor(mpl.colors.to_hex(color))
+        try:
+            button = QDragableColor(mpl.colors.to_hex(color))
+        except ValueError:
+            button = QDragableColor(color)
         self.layout_colors.addWidget(button)
         button.color_changed.connect(lambda c, color_base=basecolor: self.color_selected(c, color_base))
         if basecolor:
@@ -269,7 +288,12 @@ class ColorChooserWidget(QtWidgets.QWidget):
 
         self.trigger_no_update = True
         try:
-            self.colors_text_widget.setText("\n".join([mpl.colors.to_hex(color) for color in self.color_artists[:10]]))
+            def colorToText(color):
+                try:
+                    return mpl.colors.to_hex(color)
+                except ValueError:
+                    return color
+            self.colors_text_widget.setText("\n".join([colorToText(color) for color in self.color_artists[:10]]))
         finally:
             self.trigger_no_update = False
 
@@ -279,12 +303,14 @@ class ColorChooserWidget(QtWidgets.QWidget):
     def colors_changed(self):
         if self.trigger_no_update:
             return
+        maps = plt.colormaps()
         # when the colors in the text edit changed
         for index, color in enumerate(self.colors_text_widget.toPlainText().split("\n")):
             try:
                 color = mpl.colors.to_hex(color.strip())
             except ValueError:
-                continue
+                if color not in maps:
+                    continue
             if len(self.color_buttons_list) <= index:
                 self.addColorButton(color)
             self.color_buttons_list[index].setColor(color)
