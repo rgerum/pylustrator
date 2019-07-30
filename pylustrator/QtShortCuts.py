@@ -115,8 +115,12 @@ class QDragableColor(QtWidgets.QLineEdit):
 
     def openDialog(self):
         if self.color in self.maps:
-            colormap, selected = QtWidgets.QInputDialog.getItem(self.parent(), "Select Colormap", "Colormap:", self.maps,
-                                                                self.maps.index(self.color), False)
+            dialog = ColorMapChoose(self.parent(), self.color)
+            colormap, selected = dialog.exec()
+            print(colormap, selected)
+            #return
+            #colormap, selected = QtWidgets.QInputDialog.getItem(self.parent(), "Select Colormap", "Colormap:", self.maps,
+            #                                                    self.maps.index(self.color), False)
             if selected is False:
                 return
             self.setColor(colormap)
@@ -128,6 +132,89 @@ class QDragableColor(QtWidgets.QLineEdit):
             if color.isValid():
                 color = "#%02x%02x%02x" % color.getRgb()[:3]
                 self.setColor(color)
+
+
+from matplotlib import pyplot as plt
+import matplotlib as mpl
+class ColorMapChoose(QtWidgets.QDialog):
+    result = ""
+
+    def __init__(self, parent, map):
+        QtWidgets.QDialog.__init__(self, parent)
+        main_layout = QtWidgets.QVBoxLayout(self)
+        self.layout = QtWidgets.QHBoxLayout()
+        main_layout.addLayout(self.layout)
+        button_layout = QtWidgets.QHBoxLayout()
+        main_layout.addLayout(button_layout)
+        self.button_cancel = QtWidgets.QPushButton("Cancel")
+        self.button_cancel.clicked.connect(lambda x: self.done(0))
+        button_layout.addStretch()
+        button_layout.addWidget(self.button_cancel)
+
+        self.maps = plt.colormaps()
+        self.buttons = []
+        self.setWindowTitle("Select colormap")
+
+        # Have colormaps separated into categories:
+        # http://matplotlib.org/examples/color/colormaps_reference.html
+        cmaps = [('Perceptually Uniform Sequential', [
+            'viridis', 'plasma', 'inferno', 'magma']),
+                 ('Sequential', [
+                     'Greys', 'Purples', 'Blues', 'Greens', 'Oranges', 'Reds',
+                     'YlOrBr', 'YlOrRd', 'OrRd', 'PuRd', 'RdPu', 'BuPu',
+                     'GnBu', 'PuBu', 'YlGnBu', 'PuBuGn', 'BuGn', 'YlGn']),
+                 ('Sequential (2)', [
+                     'binary', 'gist_yarg', 'gist_gray', 'gray', 'bone', 'pink',
+                     'spring', 'summer', 'autumn', 'winter', 'cool', 'Wistia',
+                     'hot', 'afmhot', 'gist_heat', 'copper']),
+                 ('Diverging', [
+                     'PiYG', 'PRGn', 'BrBG', 'PuOr', 'RdGy', 'RdBu',
+                     'RdYlBu', 'RdYlGn', 'Spectral', 'coolwarm', 'bwr', 'seismic']),
+                 ('Qualitative', [
+                     'Pastel1', 'Pastel2', 'Paired', 'Accent',
+                     'Dark2', 'Set1', 'Set2', 'Set3',
+                     'tab10', 'tab20', 'tab20b', 'tab20c']),
+                 ('Miscellaneous', [
+                     'flag', 'prism', 'ocean', 'gist_earth', 'terrain', 'gist_stern',
+                     'gnuplot', 'gnuplot2', 'CMRmap', 'cubehelix', 'brg', 'hsv',
+                     'gist_rainbow', 'rainbow', 'jet', 'nipy_spectral', 'gist_ncar'])]
+
+        for cmap_category, cmap_list in cmaps:
+            layout = QtWidgets.QVBoxLayout(self)
+            label = QtWidgets.QLabel(cmap_category)
+            layout.addWidget(label)
+            label.setFixedWidth(150)
+            for cmap in cmap_list:
+                button = QtWidgets.QPushButton(cmap)
+                button.setStyleSheet("text-align: center; border: 2px solid black; "+self.getBackground(cmap))
+                button.clicked.connect(lambda x, cmap=cmap: self.buttonClicked(cmap))
+                self.buttons.append(button)
+                layout.addWidget(button)
+            layout.addStretch()
+            self.layout.addLayout(layout)
+
+    def buttonClicked(self, text):
+        self.result = text
+        self.done(1)
+
+    def exec(self):
+        result = QtWidgets.QDialog.exec(self)
+        return self.result, result == 1
+
+    def getBackground(self, color):
+        import matplotlib.pyplot as plt
+        import matplotlib as mpl
+        try:
+            cmap = plt.get_cmap(color)
+        except:
+            return ""
+        text = "background-color: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0, "
+        N = 10
+        for i in range(N):
+            i = i / (N - 1)
+            text += "stop: %.2f %s, " % (i, mpl.colors.to_hex(cmap(i)))
+        text = text[:-2] + ");"
+        return text
 
 
 def AddQColorChoose(layout, text, value=None, strech=False):
