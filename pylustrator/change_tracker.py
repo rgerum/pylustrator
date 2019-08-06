@@ -45,9 +45,9 @@ def getReference(element):
         if element.axes:
             index = element.axes.patches.index(element)
             return getReference(element.axes) + ".patches[%d]" % index
-        print("rect, ", element.get_label())
         index = element.figure.patches.index(element)
         return "fig.patches[%d]" % (index)
+
     if isinstance(element, matplotlib.text.Text):
         if element.axes:
             try:
@@ -66,10 +66,35 @@ def getReference(element):
                 return getReference(axes) + ".get_xaxis().get_label()"
             if element == axes.get_yaxis().get_label():
                 return getReference(axes) + ".get_yaxis().get_label()"
+
+            for index, label in enumerate(axes.get_xaxis().get_major_ticks()):
+                if element == label.label1:
+                    return getReference(axes) + ".get_xaxis().get_major_ticks()[%d].label1" % index
+                if element == label.label2:
+                    return getReference(axes) + ".get_xaxis().get_major_ticks()[%d].label2" % index
+            for index, label in enumerate(axes.get_xaxis().get_minor_ticks()):
+                if element == label.label1:
+                    return getReference(axes) + ".get_xaxis().get_minor_ticks()[%d].label1" % index
+                if element == label.label2:
+                    return getReference(axes) + ".get_xaxis().get_minor_ticks()[%d].label2" % index
+
+            for axes in element.figure.axes:
+                for index, label in enumerate(axes.get_yaxis().get_major_ticks()):
+                    if element == label.label1:
+                        return getReference(axes) + ".get_yaxis().get_major_ticks()[%d].label1" % index
+                    if element == label.label2:
+                        return getReference(axes) + ".get_yaxis().get_major_ticks()[%d].label2" % index
+                for index, label in enumerate(axes.get_yaxis().get_minor_ticks()):
+                    if element == label.label1:
+                        return getReference(axes) + ".get_yaxis().get_minor_ticks()[%d].label1" % index
+                    if element == label.label2:
+                        return getReference(axes) + ".get_yaxis().get_minor_ticks()[%d].label2" % index
+
     if isinstance(element, matplotlib.axes._axes.Axes):
         if element.get_label():
             return "fig.ax_dict[\"%s\"]" % element.get_label()
         return "fig.axes[%d]" % element.number
+
     if isinstance(element, matplotlib.legend.Legend):
         return getReference(element.axes) + ".get_legend()"
     raise (TypeError(str(type(element)) + " not found"))
@@ -152,6 +177,7 @@ class ChangeTracker:
                                r"\.texts\[\d*\]",
                                r"\.lines\[\d*\]",
                                r"\.patches\[\d*\]",
+                               r"\.get_[xy]axis\(\)\.get_(major|minor)_ticks\(\)\[\d*\]",
                                r"\.get_legend()",
                                ]
         command_obj_regexes = [re.compile(r) for r in command_obj_regexes]
@@ -159,6 +185,8 @@ class ChangeTracker:
         fig = self.figure
         header = ["fig = plt.figure(%s)" % self.figure.number, "import matplotlib as mpl",
                   "fig.ax_dict = {ax.get_label(): ax for ax in fig.axes}"]
+
+        self.get_reference_cached = {}
 
         block = getTextFromFile(header[0], stack_position)
         for line in block:
@@ -201,25 +229,33 @@ class ChangeTracker:
                 reference_command = ".new"
 
             command_obj = eval(command_obj)
+            reference_obj_str = reference_obj
             reference_obj = eval(reference_obj)
+            self.get_reference_cached[reference_obj] = reference_obj_str
 
             self.changes[reference_obj, reference_command] = (command_obj, command + parameter)
         self.sorted_changes()
 
     def sorted_changes(self):
+        def getRef(obj):
+            if obj in self.get_reference_cached:
+                return self.get_reference_cached[obj]
+            else:
+                return getReference(obj)
+
         indices = []
         for reference_obj, reference_command in self.changes:
             obj_indices = ("", "", "")
             if isinstance(reference_obj, Figure):
                 obj_indices = ("", "", "")
             if isinstance(reference_obj, matplotlib.axes._axes.Axes):
-                obj_indices = (getReference(reference_obj), "", "")
+                obj_indices = (getRef(reference_obj), "", "")
             if isinstance(reference_obj, matplotlib.text.Text) or isinstance(reference_obj, matplotlib.patches.Patch):
                 if reference_command == ".new":
                     index = "0"
                 else:
                     index = "1"
-                obj_indices = (getReference(reference_obj.axes), getReference(reference_obj), index)
+                obj_indices = (getRef(reference_obj.axes), getRef(reference_obj), index)
             indices.append(
                 [(reference_obj, reference_command), self.changes[reference_obj, reference_command], obj_indices])
 
@@ -228,9 +264,10 @@ class ChangeTracker:
         for s in srt:
             command_obj, command = s[1]
             try:
-                output.append(getReference(command_obj) + command)
+                output.append(getRef(command_obj) + command)
             except TypeError as err:
                 print(err)
+
         return output
 
     def save(self):
