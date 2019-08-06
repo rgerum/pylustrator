@@ -693,6 +693,7 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
 class TextPropertiesWidget(QtWidgets.QWidget):
     stateChanged = QtCore.Signal(int, str)
     noSignal = False
+    target_list = None
 
     def __init__(self, layout):
         QtWidgets.QWidget.__init__(self)
@@ -758,26 +759,36 @@ class TextPropertiesWidget(QtWidgets.QWidget):
         font0.setPointSizeF(self.target.get_fontsize())
         font, x = QtWidgets.QFontDialog.getFont(font0, self)
 
-        self.target.set_fontname(font.family())
-        self.target.figure.change_tracker.addChange(self.target, ".set_fontname(\"%s\")" % (self.target.get_fontname(),))
+        for element in self.target_list:
+            element.set_fontname(font.family())
+            element.figure.change_tracker.addChange(element, ".set_fontname(\"%s\")" % (element.get_fontname(),))
 
-        if font.weight() != font0.weight():
-            weight = self.convertQtWeightToMplWeight(font.weight())
-            self.target.set_weight(weight)
-            self.target.figure.change_tracker.addChange(self.target, ".set_weight(\"%s\")" % (weight,))
+            if font.weight() != font0.weight():
+                weight = self.convertQtWeightToMplWeight(font.weight())
+                element.set_weight(weight)
+                element.figure.change_tracker.addChange(element, ".set_weight(\"%s\")" % (weight,))
 
-        if font.pointSizeF() != font0.pointSizeF():
-            self.target.set_fontsize(font.pointSizeF())
-            self.target.figure.change_tracker.addChange(self.target, ".set_fontsize(%f)" % (font.pointSizeF(),))
+            if font.pointSizeF() != font0.pointSizeF():
+                element.set_fontsize(font.pointSizeF())
+                element.figure.change_tracker.addChange(element, ".set_fontsize(%f)" % (font.pointSizeF(),))
 
-        if font.italic() != font0.italic():
-            style = "italic" if font.italic() else "normal"
-            self.target.set_style(style)
-            self.target.figure.change_tracker.addChange(self.target, ".set_style(\"%s\")" % (style,))
+            if font.italic() != font0.italic():
+                style = "italic" if font.italic() else "normal"
+                element.set_style(style)
+                element.figure.change_tracker.addChange(element, ".set_style(\"%s\")" % (style,))
 
         self.target.figure.canvas.draw()
+        self.setTarget(self.target_list)
 
     def setTarget(self, element):
+        if isinstance(element, list):
+            self.target_list = element
+            element = element[0]
+        else:
+            if element is None:
+                self.target_list = []
+            else:
+                self.target_list = [element]
         self.target = None
         self.font_size.setValue(element.get_fontsize())
 
@@ -804,8 +815,9 @@ class TextPropertiesWidget(QtWidgets.QWidget):
             element = self.target
             self.target = None
 
-            element.set_weight("bold" if checked else "normal")
-            element.figure.change_tracker.addChange(element, ".set_weight(\"%s\")" % ("bold" if checked else "normal",))
+            for element in self.target_list:
+                element.set_weight("bold" if checked else "normal")
+                element.figure.change_tracker.addChange(element, ".set_weight(\"%s\")" % ("bold" if checked else "normal",))
 
             self.target = element
             self.target.figure.canvas.draw()
@@ -815,8 +827,9 @@ class TextPropertiesWidget(QtWidgets.QWidget):
             element = self.target
             self.target = None
 
-            element.set_style("italic" if checked else "normal")
-            element.figure.change_tracker.addChange(element, ".set_style(\"%s\")" % ("italic" if checked else "normal",))
+            for element in self.target_list:
+                element.set_style("italic" if checked else "normal")
+                element.figure.change_tracker.addChange(element, ".set_style(\"%s\")" % ("italic" if checked else "normal",))
 
             self.target = element
             self.target.figure.canvas.draw()
@@ -826,8 +839,9 @@ class TextPropertiesWidget(QtWidgets.QWidget):
             element = self.target
             self.target = None
 
-            element.set_color(color)
-            element.figure.change_tracker.addChange(element, ".set_color(\"%s\")" % (color,))
+            for element in self.target_list:
+                element.set_color(color)
+                element.figure.change_tracker.addChange(element, ".set_color(\"%s\")" % (color,))
 
             self.target = element
             self.target.figure.canvas.draw()
@@ -837,19 +851,21 @@ class TextPropertiesWidget(QtWidgets.QWidget):
             element = self.target
             self.target = None
 
-            index_selected = self.align_names.index(align)
-            for index, button in enumerate(self.buttons_align):
-                button.setChecked(index == index_selected)
-            element.set_ha(align)
-            element.figure.change_tracker.addChange(element, ".set_ha(\"%s\")" % align)
+            for element in self.target_list:
+                index_selected = self.align_names.index(align)
+                for index, button in enumerate(self.buttons_align):
+                    button.setChecked(index == index_selected)
+                element.set_ha(align)
+                element.figure.change_tracker.addChange(element, ".set_ha(\"%s\")" % align)
 
             self.target = element
             self.target.figure.canvas.draw()
 
     def changeFontSize(self, value):
         if self.target:
-            self.target.set_fontsize(value)
-            self.target.figure.change_tracker.addChange(self.target, ".set_fontsize(%d)" % value)
+            for element in self.target_list:
+                element.set_fontsize(value)
+                element.figure.change_tracker.addChange(element, ".set_fontsize(%d)" % value)
             self.target.figure.canvas.draw()
 
 
@@ -1275,7 +1291,6 @@ class QTickEdit(QtWidgets.QWidget):
                 number = np.nan
         return number, line
 
-
     def setTarget(self, element):
         self.element = element
         self.fig = element.figure
@@ -1314,7 +1329,7 @@ class QTickEdit(QtWidgets.QWidget):
                     text.append("%s" % l_text)
         self.input_ticks2.setText(",<br>".join(text))
 
-        self.input_font.setTarget(getattr(self.element, "get_"+self.axis+"axis")().get_label())
+        self.input_font.setTarget([t.label1 for t in getattr(self.element, "get_"+self.axis+"axis")().get_major_ticks()])
 
     def parseTicks(self, string):
         try:
