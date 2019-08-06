@@ -1543,6 +1543,10 @@ class QItemProperties(QtWidgets.QWidget):
         self.layout_buttons.addWidget(self.button_despine)
         self.button_despine.clicked.connect(self.buttonDespineClicked)
 
+        self.button_grid = QtWidgets.QPushButton("grid")
+        self.layout_buttons.addWidget(self.button_grid)
+        self.button_grid.clicked.connect(self.buttonGridClicked)
+
         self.fig = fig
 
     def buttonAddImageClicked(self):
@@ -1719,6 +1723,15 @@ class QItemProperties(QtWidgets.QWidget):
             self.fig.change_tracker.addChange(self.element, command)
         self.fig.canvas.draw()
 
+    def buttonGridClicked(self):
+        if self.element.xaxis._gridOnMajor:
+            self.element.grid(False)
+            self.fig.change_tracker.addChange(self.element, ".grid(False)")
+        else:
+            self.element.grid(True)
+            self.fig.change_tracker.addChange(self.element, ".grid(True)")
+        self.fig.canvas.draw()
+
     def changePickable(self):
         if self.input_picker.isChecked():
             self.element._draggable.connect()
@@ -1763,6 +1776,7 @@ class QItemProperties(QtWidgets.QWidget):
         self.button_add_annotation.hide()
         self.button_add_rectangle.hide()
         self.button_despine.hide()
+        self.button_grid.hide()
         self.button_add_image.hide()
         self.button_add_arrow.hide()
         if isinstance(element, Figure):
@@ -1783,6 +1797,7 @@ class QItemProperties(QtWidgets.QWidget):
             self.button_add_text.show()
             self.button_add_annotation.show()
             self.button_despine.show()
+            self.button_grid.show()
             self.button_add_arrow.show()
             self.button_add_rectangle.show()
         else:
