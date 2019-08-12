@@ -32,6 +32,8 @@ from matplotlib.patches import Rectangle
 from matplotlib.text import Text
 from natsort import natsorted
 
+from .exception_swallower import Dummy
+
 
 def getReference(element):
     if element is None:
@@ -231,6 +233,11 @@ class ChangeTracker:
             command_obj = eval(command_obj)
             reference_obj_str = reference_obj
             reference_obj = eval(reference_obj)
+
+            # if the reference object is just a dummy, we ignore it
+            if isinstance(reference_obj, Dummy):
+                continue
+            
             self.get_reference_cached[reference_obj] = reference_obj_str
 
             self.changes[reference_obj, reference_command] = (command_obj, command + parameter)

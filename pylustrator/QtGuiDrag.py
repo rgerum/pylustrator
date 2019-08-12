@@ -39,6 +39,7 @@ from .helper_functions import changeFigureSize
 from .drag_bib import getReference
 
 from .drag_helper import DragManager
+from .exception_swallower import swallow_get_exceptions
 
 import sys
 
@@ -57,6 +58,9 @@ keys_for_lines = {}
 
 def initialize():
     global app, keys_for_lines
+
+    swallow_get_exceptions()
+
     if app is None:
         app = QtWidgets.QApplication(sys.argv)
     plt.show = show
