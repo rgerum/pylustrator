@@ -1996,7 +1996,10 @@ class PlotWindow(QtWidgets.QWidget):
     def actionSave(self):
         self.fig.change_tracker.save()
         if getattr(self.fig, "_last_saved_figure", None):
-            self.fig.savefig(self.fig._last_saved_figure)
+            if os.path.splitext(self.fig._last_saved_figure)[1] == ".pdf":
+                self.fig.savefig(self.fig._last_saved_figure, dpi=300)
+            else:
+                self.fig.savefig(self.fig._last_saved_figure)
 
     def actionSaveImage(self):
         path = QtWidgets.QFileDialog.getSaveFileName(self, "Save Image", getattr(self.fig, "_last_saved_figure", None),
@@ -2007,7 +2010,10 @@ class PlotWindow(QtWidgets.QWidget):
             path = str(path)
         if not path:
             return
-        self.fig.savefig(path)
+        if os.path.splitext(path)[1] == ".pdf":
+            self.fig.savefig(path, dpi=300)
+        else:
+            self.fig.savefig(path)
         print("Saved plot image as", path)
 
     def showInfo(self):
