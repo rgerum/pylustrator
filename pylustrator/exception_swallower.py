@@ -47,7 +47,7 @@ def swallow_get_exceptions():
     Figure._get_axes = get_axes
     Figure.axes = property(fget=get_axes)
     Figure.ax_dict = SaveListDescriptor()
-    _AxesBase.texts = SaveListDescriptor()
+    #_AxesBase.texts = SaveListDescriptor()
     #_AxesBase.lines = SaveListDescriptor()
     #_AxesBase.patches = SaveListDescriptor()
     Axis.get_minor_ticks = return_save_list(Axis.get_minor_ticks)
