@@ -1,7 +1,7 @@
-import matplotlib as mpl
 from matplotlib.figure import Figure
 from matplotlib.axes._base import _AxesBase
 from matplotlib.axis import Axis, YAxis
+
 
 class Dummy:
     def __getattr__(self, item):
@@ -13,6 +13,7 @@ class Dummy:
     def __getitem__(self, item):
         return Dummy()
 
+
 class SaveList(list):
     def __init__(self, target):
         list.__init__(self, target)
@@ -21,7 +22,6 @@ class SaveList(list):
         try:
             return list.__getitem__(self, item)
         except IndexError:
-            print("get, Dummy", self, item)
             return Dummy()
 
 
@@ -36,10 +36,12 @@ class SaveListDescriptor:
 def get_axes(self):
     return SaveList(self._axstack.as_list())
 
+
 def return_save_list(func):
     def wrap(*args, **kwargs):
         return SaveList(func(*args, **kwargs))
     return wrap
+
 
 def swallow_get_exceptions():
     Figure._get_axes = get_axes
