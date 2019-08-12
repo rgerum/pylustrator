@@ -180,7 +180,7 @@ class ChangeTracker:
                                r"\.lines\[\d*\]",
                                r"\.patches\[\d*\]",
                                r"\.get_[xy]axis\(\)\.get_(major|minor)_ticks\(\)\[\d*\]",
-                               r"\.get_legend()",
+                               r"\.get_legend\(\)",
                                ]
         command_obj_regexes = [re.compile(r) for r in command_obj_regexes]
 
@@ -252,17 +252,17 @@ class ChangeTracker:
 
         indices = []
         for reference_obj, reference_command in self.changes:
-            obj_indices = ("", "", "")
             if isinstance(reference_obj, Figure):
-                obj_indices = ("", "", "")
-            if isinstance(reference_obj, matplotlib.axes._axes.Axes):
-                obj_indices = (getRef(reference_obj), "", "")
-            if isinstance(reference_obj, matplotlib.text.Text) or isinstance(reference_obj, matplotlib.patches.Patch):
-                if reference_command == ".new":
-                    index = "0"
+                obj_indices = ("", "", "", "")
+            else:
+                if getattr(reference_obj, "axes", None) is not None:
+                    if reference_command == ".new":
+                        index = "0"
+                    else:
+                        index = "1"
+                    obj_indices = (getRef(reference_obj.axes), getRef(reference_obj), index, reference_command)
                 else:
-                    index = "1"
-                obj_indices = (getRef(reference_obj.axes), getRef(reference_obj), index)
+                    obj_indices = (getRef(reference_obj), "", "", reference_command)
             indices.append(
                 [(reference_obj, reference_command), self.changes[reference_obj, reference_command], obj_indices])
 
