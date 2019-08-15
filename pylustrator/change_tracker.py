@@ -33,6 +33,7 @@ from matplotlib.text import Text
 from natsort import natsorted
 
 from .exception_swallower import Dummy
+from .jupyter_cells import open
 
 
 def getReference(element):
@@ -300,8 +301,8 @@ class ChangeTracker:
 def getTextFromFile(block_id, stack_pos):
     block = None
 
-    if not stack_pos.filename.endswith('.py'):
-        raise RuntimeError("pylustrator must used in a python file (*.py); not a shell session or notebook.")
+    if not stack_pos.filename.endswith('.py') and not stack_pos.filename.startswith("<ipython-input-"):
+        raise RuntimeError("pylustrator must used in a python file (*.py) or a jupyter notebook; not a shell session.")
 
     with open(stack_pos.filename, 'r', encoding="utf-8") as fp1:
         for lineno, line in enumerate(fp1, start=1):
