@@ -57,12 +57,14 @@ keys_for_lines = {}
 
 
 def initialize():
-    global app, keys_for_lines
+    global app, keys_for_lines, old_pltshow, old_pltfigure
 
     swallow_get_exceptions()
 
     if app is None:
         app = QtWidgets.QApplication(sys.argv)
+    old_pltshow = plt.show
+    old_pltfigure = plt.figure
     plt.show = show
     plt.figure = figure
     patchColormapsWithMetaInfo()
@@ -126,6 +128,9 @@ def show():
         window.show()
     # execute the application
     app.exec_()
+    
+    plt.show = old_pltshow
+    plt.figure = old_pltfigure
 
 
 def patchColormapsWithMetaInfo():
