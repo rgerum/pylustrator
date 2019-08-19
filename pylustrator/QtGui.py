@@ -67,7 +67,7 @@ def show():
     app.exec_()
 
 
-def figure(num=None, size=None, *args, **kwargs):
+def figure(num=None, figsize=None, *args, **kwargs):
     global figures
     # if num is not defined create a new number
     if num is None:
@@ -80,8 +80,8 @@ def figure(num=None, size=None, *args, **kwargs):
     # get the canvas of the figure
     canvas = figures[num]
     # set the size if it is defined
-    if size is not None:
-        figures[num].window.setGeometry(100, 100, size[0] * 80, size[1] * 80)
+    if figsize is not None:
+        figures[num].window.setGeometry(100, 100, figsize[0] * 80, figsize[1] * 80)
     # set the figure as the active figure
     _pylab_helpers.Gcf.set_active(canvas.manager)
     # return the figure
