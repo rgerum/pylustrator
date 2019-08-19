@@ -676,7 +676,7 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
         if len(value) == 9:
             self.button.setStyleSheet("background-color: rgba(%d, %d, %d, %d%%);" % (int(value[1:3], 16), int(value[3:5], 16), int(value[5:7], 16), int(value[7:], 16)*100/255))
         else:
-            self.button.setStyleSheet("background-color: %s;" % value)
+            self.button.setStyleSheet("background-color: %s;" % (value,))
         self.color = value
 
     def getColor(self):
