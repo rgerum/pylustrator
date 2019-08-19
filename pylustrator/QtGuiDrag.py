@@ -1996,6 +1996,7 @@ class PlotWindow(QtWidgets.QWidget):
 
         from .QtGui import ColorChooserWidget
         self.colorWidget = ColorChooserWidget(self, self.canvas)
+        self.colorWidget.setMaximumWidth(150)
         self.layout_main.addWidget(self.colorWidget)
 
     def actionSave(self):
