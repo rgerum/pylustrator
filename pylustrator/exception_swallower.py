@@ -1,6 +1,6 @@
 from matplotlib.figure import Figure
 from matplotlib.axes._base import _AxesBase
-from matplotlib.axis import Axis, YAxis
+from matplotlib.axis import Axis
 
 
 class Dummy:
@@ -25,12 +25,43 @@ class SaveList(list):
             return Dummy()
 
 
+class SaveDict(dict):
+    def __init__(self, target):
+        dict.__init__(self, target)
+
+    def __getitem__(self, item):
+        try:
+            return dict.__getitem__(self, item)
+        except KeyError:
+            return Dummy()
+
+
+class SaveTuple(tuple):
+    def __init__(self, target):
+        tuple.__init__(self, target)
+
+    def __getitem__(self, item):
+        try:
+            return tuple.__getitem__(self, item)
+        except IndexError:
+            return Dummy()
+
+
 class SaveListDescriptor:
+    def __init__(self, variable_name):
+        self.variable_name = variable_name
+
     def __set__(self, instance, value):
-        self.value = value
+        if isinstance(value, list):
+            value = SaveList(value)
+        if isinstance(value, dict):
+            value = SaveDict(value)
+        if isinstance(value, tuple):
+            value = SaveTuple(value)
+        setattr(instance, self.variable_name, value)
 
     def __get__(self, instance, owner):
-        return SaveList(self.value)
+        return getattr(instance, self.variable_name)
 
 
 def get_axes(self):
@@ -46,9 +77,9 @@ def return_save_list(func):
 def swallow_get_exceptions():
     Figure._get_axes = get_axes
     Figure.axes = property(fget=get_axes)
-    Figure.ax_dict = SaveListDescriptor()
-    #_AxesBase.texts = SaveListDescriptor()
-    #_AxesBase.lines = SaveListDescriptor()
-    #_AxesBase.patches = SaveListDescriptor()
+    Figure.ax_dict = SaveListDescriptor("_pylustrator_ax_dict")
+    _AxesBase.texts = SaveListDescriptor("_pylustrator_texts")
+    _AxesBase.lines = SaveListDescriptor("_pylustrator_lines")
+    _AxesBase.patches = SaveListDescriptor("_pylustrator_patches")
     Axis.get_minor_ticks = return_save_list(Axis.get_minor_ticks)
     Axis.get_major_ticks = return_save_list(Axis.get_major_ticks)

@@ -22,6 +22,7 @@
 from __future__ import division, print_function
 
 import re
+import sys
 import traceback
 
 import matplotlib
@@ -37,6 +38,7 @@ from natsort import natsorted
 
 from .exception_swallower import Dummy
 from .jupyter_cells import open
+
 
 def getReference(element, allow_using_variable_names=True):
     if element is None:
@@ -58,7 +60,7 @@ def getReference(element, allow_using_variable_names=True):
             index = element.axes.patches.index(element)
             return getReference(element.axes) + ".patches[%d]" % index
         index = element.figure.patches.index(element)
-        return getReference(element.figure)+".patches[%d]" % (index)
+        return getReference(element.figure) + ".patches[%d]" % (index)
 
     if isinstance(element, matplotlib.text.Text):
         if element.axes:
@@ -70,7 +72,7 @@ def getReference(element, allow_using_variable_names=True):
                 return getReference(element.axes) + ".texts[%d]" % index
         try:
             index = element.figure.texts.index(element)
-            return getReference(element.figure)+".texts[%d]" % (index)
+            return getReference(element.figure) + ".texts[%d]" % (index)
         except ValueError:
             pass
         for axes in element.figure.axes:
@@ -104,12 +106,13 @@ def getReference(element, allow_using_variable_names=True):
 
     if isinstance(element, matplotlib.axes._axes.Axes):
         if element.get_label():
-            return getReference(element.figure)+".ax_dict[\"%s\"]" % element.get_label()
-        return getReference(element.figure)+".axes[%d]" % element.number
+            return getReference(element.figure) + ".ax_dict[\"%s\"]" % element.get_label()
+        return getReference(element.figure) + ".axes[%d]" % element.number
 
     if isinstance(element, matplotlib.legend.Legend):
         return getReference(element.axes) + ".get_legend()"
     raise TypeError(str(type(element)) + " not found")
+
 
 def setFigureVariableNames(figure):
     import inspect
@@ -124,6 +127,7 @@ def setFigureVariableNames(figure):
     if len(fig_names):
         globals()[fig_names[0]] = mpl_figure
         setattr(mpl_figure, "_variable_name", fig_names[0])
+
 
 class ChangeTracker:
     changes = None
@@ -223,8 +227,10 @@ class ChangeTracker:
             line = line.strip()
             if line == "" or line in header or line.startswith("#"):
                 continue
-            if re.match(".*\.ax_dict.*", line):
+            if re.match(".*\.ax_dict =.*", line):
                 continue
+
+            raw_line = line
 
             # try to identify the command object of the line
             command_obj = ""
@@ -266,8 +272,9 @@ class ChangeTracker:
 
             # if the reference object is just a dummy, we ignore it
             if isinstance(reference_obj, Dummy):
+                print("WARNING: line references a missing object, will remove line on save:", raw_line, file=sys.stderr)
                 continue
-            
+
             self.get_reference_cached[reference_obj] = reference_obj_str
 
             self.changes[reference_obj, reference_command] = (command_obj, command + parameter)
@@ -315,7 +322,8 @@ class ChangeTracker:
         return output
 
     def save(self):
-        header = [getReference(self.figure)+".ax_dict = {ax.get_label(): ax for ax in "+getReference(self.figure)+".axes}", "import matplotlib as mpl"]
+        header = [getReference(self.figure) + ".ax_dict = {ax.get_label(): ax for ax in " + getReference(
+            self.figure) + ".axes}", "import matplotlib as mpl"]
 
         # block = getTextFromFile(header[0], self.stack_position)
         output = ["#% start: automatic generated code from pylustrator"]
