@@ -25,6 +25,9 @@ import re
 import traceback
 
 import matplotlib
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+from matplotlib import _pylab_helpers
 from matplotlib.axes._subplots import Axes
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
@@ -35,12 +38,18 @@ from natsort import natsorted
 from .exception_swallower import Dummy
 from .jupyter_cells import open
 
-
-def getReference(element):
+def getReference(element, allow_using_variable_names=True):
     if element is None:
         return ""
     if isinstance(element, Figure):
-        return "fig"
+        if allow_using_variable_names:
+            name = getattr(element, "_variable_name", None)
+            if name is not None:
+                return name
+        if isinstance(element.number, (float, int)):
+            return "plt.figure(%s)" % element.number
+        else:
+            return "plt.figure(\"%s\")" % element.number
     if isinstance(element, matplotlib.lines.Line2D):
         index = element.axes.lines.index(element)
         return getReference(element.axes) + ".lines[%d]" % index
@@ -49,7 +58,7 @@ def getReference(element):
             index = element.axes.patches.index(element)
             return getReference(element.axes) + ".patches[%d]" % index
         index = element.figure.patches.index(element)
-        return "fig.patches[%d]" % (index)
+        return getReference(element.figure)+".patches[%d]" % (index)
 
     if isinstance(element, matplotlib.text.Text):
         if element.axes:
@@ -61,7 +70,7 @@ def getReference(element):
                 return getReference(element.axes) + ".texts[%d]" % index
         try:
             index = element.figure.texts.index(element)
-            return "fig.texts[%d]" % (index)
+            return getReference(element.figure)+".texts[%d]" % (index)
         except ValueError:
             pass
         for axes in element.figure.axes:
@@ -95,13 +104,26 @@ def getReference(element):
 
     if isinstance(element, matplotlib.axes._axes.Axes):
         if element.get_label():
-            return "fig.ax_dict[\"%s\"]" % element.get_label()
-        return "fig.axes[%d]" % element.number
+            return getReference(element.figure)+".ax_dict[\"%s\"]" % element.get_label()
+        return getReference(element.figure)+".axes[%d]" % element.number
 
     if isinstance(element, matplotlib.legend.Legend):
         return getReference(element.axes) + ".get_legend()"
-    raise (TypeError(str(type(element)) + " not found"))
+    raise TypeError(str(type(element)) + " not found")
 
+def setFigureVariableNames(figure):
+    import inspect
+    mpl_figure = _pylab_helpers.Gcf.figs[figure].canvas.figure
+    calling_globals = inspect.stack()[2][0].f_globals
+    fig_names = [
+        name
+        for name, val in calling_globals.items()
+        if isinstance(val, mpl.figure.Figure) and hash(val) == hash(mpl_figure)
+    ]
+    print("fig_names", fig_names)
+    if len(fig_names):
+        globals()[fig_names[0]] = mpl_figure
+        setattr(mpl_figure, "_variable_name", fig_names[0])
 
 class ChangeTracker:
     changes = None
@@ -174,7 +196,9 @@ class ChangeTracker:
 
     def load(self):
         regex = re.compile(r"(\.[^\(= ]*)(.*)")
-        command_obj_regexes = [r"fig",
+        command_obj_regexes = [getReference(self.figure),
+                               r"plt\.figure\([^)]*\)",
+                               r"fig",
                                r"\.ax_dict\[\"[^\"]*\"\]",
                                r"\.axes\[\d*\]",
                                r"\.texts\[\d*\]",
@@ -186,15 +210,20 @@ class ChangeTracker:
         command_obj_regexes = [re.compile(r) for r in command_obj_regexes]
 
         fig = self.figure
-        header = ["fig = plt.figure(%s)" % self.figure.number, "import matplotlib as mpl",
-                  "fig.ax_dict = {ax.get_label(): ax for ax in fig.axes}"]
+        header = []
+        header += ["fig = plt.figure(%s)" % self.figure.number]
+        header += ["import matplotlib as mpl"]
 
         self.get_reference_cached = {}
 
-        block = getTextFromFile(header[0], stack_position)
+        block = getTextFromFile(getReference(self.figure), stack_position)
+        if not block:
+            block = getTextFromFile(getReference(self.figure, allow_using_variable_names=False), stack_position)
         for line in block:
             line = line.strip()
             if line == "" or line in header or line.startswith("#"):
+                continue
+            if re.match(".*\.ax_dict.*", line):
                 continue
 
             # try to identify the command object of the line
@@ -246,10 +275,17 @@ class ChangeTracker:
 
     def sorted_changes(self):
         def getRef(obj):
+            try:
+                return getReference(obj)
+            except (ValueError, TypeError):
+                return ""
             if obj in self.get_reference_cached:
                 return self.get_reference_cached[obj]
             else:
-                return getReference(obj)
+                try:
+                    return getReference(obj)
+                except (ValueError, TypeError):
+                    return ""
 
         indices = []
         for reference_obj, reference_command in self.changes:
@@ -279,8 +315,7 @@ class ChangeTracker:
         return output
 
     def save(self):
-        header = ["fig = plt.figure(%s)" % self.figure.number, "import matplotlib as mpl",
-                  "fig.ax_dict = {ax.get_label(): ax for ax in fig.axes}"]
+        header = [getReference(self.figure)+".ax_dict = {ax.get_label(): ax for ax in "+getReference(self.figure)+".axes}", "import matplotlib as mpl"]
 
         # block = getTextFromFile(header[0], self.stack_position)
         output = ["#% start: automatic generated code from pylustrator"]
@@ -294,11 +329,18 @@ class ChangeTracker:
                 output.append(header[1])
         output.append("#% end: automatic generated code from pylustrator")
         # print("\n".join(output))
-        insertTextToFile(output, stack_position, header[0])
+
+        block_id = getReference(self.figure)
+        block = getTextFromFile(block_id, stack_position)
+        if not block:
+            block_id = getReference(self.figure, allow_using_variable_names=False)
+            block = getTextFromFile(block_id, stack_position)
+        insertTextToFile(output, stack_position, block_id)
         self.saved = True
 
 
 def getTextFromFile(block_id, stack_pos):
+    block_id = lineToId(block_id)
     block = None
 
     if not stack_pos.filename.endswith('.py') and not stack_pos.filename.startswith("<ipython-input-"):
@@ -339,7 +381,7 @@ class Block:
 
     def add(self, line):
         if self.id is None:
-            self.id = line.strip()
+            self.id = lineToId(line)
         self.text += line
         self.size += 1
 
@@ -370,7 +412,16 @@ def addLineCounter(fp):
     fp.write = write_with_linenumbers
 
 
+def lineToId(line):
+    line = line.strip()
+    line = line.split(".ax_dict")[0]
+    if line.startswith("fig = "):
+        line = line[len("fig = "):]
+    return line
+
+
 def insertTextToFile(new_block, stack_pos, figure_id_line):
+    figure_id_line = lineToId(figure_id_line)
     block = None
     written = False
     written_end = False

@@ -36,7 +36,7 @@ import matplotlib.transforms as transforms
 
 from .drag_bib import FigureDragger
 from .helper_functions import changeFigureSize
-from .drag_bib import getReference
+from .change_tracker import getReference, setFigureVariableNames
 
 from .drag_helper import DragManager
 from .exception_swallower import swallow_get_exceptions
@@ -56,8 +56,10 @@ app = None
 keys_for_lines = {}
 
 
-def initialize():
-    global app, keys_for_lines, old_pltshow, old_pltfigure
+def initialize(use_global_variable_names=False):
+    global app, keys_for_lines, old_pltshow, old_pltfigure, setting_use_global_variable_names
+
+    setting_use_global_variable_names = use_global_variable_names
 
     swallow_get_exceptions()
 
@@ -107,6 +109,8 @@ def initialize():
     Figure.savefig = savefig
 
 
+
+
 def show():
     global figures
     # set an application id, so that windows properly stacks them in the task bar
@@ -116,6 +120,9 @@ def show():
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
     # iterate over figures
     for figure in _pylab_helpers.Gcf.figs:
+        # get variable names that point to this figure
+        if setting_use_global_variable_names:
+            setFigureVariableNames(figure)
         # get the window
         window = _pylab_helpers.Gcf.figs[figure].canvas.window
         # warn about ticks not fitting tick labels
@@ -128,7 +135,7 @@ def show():
         window.show()
     # execute the application
     app.exec_()
-    
+
     plt.show = old_pltshow
     plt.figure = old_pltfigure
 
