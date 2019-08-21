@@ -111,41 +111,41 @@ def addChildren(color_artists, parent):
             if colors is None or len(colors) == 0:
                 continue
 
-            # test if it is a colormap
-            try:
-                cmap = colors.cmap
-                value = colors.value
-            except AttributeError:
-                cmap = None
-
             # convert to array
             if not (isinstance(colors, np.ndarray) and len(colors.shape) > 1):
                 colors = [colors]
 
-            # omit blacks and whites
-            if mpl.colors.to_hex(colors[0]) == "#000000" or mpl.colors.to_hex(colors[0]) == "#ffffff":
-                continue
+            # iterate over the colors
+            for color in colors:
+                # test if it is a colormap
+                try:
+                    cmap = color.cmap
+                    value = color.value
+                except AttributeError:
+                    cmap = None
 
-            # if we have a colormap
-            if cmap:
-                if getattr(cmap, "get_color", None):
-                    # iterate over the colors of the colormap
-                    for index, color in enumerate(cmap.get_color()):
-                        # convert to hex
-                        color = mpl.colors.to_hex(color)
+                # omit blacks and whites
+                if mpl.colors.to_hex(color) == "#000000" or mpl.colors.to_hex(color) == "#ffffff":
+                    continue
+
+                # if we have a colormap
+                if cmap:
+                    if getattr(cmap, "get_color", None):
+                        # iterate over the colors of the colormap
+                        for index, color in enumerate(cmap.get_color()):
+                            # convert to hex
+                            color = mpl.colors.to_hex(color)
+                            # check if it is already in the dictionary
+                            if color not in color_artists:
+                                color_artists[color] = []
+                            # add the artist
+                            color_artists[color].append([color_type_name, artist, value, cmap, index])
+                    else:
                         # check if it is already in the dictionary
-                        if color not in color_artists:
-                            color_artists[color] = []
-                        # add the artist
-                        color_artists[color].append([color_type_name, artist, value, cmap, index])
+                        if cmap not in color_artists:
+                            color_artists[cmap] = []
+                        color_artists[cmap].append([color_type_name, artist, value, cmap, value])
                 else:
-                    # check if it is already in the dictionary
-                    if cmap not in color_artists:
-                        color_artists[cmap] = []
-                    color_artists[cmap].append([color_type_name, artist, value, cmap, value])
-            else:
-                # iterate over the colors
-                for color in colors:
                     # ignore transparent colors
                     if mpl.colors.to_rgba(color)[3] == 0:
                         continue
