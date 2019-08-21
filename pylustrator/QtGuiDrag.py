@@ -1489,6 +1489,9 @@ class QItemProperties(QtWidgets.QWidget):
 
         self.input_font_properties = TextPropertiesWidget(self.layout)
 
+        self.input_label = TextWidget(self.layout, "Label:")
+        self.input_label.link("label", self.targetChanged)
+
 
         layout = QtWidgets.QHBoxLayout()
         self.layout.addLayout(layout)
