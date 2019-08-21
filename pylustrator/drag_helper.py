@@ -132,9 +132,12 @@ class GrabbableRectangleSelection(GrabFunctions):
 
     def add_target(self, target):
         target = TargetWrapper(target)
-        self.targets.append(target)
 
         new_points = np.array(target.get_positions())
+        if len(new_points) == 0:
+            return
+
+        self.targets.append(target)
 
         x0, y0, x1, y1 = np.min(new_points[:, 0]), np.min(new_points[:, 1]), np.max(new_points[:, 0]), np.max(
             new_points[:, 1])
