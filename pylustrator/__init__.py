@@ -26,4 +26,4 @@ from .QtGui import initialize as StartColorChooser
 from .lab_colormap import LabColormap
 from .jupyter_cells import setCellInput
 
-__version__ = '0.9.4'
+__version__ = '0.10.0'

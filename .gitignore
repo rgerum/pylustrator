@@ -1,2 +1,9 @@
-
 .idea/
+docs/_build_html/
+*/__pycache__/
+*.pyc
+*.py.orig
+*.py~
+*.egg-info*
+dist/*
+build/*
