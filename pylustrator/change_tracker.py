@@ -67,6 +67,9 @@ def getReference(element, allow_using_variable_names=True):
             try:
                 index = element.axes.texts.index(element)
             except ValueError:
+                for attribute_name in ["title", "_left_title", "_right_title"]:
+                    if getattr(element.axes, attribute_name, None) == element:
+                        return getReference(element.axes) + "." + attribute_name
                 pass
             else:
                 return getReference(element.axes) + ".texts[%d]" % index
@@ -206,6 +209,7 @@ class ChangeTracker:
                                r"\.ax_dict\[\"[^\"]*\"\]",
                                r"\.axes\[\d*\]",
                                r"\.texts\[\d*\]",
+                               r"\.{title|_left_title|_right_title}",
                                r"\.lines\[\d*\]",
                                r"\.patches\[\d*\]",
                                r"\.get_[xy]axis\(\)\.get_(major|minor)_ticks\(\)\[\d*\]",
