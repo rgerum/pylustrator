@@ -408,6 +408,10 @@ class DragManager:
                 self.make_dragable(leg)
             for text in axes.texts:
                 self.make_dragable(text)
+            for attribute_name in ["title", "_left_title", "_right_title"]:
+                text = getattr(axes, attribute_name, None)
+                if text is not None:
+                    self.make_dragable(text)
             for patch in axes.patches:
                 self.make_dragable(patch)
             self.make_dragable(axes.xaxis.get_label())
