@@ -25,5 +25,6 @@ from .helper_functions import fig_text, add_axes, add_image, despine, changeFigu
 from .QtGui import initialize as StartColorChooser
 from .lab_colormap import LabColormap
 from .jupyter_cells import setCellInput
+from .helper_functions import loadFigureFromFile as load
 
 __version__ = '0.10.0'

@@ -97,13 +97,31 @@ def changeFigureSize(w, h, cut_from_top=False, cut_from_left=False, fig=None):
                 text.set_position([x0 * fx, 1 - (1 - y0) * fy])
     fig.set_size_inches(w, h, forward=True)
 
+def removeContentFromFigure(fig):
+    axes = []
+    for ax in fig._axstack.as_list():
+        axes.append(ax)
+        fig._axstack.remove(ax)
+    text = fig.texts
+    fig.text = []
+    return axes + text
 
-def loadFigureFromFile(filename, fig1=None):
-    from pylustration import changeFigureSize
-    import os, sys
-    from importlib import import_module
-    from matplotlib import _pylab_helpers
-    import pylustration
+def addContentToFigure(fig, axes):
+    from matplotlib.axes._subplots import Axes
+    index = len(fig._axstack.as_list())
+    for ax in axes:
+        if isinstance(ax, Axes):
+            fig._axstack.add(index, ax)
+            index += 1
+        else:
+            fig.texts.append(ax)
+
+def loadFigureFromFile(filename, fig1=None, offset=None):
+    from pylustrator import changeFigureSize
+    import os
+    import pylustrator
+
+    filename = os.path.abspath(filename)
 
     # defaults to the current figure
     if fig1 is None:
@@ -116,7 +134,7 @@ def loadFigureFromFile(filename, fig1=None):
         def __enter__(self):
             # store the show function
             self.show = plt.show
-            self.dragger = pylustration.StartDragger
+            self.dragger = pylustrator.start
 
             # define an empty function
             def empty(*args, **kwargs):
@@ -124,58 +142,68 @@ def loadFigureFromFile(filename, fig1=None):
 
             # set the show function to the empty function
             plt.show = empty
-            pylustration.StartDragger = empty
+            pylustrator.start = empty
 
         def __exit__(self, type, value, traceback):
             # restore the old show function
             plt.show = self.show
-            pylustration.StartDragger = self.dragger
+            pylustrator.start = self.dragger
 
     class noNewFigures:
         """
         An environment that prevents the script from creating new figures in the figure manager
         """
         def __enter__(self):
-            # reset the figure manangar and store the current state
-            self.fig = _pylab_helpers.Gcf.figs
-            self.active = _pylab_helpers.Gcf._activeQue
-            _pylab_helpers.Gcf.figs = {}
-            _pylab_helpers.Gcf._activeQue = []
-
+            from matplotlib import rcParams
+            fig = plt.gcf()
+            self.fig = plt.figure
+            figsize = rcParams['figure.figsize']
+            fig.set_size_inches(figsize[0], figsize[1])
+            def figure(num=None, figsize=None, *args, **kwargs):
+                fig = plt.gcf()
+                if figsize is not None:
+                    fig.set_size_inches(figsize[0], figsize[1], forward=True)
+                return fig
+            plt.figure = figure
         def __exit__(self, type, value, traceback):
-            # reset the figure manager
-            _pylab_helpers.Gcf.figs = self.fig
-            _pylab_helpers.Gcf._activeQue = self.active
+            plt.figure = self.fig
+
+    # get the size of the old figure
+    w1, h1 = fig1.get_size_inches()
+    axes1 = removeContentFromFigure(fig1)
+    if len(axes1) == 0:
+        w1 = 0
+        h1 = 0
 
     with noNewFigures():
         # prevent the script we want to load from calling show
         with noShow():
-            # add the path of the sys.path
-            sys.path.insert(0, os.path.dirname(os.path.abspath(filename)))
-            # import the filename
-            import_module(os.path.basename(filename))
-            # remove the path from sys.path
-            sys.path.pop(0)
-        fig2 = plt.gcf()
+            # execute the file
+            exec(compile(open(filename, "rb").read(), filename, 'exec'), globals())
 
-    # get the size of the old figure
-    w1, h1 = fig1.get_size_inches()
     # get the size of the new figure
-    w2, h2 = fig2.get_size_inches()
-
-    # calculate the size of the joined figure
-    w = np.max([w1, w2])
-    h = h1+h2
-
-    # change the sizes of the two figures
+    w2, h2 = fig1.get_size_inches()
+    if offset is not None:
+        if len(offset) == 2 or offset[2] == "%":
+            w2 += w1 * offset[0]
+            h2 += h1 * offset[1]
+        elif offset[2] == "in":
+            w2 += offset[0]
+            h2 += offset[1]
+        elif offset[2] == "cm":
+            w2 += offset[0] / 2.54
+            h2 += offset[1] / 2.54
+        changeFigureSize(w2, h2, cut_from_top=True, cut_from_left=True, fig=fig1)
+    w = max(w1, w2)
+    h = max(h1, h2)
     changeFigureSize(w, h, fig=fig1)
-    changeFigureSize(w, h, cut_from_top=True, fig=fig2)
+    if len(axes1):
+        axes2 = removeContentFromFigure(fig1)
+        changeFigureSize(w1, h1, fig=fig1)
+        addContentToFigure(fig1, axes1)
 
-    # move the axes from the new figure to the old figure
-    for index, ax in enumerate(fig2.axes):
-        fig1._axstack.add(fig1._make_key(ax), ax)
-        ax.figure = fig1
-        fig2.delaxes(ax)
+        changeFigureSize(w, h, fig=fig1)
+        addContentToFigure(fig1, axes2)
 
 
 def mark_inset(parent_axes, inset_axes, loc1=1, loc2=2, **kwargs):
