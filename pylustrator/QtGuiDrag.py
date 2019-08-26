@@ -223,12 +223,27 @@ class Linkable:
                 target = s.element
                 for part in parts[:-1]:
                     target = getattr(target, part)
-                return setattr(target, parts[-1], v)
+                setattr(target, parts[-1], v)
+                return [s.element]
             self.setLinkedProperty = set
             self.getLinkedProperty = get
             self.serializeLinkedProperty = lambda x: "." + property_name + " = %s" % x
         else:
-            self.setLinkedProperty = lambda text: getattr(self.element, "set_"+property_name)(text)
+            def set(v):
+                elements = []
+                getattr(self.element, "set_" + property_name)(v)
+                elements.append(self.element)
+                for elm in self.element.figure.selection.targets:
+                    elm = elm.target
+                    if elm != self.element:
+                        try:
+                            getattr(elm, "set_"+property_name, None)(v)
+                        except TypeError as err:
+                            pass
+                        else:
+                            elements.append(elm)
+                return elements
+            self.setLinkedProperty = set#lambda text: getattr(self.element, "set_"+property_name)(text)
             self.getLinkedProperty = lambda: getattr(self.element, "get_"+property_name)()
             self.serializeLinkedProperty = lambda x: ".set_"+property_name+"(%s)" % x
 
@@ -252,14 +267,15 @@ class Linkable:
 
     def updateLink(self):
         try:
-            self.setLinkedProperty(self.get())
+            elements = self.setLinkedProperty(self.get())
         except AttributeError:
             return
-        if isinstance(self.element, mpl.figure.Figure):
-            fig = self.element
-        else:
-            fig = self.element.figure
-        fig.change_tracker.addChange(self.element, self.serializeLinkedProperty(self.getSerialized()))
+        for element in elements:
+            if isinstance(element, mpl.figure.Figure):
+                fig = element
+            else:
+                fig = element.figure
+            fig.change_tracker.addChange(element, self.serializeLinkedProperty(self.getSerialized()))
         fig.canvas.draw()
 
     def set(self, value):
@@ -1345,7 +1361,13 @@ class QTickEdit(QtWidgets.QWidget):
                     text.append("%s" % l_text)
         self.input_ticks2.setText(",<br>".join(text))
 
-        self.input_font.setTarget([t.label1 for t in getattr(self.element, "get_"+self.axis+"axis")().get_major_ticks()])
+        elements = [self.element]
+        elements += [element.target for element in self.element.figure.selection.targets if element.target != self.element and isinstance(element.target, Axes)]
+        ticks = []
+        for element in elements:
+            ticks += [t.label1 for t in getattr(element, "get_"+self.axis+"axis")().get_major_ticks()]
+
+        self.input_font.setTarget(ticks)
 
     def parseTicks(self, string):
         try:
@@ -1378,41 +1400,49 @@ class QTickEdit(QtWidgets.QWidget):
     def ticksChanged2(self):
         ticks, labels = self.parseTicks(self.input_ticks2.text())
 
-        getattr(self.element, "set_" + self.axis + "lim")(self.range)
-        getattr(self.element, "set_" + self.axis + "ticks")(ticks, minor=True)
-        getattr(self.element, "set_" + self.axis + "ticklabels")(labels, minor=True)
-        min, max = getattr(self.element, "get_" + self.axis + "lim")()
-        if min != self.range[0] or max != self.range[1]:
-            self.fig.change_tracker.addChange(self.element,
-                                              ".set_" + self.axis + "lim(%s, %s)" % (str(min), str(max)))
-        else:
-            self.fig.change_tracker.addChange(self.element,
-                                              ".set_" + self.axis + "lim(%s, %s)" % (str(self.range[0]), str(self.range[1])))
+        elements = [self.element]
+        elements += [element.target for element in self.element.figure.selection.targets if element.target != self.element and isinstance(element.target, Axes)]
 
-        # self.setTarget(self.element)
-        self.fig.change_tracker.addChange(self.element,
-                                          ".set_" + self.axis + "ticks([%s], minor=True)" % ", ".join(self.str(t) for t in ticks), self.element, ".set_" + self.axis + "ticks_minor")
-        self.fig.change_tracker.addChange(self.element, ".set_" + self.axis + "ticklabels([%s], minor=True)" % ", ".join(
-            '"' + l + '"' for l in labels), self.element, ".set_" + self.axis + "labels_minor")
+        for element in elements:
+            getattr(element, "set_" + self.axis + "lim")(self.range)
+            getattr(element, "set_" + self.axis + "ticks")(ticks, minor=True)
+            getattr(element, "set_" + self.axis + "ticklabels")(labels, minor=True)
+            min, max = getattr(element, "get_" + self.axis + "lim")()
+            if min != self.range[0] or max != self.range[1]:
+                self.fig.change_tracker.addChange(element,
+                                                  ".set_" + self.axis + "lim(%s, %s)" % (str(min), str(max)))
+            else:
+                self.fig.change_tracker.addChange(element,
+                                                  ".set_" + self.axis + "lim(%s, %s)" % (str(self.range[0]), str(self.range[1])))
+
+            # self.setTarget(element)
+            self.fig.change_tracker.addChange(element,
+                                              ".set_" + self.axis + "ticks([%s], minor=True)" % ", ".join(self.str(t) for t in ticks), element, ".set_" + self.axis + "ticks_minor")
+            self.fig.change_tracker.addChange(element, ".set_" + self.axis + "ticklabels([%s], minor=True)" % ", ".join(
+                '"' + l + '"' for l in labels), element, ".set_" + self.axis + "labels_minor")
         self.fig.canvas.draw()
 
     def ticksChanged(self):
         ticks, labels = self.parseTicks(self.input_ticks.text())
 
-        getattr(self.element, "set_" + self.axis + "lim")(self.range)
-        getattr(self.element, "set_" + self.axis + "ticks")(ticks)
-        getattr(self.element, "set_" + self.axis + "ticklabels")(labels)
-        min, max = getattr(self.element, "get_" + self.axis + "lim")()
-        if min != self.range[0] or max != self.range[1]:
-            self.fig.change_tracker.addChange(self.element,
-                                              ".set_" + self.axis + "lim(%s, %s)" % (str(min), str(max)))
-        else:
-            self.fig.change_tracker.addChange(self.element,
-                                              ".set_" + self.axis + "lim(%s, %s)" % (str(self.range[0]), str(self.range[1])))
+        elements = [self.element]
+        elements += [element.target for element in self.element.figure.selection.targets if element.target != self.element and isinstance(element.target, Axes)]
 
-        #self.setTarget(self.element)
-        self.fig.change_tracker.addChange(self.element, ".set_" + self.axis + "ticks([%s])" % ", ".join(self.str(t) for t in ticks))
-        self.fig.change_tracker.addChange(self.element, ".set_" + self.axis + "ticklabels([%s])" % ", ".join('"'+l+'"' for l in labels))
+        for element in elements:
+            getattr(element, "set_" + self.axis + "lim")(self.range)
+            getattr(element, "set_" + self.axis + "ticks")(ticks)
+            getattr(element, "set_" + self.axis + "ticklabels")(labels)
+            min, max = getattr(element, "get_" + self.axis + "lim")()
+            if min != self.range[0] or max != self.range[1]:
+                self.fig.change_tracker.addChange(element,
+                                                  ".set_" + self.axis + "lim(%s, %s)" % (str(min), str(max)))
+            else:
+                self.fig.change_tracker.addChange(element,
+                                                  ".set_" + self.axis + "lim(%s, %s)" % (str(self.range[0]), str(self.range[1])))
+
+            #self.setTarget(self.element)
+            self.fig.change_tracker.addChange(element, ".set_" + self.axis + "ticks([%s])" % ", ".join(self.str(t) for t in ticks))
+            self.fig.change_tracker.addChange(element, ".set_" + self.axis + "ticklabels([%s])" % ", ".join('"'+l+'"' for l in labels))
         self.fig.canvas.draw()
 
 class QAxesProperties(QtWidgets.QWidget):
@@ -1725,12 +1755,16 @@ class QItemProperties(QtWidgets.QWidget):
             self.fig.widget.updateGeometry()
             self.parent.updateFigureSize()
         else:
-            pos = self.element.get_position()
-            pos.x1 = pos.x0 + value[0]
-            pos.y1 = pos.y0 + value[1]
-            self.element.set_position(pos)
+            elements = [self.element]
+            elements += [element.target for element in self.element.figure.selection.targets if
+                         element.target != self.element and isinstance(element.target, Axes)]
+            for element in elements:
+                pos = element.get_position()
+                pos.x1 = pos.x0 + value[0]
+                pos.y1 = pos.y0 + value[1]
+                element.set_position(pos)
 
-            self.fig.change_tracker.addChange(self.element, ".set_position([%f, %f, %f, %f])" % (pos.x0, pos.y0, pos.width, pos.height))
+                self.fig.change_tracker.addChange(element, ".set_position([%f, %f, %f, %f])" % (pos.x0, pos.y0, pos.width, pos.height))
 
             self.fig.canvas.draw()
 
@@ -1837,7 +1871,10 @@ class QItemProperties(QtWidgets.QWidget):
 
         try:
             self.input_font_properties.show()
-            self.input_font_properties.setTarget(element)
+            elements = [element]
+            elements += [element.target for element in element.figure.selection.targets if
+                         element.target != element]
+            self.input_font_properties.setTarget(elements)
         except AttributeError:
             self.input_font_properties.hide()
 
