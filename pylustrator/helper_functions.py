@@ -24,6 +24,7 @@ import matplotlib.pyplot as plt
 from matplotlib.text import Text
 import numpy as np
 import traceback
+from .parse_svg import svgread
 
 def fig_text(x, y, text, unit="cm", *args, **kwargs):
     """
@@ -187,11 +188,14 @@ def loadFigureFromFile(filename, fig1=None, offset=None, dpi=None):
         for spine in ["left", "right", "top", "bottom"]:
             ax.spines[spine].set_visible(False)
     except OSError:
-        with noNewFigures():
-            # prevent the script we want to load from calling show
-            with noShow():
-                # execute the file
-                exec(compile(open(filename, "rb").read(), filename, 'exec'), globals())
+        if filename.endswith(".svg"):
+            svgread(filename)
+        else:
+            with noNewFigures():
+                # prevent the script we want to load from calling show
+                with noShow():
+                    # execute the file
+                    exec(compile(open(filename, "rb").read(), filename, 'exec'), globals())
 
     # get the size of the new figure
     w2, h2 = fig1.get_size_inches()
