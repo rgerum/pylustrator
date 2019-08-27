@@ -116,10 +116,11 @@ def addContentToFigure(fig, axes):
         else:
             fig.texts.append(ax)
 
-def loadFigureFromFile(filename, fig1=None, offset=None):
+def loadFigureFromFile(filename, fig1=None, offset=None, dpi=None):
+    from matplotlib import rcParams
     from pylustrator import changeFigureSize
-    import os
     import pylustrator
+    import os
 
     filename = os.path.abspath(filename)
 
@@ -154,7 +155,6 @@ def loadFigureFromFile(filename, fig1=None, offset=None):
         An environment that prevents the script from creating new figures in the figure manager
         """
         def __enter__(self):
-            from matplotlib import rcParams
             fig = plt.gcf()
             self.fig = plt.figure
             figsize = rcParams['figure.figsize']
@@ -175,11 +175,23 @@ def loadFigureFromFile(filename, fig1=None, offset=None):
         w1 = 0
         h1 = 0
 
-    with noNewFigures():
-        # prevent the script we want to load from calling show
-        with noShow():
-            # execute the file
-            exec(compile(open(filename, "rb").read(), filename, 'exec'), globals())
+    try:
+        if dpi is None:
+            dpi = rcParams['figure.dpi']
+        im = plt.imread(filename)
+        fig1.set_size_inches(im.shape[1]/dpi, im.shape[0]/dpi)
+        ax = plt.axes([0, 0, 1, 1], label=filename)
+        plt.imshow(im, cmap="gray")
+        plt.xticks([])
+        plt.yticks([])
+        for spine in ["left", "right", "top", "bottom"]:
+            ax.spines[spine].set_visible(False)
+    except OSError:
+        with noNewFigures():
+            # prevent the script we want to load from calling show
+            with noShow():
+                # execute the file
+                exec(compile(open(filename, "rb").read(), filename, 'exec'), globals())
 
     # get the size of the new figure
     w2, h2 = fig1.get_size_inches()
