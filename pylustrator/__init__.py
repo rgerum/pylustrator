@@ -27,4 +27,4 @@ from .lab_colormap import LabColormap
 from .jupyter_cells import setCellInput
 from .helper_functions import loadFigureFromFile as load
 
-__version__ = '0.10.0'
+__version__ = '0.11.0'
