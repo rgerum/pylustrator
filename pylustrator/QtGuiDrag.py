@@ -41,6 +41,8 @@ from .change_tracker import getReference, setFigureVariableNames
 from .drag_helper import DragManager
 from .exception_swallower import swallow_get_exceptions
 
+from .ax_rasterisation import rasterizeAxes, restoreAxes
+
 import sys
 
 
@@ -1999,6 +2001,16 @@ class PlotWindow(QtWidgets.QWidget):
         widget.setMaximumWidth(350)
         widget.setMinimumWidth(350)
 
+        layout_rasterize_buttons = QtWidgets.QHBoxLayout()
+        self.layout_tools.addLayout(layout_rasterize_buttons)
+        self.button_rasterize = QtWidgets.QPushButton("rasterize")
+        layout_rasterize_buttons.addWidget(self.button_rasterize)
+        self.button_rasterize.clicked.connect(lambda x: self.rasterize(True))
+        self.button_derasterize = QtWidgets.QPushButton("derasterize")
+        layout_rasterize_buttons.addWidget(self.button_derasterize)
+        self.button_derasterize.clicked.connect(lambda x: self.rasterize(False))
+        self.button_derasterize.setDisabled(True)
+
         self.treeView = MyTreeView(self, self.layout_tools, self.fig)
         self.treeView.item_selected = self.elementSelected
 
@@ -2045,6 +2057,17 @@ class PlotWindow(QtWidgets.QWidget):
         self.colorWidget = ColorChooserWidget(self, self.canvas)
         self.colorWidget.setMaximumWidth(150)
         self.layout_main.addWidget(self.colorWidget)
+
+    def rasterize(self, rasterize):
+        if len(self.fig.selection.targets):
+            self.fig.figure_dragger.select_element(None)
+        if rasterize:
+            rasterizeAxes(self.fig)
+            self.button_derasterize.setDisabled(False)
+        else:
+            restoreAxes(self.fig)
+            self.button_derasterize.setDisabled(True)
+        self.fig.canvas.draw()
 
     def actionSave(self):
         self.fig.change_tracker.save()
