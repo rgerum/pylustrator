@@ -1,26 +1,70 @@
 import io
 import matplotlib.pyplot as plt
+from matplotlib.axes._subplots import Axes
+
+from .helper_functions import removeContentFromFigure, addContentToFigure
+
+def stashElements(ax, names):
+    for attribute in names:
+        element = getattr(ax, attribute)
+        setattr(ax, "pylustrator_" + attribute, element)
+        setattr(ax, attribute, [] if isinstance(element, list) else None)
+
+def popStashedElements(ax, names):
+    for attribute in names:
+        element_list = getattr(ax, attribute)
+        if isinstance(element_list, list):
+            if getattr(ax, "pylustrator_" + attribute, None) is not None:
+                element_list += getattr(ax, "pylustrator_" + attribute)
+        else:
+            element_list = getattr(ax, "pylustrator_" + attribute)
+        setattr(ax, attribute, element_list)
+        setattr(ax, "pylustrator_" + attribute, None)
 
 def rasterizeAxes(fig):
     restoreAxes(fig)
-    buf = io.BytesIO()
-    fig.savefig(buf, format='png', dpi=300)
-    buf.seek(0)
-    im = plt.imread(buf)
-    buf.close()
 
-    list_axes = fig.axes
-    for ax in list_axes:
+    parts = removeContentFromFigure(fig)
+    for ax in parts:
+        stashElements(ax, ["texts", "legend_"])
+
+        if not isinstance(ax, Axes):
+            continue
+        removeContentFromFigure(fig)
+        addContentToFigure(fig, [ax])
+
+        buf = io.BytesIO()
+        fig.savefig(buf, format='png', dpi=100)
+        buf.seek(0)
+        im = plt.imread(buf)
+        buf.close()
+
         bbox = ax.get_position()
         sx = im.shape[1]
         sy = im.shape[0]
         x1, x2 = int(bbox.x0*sx+1), int(bbox.x1*sx-1)
         y2, y1 = sy-int(bbox.y0*sy+1), sy-int(bbox.y1*sy-1)
         im2 = im[y1:y2, x1:x2]
-        for attribute in ["lines", "texts", "images"]:
-            setattr(ax, "pylustrator_"+attribute, getattr(ax, attribute))
-            setattr(ax, attribute, [])
-        ax.pylustrator_rasterized = ax.imshow(im2, extent=[ax.get_xlim()[0], ax.get_xlim()[1], ax.get_ylim()[0], ax.get_ylim()[1]], aspect="auto")
+        stashElements(ax, ["lines", "images", "patches"])
+
+        sx2 = ax.get_xlim()[1] - ax.get_xlim()[0]
+        sy2 = ax.get_ylim()[1] - ax.get_ylim()[0]
+
+        x1_offset = 1/sx/bbox.width*sx2
+        x2_offset = 1/sx/bbox.width*sx2
+        y1_offset = 1 / sy / bbox.height * sy2
+        y2_offset = 1 / sy / bbox.height * sy2
+
+        xlim = ax.get_xlim()
+        ylim = ax.get_ylim()
+        ax.pylustrator_rasterized = ax.imshow(im2, extent=[ax.get_xlim()[0]+x1_offset, ax.get_xlim()[1]-x2_offset-x1_offset,
+                                                           ax.get_ylim()[0]+y1_offset, ax.get_ylim()[1]-y2_offset-y1_offset], aspect="auto")
+        ax.set_xlim(xlim)
+        ax.set_ylim(ylim)
+
+        popStashedElements(ax, ["texts", "legend_"])
+    removeContentFromFigure(fig)
+    addContentToFigure(fig, parts)
 
 def restoreAxes(fig):
     list_axes = fig.axes
@@ -32,7 +76,4 @@ def restoreAxes(fig):
             except ValueError:
                 pass
             del im
-        for attribute in ["lines", "texts", "images"]:
-            if getattr(ax, "pylustrator_" + attribute, None) is not None:
-                setattr(ax, attribute, getattr(ax, "pylustrator_"+attribute))
-                setattr(ax, "pylustrator_"+attribute, None)
+        popStashedElements(ax, ["lines", "texts", "images", "patches"])
