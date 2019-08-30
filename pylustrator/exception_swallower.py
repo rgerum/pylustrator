@@ -58,10 +58,16 @@ class SaveListDescriptor:
             value = SaveDict(value)
         if isinstance(value, tuple):
             value = SaveTuple(value)
-        setattr(instance, self.variable_name, value)
+        setattr(instance, "_pylustrator_"+self.variable_name, value)
 
     def __get__(self, instance, owner):
-        return getattr(instance, self.variable_name)
+        try:
+            return getattr(instance, "_pylustrator_"+self.variable_name)
+        except AttributeError:
+            if self.variable_name in instance.__dict__:
+                return instance.__dict__[self.variable_name]
+            else:
+                return SaveList([])
 
 
 def get_axes(self):
@@ -77,9 +83,9 @@ def return_save_list(func):
 def swallow_get_exceptions():
     Figure._get_axes = get_axes
     Figure.axes = property(fget=get_axes)
-    Figure.ax_dict = SaveListDescriptor("_pylustrator_ax_dict")
-    _AxesBase.texts = SaveListDescriptor("_pylustrator_texts")
-    _AxesBase.lines = SaveListDescriptor("_pylustrator_lines")
-    _AxesBase.patches = SaveListDescriptor("_pylustrator_patches")
+    Figure.ax_dict = SaveListDescriptor("ax_dict")
+    _AxesBase.texts = SaveListDescriptor("texts")
+    _AxesBase.lines = SaveListDescriptor("lines")
+    _AxesBase.patches = SaveListDescriptor("patches")
     Axis.get_minor_ticks = return_save_list(Axis.get_minor_ticks)
     Axis.get_major_ticks = return_save_list(Axis.get_major_ticks)

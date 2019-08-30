@@ -126,7 +126,7 @@ def show():
         if setting_use_global_variable_names:
             setFigureVariableNames(figure)
         # get the window
-        window = _pylab_helpers.Gcf.figs[figure].canvas.window
+        window = _pylab_helpers.Gcf.figs[figure].canvas.window_pylustrator
         # warn about ticks not fitting tick labels
         warnAboutTicks(window.fig)
         # add dragger
@@ -1942,7 +1942,7 @@ class PlotWindow(QtWidgets.QWidget):
         self.y_scale = QtWidgets.QLabel(self.canvas_canvas)
 
         self.canvas = MatplotlibWidget(self, number, size=size)
-        self.canvas.window = self
+        self.canvas.window_pylustrator = self
         self.canvas_wrapper_layout.addWidget(self.canvas)
         self.fig = self.canvas.figure
         self.fig.widget = self.canvas

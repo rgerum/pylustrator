@@ -25,6 +25,9 @@ from matplotlib.text import Text
 import numpy as np
 import traceback
 from .parse_svg import svgread
+from matplotlib.axes._subplots import Axes
+from .pyjack import replace_all_refs
+
 
 def fig_text(x, y, text, unit="cm", *args, **kwargs):
     """
@@ -108,7 +111,6 @@ def removeContentFromFigure(fig):
     return axes + text
 
 def addContentToFigure(fig, axes):
-    from matplotlib.axes._subplots import Axes
     index = len(fig._axstack.as_list())
     for ax in axes:
         if isinstance(ax, Axes):
@@ -117,13 +119,14 @@ def addContentToFigure(fig, axes):
         else:
             fig.texts.append(ax)
 
-def loadFigureFromFile(filename, fig1=None, offset=None, dpi=None):
+def loadFigureFromFile(filename, fig1=None, offset=None, dpi=None, cache=True):
     from matplotlib import rcParams
     from pylustrator import changeFigureSize
     import pylustrator
     import os
 
     filename = os.path.abspath(filename)
+    cache_filename = filename + ".cache.pkl"
 
     # defaults to the current figure
     if fig1 is None:
@@ -166,9 +169,11 @@ def loadFigureFromFile(filename, fig1=None, offset=None, dpi=None):
                     fig.set_size_inches(figsize[0], figsize[1], forward=True)
                 return fig
             plt.figure = figure
-        def __exit__(self, type, value, traceback):
-            plt.figure = self.fig
 
+        def __exit__(self, type, value, traceback):
+            from matplotlib.figure import Figure
+            from matplotlib.transforms import TransformedBbox, Affine2D
+            plt.figure = self.fig
     # get the size of the old figure
     w1, h1 = fig1.get_size_inches()
     axes1 = removeContentFromFigure(fig1)
@@ -194,8 +199,33 @@ def loadFigureFromFile(filename, fig1=None, offset=None, dpi=None):
             with noNewFigures():
                 # prevent the script we want to load from calling show
                 with noShow():
-                    # execute the file
-                    exec(compile(open(filename, "rb").read(), filename, 'exec'), globals())
+                    import pickle
+                    if cache and os.path.exists(cache_filename) and os.path.getmtime(cache_filename) > os.path.getmtime(filename):
+                        print("loading from cached file", cache_filename)
+                        fig2 = pickle.load(open(cache_filename, "rb"))
+
+                        str(fig1)  # important! (for some reason I don't know)
+                        for ax in fig2.axes:
+                            fig2.delaxes(ax)
+                            fig1._axstack.add(fig1._make_key(ax), ax)
+                            fig1.bbox._parents.update(fig2.bbox._parents)
+                            fig1.dpi_scale_trans._parents.update(fig2.dpi_scale_trans._parents)
+                            replace_all_refs(fig2.bbox, fig1.bbox)
+                            replace_all_refs(fig2.dpi_scale_trans, fig1.dpi_scale_trans)
+                            replace_all_refs(fig2, fig1)
+
+                    else:
+                        # execute the file
+                        exec(compile(open(filename, "rb").read(), filename, 'exec'), globals())
+                        if cache is True:
+                            c = fig1.canvas
+                            fig1.canvas = None
+                            fig1.bbox.pylustrator = True
+                            fig1.dpi_scale_trans.pylustrator = True
+                            pickle.dump(fig1,
+                                        open(cache_filename, 'wb'))
+
+                            fig1.canvas = c
 
     # get the size of the new figure
     w2, h2 = fig1.get_size_inches()

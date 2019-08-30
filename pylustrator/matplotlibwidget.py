@@ -119,6 +119,20 @@ class MatplotlibWidget(Canvas):
         return QtCore.QSize(10, 10)
 
 
+def make_pickelable(cls):
+    def __getstate__(self):
+        return {}
+
+    def __setstate__(self, state):
+        self.__init__()
+
+    cls.__getstate__ = __getstate__
+    cls.__setstate__ = __setstate__
+
+make_pickelable(NavigationToolbar)
+make_pickelable(MatplotlibWidget)
+
+
 class CanvasWindow(QtWidgets.QWidget):
     signal = QtCore.Signal()
 
