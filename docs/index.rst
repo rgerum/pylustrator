@@ -83,7 +83,7 @@ Note
 ----
 
 If you encounter any bugs or unexpected behaviour, you are encouraged to report a bug in our
-Bitbucket `bugtracker <https://bitbucket.org/fabry_biophysics/pylustrator/issues?status=new&status=open>`_.
+Bitbucket `bugtracker <https://github.com/rgerum/pylustrator/issues>`_.
 
 
 Citing Pylustrator
@@ -100,3 +100,9 @@ Pylustrator is released under the `GPLv3 <https://choosealicense.com/licenses/gp
 code of Pylustrator can be freely used according to the `MIT <https://choosealicense.com/licenses/mit/>`_ license, but as
 it relys on Matplotlib also the `Matplotlib License <https://matplotlib.org/users/license.html>`_ has to be taken into
 account.
+
+.. toctree::
+   :caption: Contents
+   :maxdepth: 2
+
+   composing
