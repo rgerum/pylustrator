@@ -203,6 +203,8 @@ def loadFigureFromFile(filename, fig1=None, offset=None, dpi=None, cache=True):
                     if cache and os.path.exists(cache_filename) and os.path.getmtime(cache_filename) > os.path.getmtime(filename):
                         print("loading from cached file", cache_filename)
                         fig2 = pickle.load(open(cache_filename, "rb"))
+                        w, h = fig2.get_size_inches()
+                        fig1.set_size_inches(w, h)
 
                         str(fig1)  # important! (for some reason I don't know)
                         for ax in fig2.axes:
@@ -213,7 +215,6 @@ def loadFigureFromFile(filename, fig1=None, offset=None, dpi=None, cache=True):
                             replace_all_refs(fig2.bbox, fig1.bbox)
                             replace_all_refs(fig2.dpi_scale_trans, fig1.dpi_scale_trans)
                             replace_all_refs(fig2, fig1)
-
                     else:
                         # execute the file
                         exec(compile(open(filename, "rb").read(), filename, 'exec'), globals())
