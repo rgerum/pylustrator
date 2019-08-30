@@ -5,8 +5,14 @@
 Welcome to the Pylustrator Documentation
 ========================================
 
-Pylustrator is a program to style your matplotlib plots for publication. Subplots can be resized and dragged around by
-the mouse, text and annotations can be added. The changes can be saved to the initial plot file as python code.
+Pylustrator is a software to prepare your figures for publication in a reproducible way. This means you receive a figure
+representing your data and alongside a generated code file that can exactly reproduce the figure as you put them in the
+publication, without the need to readjust things in external programs.
+
+Pylustrator offers an interactive interface to find the best way to present your data in a figure for publication.
+Added formatting an styling can be saved by automatically generated code. To compose multiple figures to panels,
+pylustrator can compose different subfigures to a single figure.
+
 
 .. raw:: html
 
@@ -69,8 +75,8 @@ python script (before your ``plt.show()``) that defines these changes:
     #% end: automatic generated code from pylustrator
 
 .. note::
-   Because pylustrator can save optionally save changes you've made in the GUI to update your source
-   code, it cannot be used from a shell or a notebook. To use pylustrator, call it directly from a
+   Because pylustrator can optionally save changes you've made in the GUI to update your source
+   code, it cannot be used from a shell. To use pylustrator, call it directly from a
    python file and use the command line to execute.
 
 The good thing is that this generated code is plain matplotlib code, so it will still work when you remove pylustrator
@@ -105,4 +111,5 @@ account.
    :caption: Contents
    :maxdepth: 2
 
+   styling
    composing
