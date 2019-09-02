@@ -22,11 +22,23 @@ def setCellInput(i):
 
 def getIpythonCurrentCell():
     import IPython
+    import asyncio
     from pprint import pprint
     c = IPython.core.getipython.get_ipython()
     # pprint(dir(c))
-    [i for i in c.runcode("import pylustrator")]
-    [i for i in c.runcode("pylustrator.setCellInput(_ih[-1])")]
+    try:
+        [i for i in c.runcode("import pylustrator")]
+        [i for i in c.runcode("pylustrator.setCellInput(_ih[-1])")]
+    except TypeError:  # newer IPython versions
+        try:
+            asyncio.run(c.runcode("import pylustrator"))
+            asyncio.run(c.runcode("pylustrator.setCellInput(_ih[-1])"))
+        except AttributeError:  # Python < 3.7
+            loop = asyncio.new_event_loop()
+            loop.run_until_complete(asyncio.wait([c.runcode("import pylustrator")]))
+            loop.run_until_complete(asyncio.wait([c.runcode("pylustrator.setCellInput(_ih[-1])")]))
+            loop.close()
+
     return _i
 
 global_files = {}
