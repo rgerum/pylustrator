@@ -4,7 +4,11 @@ import matplotlib.patches as patches
 import matplotlib.transforms as transforms
 import sys
 import numpy as np
+import re
+import io
+import base64
 import matplotlib.text
+from .arc2bez import arcToBezier
 
 def deform(base_trans, x, y, sx=0, sy=0):
     return transforms.Affine2D([[x, sx, 0], [sy, y, 0], [0, 0, 1]]) + base_trans
@@ -30,9 +34,27 @@ def parseTransformation(trans, base_trans):
         print("ERROR: unknown transformation", trans)
     return base_trans
 
-def parse_style(style, patch):
-    for element in style.split(";"):
+def get_style(node, base_style=None):
+    style = {}
+    if base_style is not None:
+        style.update(base_style)
+    attribute_names = ["alignment-baseline", "baseline-shift", "clip-path", "clip-rule", "color", "color-interpolation", "color-interpolation-filters", "color-rendering", "cursor", "direction", "display", "dominant-baseline", "fill", "fill-opacity", "fill-rule", "filter", "flood-color", "flood-opacity", "font-family", "font-size", "font-size-adjust", "font-stretch", "font-style", "font-variant", "font-weight", "glyph-orientation-horizontal", "glyph-orientation-vertical", "image-rendering", "letter-spacing", "lighting-color", "marker-end", "marker-mid", "marker-start", "mask", "opacity", "overflow", "paint-order", "pointer-events", "shape-rendering", "stop-color", "stop-opacity", "stroke", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke-width", "text-anchor", "text-decoration", "text-overflow", "text-rendering", "unicode-bidi", "vector-effect", "visibility", "white-space", "word-spacing", "writing-mode"]
+    for name in attribute_names:
+        value = node.getAttribute(name)
+        if value != "":
+            style[name] = value
+
+    for element in node.getAttribute("style").split(";"):
+        if element == "":
+            continue
         key, value = element.split(":", 1)
+        style[key] = value
+    return style
+
+def apply_style(style, patch):
+    print(patch, style)
+    for key, value in style.items():
+        print(key, value)
         try:
             if key == "opacity":
                 patch.set_alpha(float(value))
@@ -44,12 +66,17 @@ def parse_style(style, patch):
                     patch.set_color(value)
             elif key == "fill-opacity":
                 if getattr(patch, "svg_fill", "none") != "none":
-                    r, g, b, a = patch.get_facecolor()
-                    patch.set_facecolor((r, g, b, float(value)))
+                    try:
+                        r, g, b, a = patch.get_facecolor()
+                        patch.set_facecolor((r, g, b, float(value)))
+                    except AttributeError:
+                        r, g, b, a = patch.get_color()
+                        patch.set_color((r, g, b, float(value)))
             elif key == "stroke":
                 patch.svg_stroke = value
                 try:
                     patch.set_edgecolor(value)
+                    print("stroke", value)
                 except AttributeError:
                     pass
                     #patch.set_color(value)
@@ -78,11 +105,7 @@ def parse_style(style, patch):
                 pass  # unfortunately we cannot implement this in matplotlib
             elif key == "stroke-width":
                 try:
-                    if value.endswith("px"):
-                        patch.set_linewidth(float(value[:-2]) * 100)
-                    else:
-                        patch.set_linewidth(float(value) * 100)
-                    pass
+                    patch.set_linewidth(svgUnitToMpl(value))
                 except:
                     pass
             elif key == "stroke-linecap":
@@ -92,10 +115,7 @@ def parse_style(style, patch):
                 except AttributeError:
                     pass
             elif key == "font-size":
-                if value.endswith("px"):
-                    patch.set_fontsize(float(value[:-2]) * 50)
-                else:
-                    patch.set_fontsize(float(value) * 100)
+                patch.set_fontsize(svgUnitToMpl(value))
             elif key == "font-weight":
                 patch.set_fontweight(value)
             elif key == "font-style":
@@ -103,45 +123,37 @@ def parse_style(style, patch):
             else:
                 print("ERROR: unknown style key", key, file=sys.stderr)
         except ValueError:
-            print("ERROR: could not set style", element, file=sys.stderr)
+            print("ERROR: could not set style", key, value, file=sys.stderr)
 
-def plt_draw_rect(node, trans):
+def plt_patch(node, trans, style, constructor):
     trans = parseTransformation(node.getAttribute("transform"), trans)
 
-    patch = patches.Rectangle(xy=(float(node.getAttribute("x")), float(node.getAttribute("y"))),
-                              width=float(node.getAttribute("width")),
-                              height=float(node.getAttribute("height")),
-                              transform=trans,
-                              )
+    patch = constructor(node, trans)
 
-    parse_style(node.getAttribute("style"), patch)
+    apply_style(get_style(node, style), patch)
     plt.gca().add_patch(patch)
 
-def plt_draw_ellipse(node, trans):
-    trans = parseTransformation(node.getAttribute("transform"), trans)
+def patch_rect(node, trans):
+    return patches.Rectangle(xy=(float(node.getAttribute("x")), float(node.getAttribute("y"))),
+                             width=float(node.getAttribute("width")),
+                             height=float(node.getAttribute("height")),
+                             transform=trans)
 
-    patch = patches.Ellipse(xy=(float(node.getAttribute("cx")), float(node.getAttribute("cy"))),
-                              width=float(node.getAttribute("rx"))*2,
-                              height=float(node.getAttribute("ry"))*2,
-                              transform=trans,
-                              )
+def patch_ellipse(node, trans):
+    return patches.Ellipse(xy=(float(node.getAttribute("cx")), float(node.getAttribute("cy"))),
+                           width=float(node.getAttribute("rx"))*2,
+                           height=float(node.getAttribute("ry"))*2,
+                           transform=trans)
 
-    parse_style(node.getAttribute("style"), patch)
-    plt.gca().add_patch(patch)
+def patch_circle(node, trans):
+    return patches.Circle(xy=(float(node.getAttribute("cx")), float(node.getAttribute("cy"))),
+                          radius=float(node.getAttribute("r")),
+                          transform=trans)
 
-def plt_draw_circle(node, trans):
-    trans = parseTransformation(node.getAttribute("transform"), trans)
+def plt_draw_text(node, trans, style):
+    from matplotlib.textpath import TextPath
+    from matplotlib.font_manager import FontProperties
 
-    patch = patches.Circle(xy=(float(node.getAttribute("cx")), float(node.getAttribute("cy"))),
-                              radius=float(node.getAttribute("r")),
-                              transform=trans,
-                              )
-
-    parse_style(node.getAttribute("style"), patch)
-    plt.gca().add_patch(patch)
-
-
-def plt_draw_text(node, trans):
     trans = parseTransformation(node.getAttribute("transform"), trans)
     x = float(node.getAttribute("x"))
     y = float(node.getAttribute("y"))
@@ -152,86 +164,175 @@ def plt_draw_text(node, trans):
         text = plt.text(float(child.getAttribute("x")), float(child.getAttribute("y")),
                  child.firstChild.nodeValue,
                  transform=trans)
+        apply_style(style, text)
 
-        parse_style(node.getAttribute("style"), text)
-
-def plt_draw_path(node, trans):
+def patch_path(node, trans):
     import matplotlib.path as mpath
 
-    trans = parseTransformation(node.getAttribute("transform"), trans)
-
-    last_command = None
-    last_command_relative = False
+    start_pos = None
+    command = None
     verts = []
     codes = []
-    last_x, last_y = 0, 0
-    index = 0
-    for part in node.getAttribute("d").split(" "):
-        if len(part) == 1:
-            index = 0
-            last_command_relative = part.islower()
-            part = part.lower()
-            if part == "m":
-                last_command = mpath.Path.MOVETO
-            elif part == "v":
-                last_command = "v"#mpath.Path.MOVETO
-            elif part == "h":
-                last_command = "h"
-            elif part == "l":
-                last_command = mpath.Path.LINETO
-            elif part == "c":
-                last_command = mpath.Path.CURVE4
-            elif part == "z":
-                last_command = mpath.Path.CLOSEPOLY
-                verts.append(verts[0])
+
+    current_pos = np.array([0, 0])
+
+    elements = [a[0] for a in re.findall(r'((-?\d+\.?\d*)|(-?\d*\.?\d+)|\w)', node.getAttribute("d"))]
+    elements.reverse()
+
+    def popPos():
+        pos = np.array([float(elements.pop()), float(elements.pop())])
+        if not absolute:
+            pos += current_pos
+        return pos
+
+    def popValue(count=None):
+        if count is None:
+            return float(elements.pop())
+        else:
+            return [float(elements.pop()) for i in range(count)]
+
+    def addPathElement(type, *positions):
+        for pos in positions:
+            verts.append(pos)
+            codes.append(type)
+        return positions[-1]
+
+    while elements:
+        if 'A' <= elements[-1] <= 'z':
+            last_command = command
+            command = elements.pop()
+            absolute = command.isupper()
+            command = command.lower()
+
+        # moveto
+        if command == "m":
+            current_pos = addPathElement(mpath.Path.MOVETO, popPos())
+            start_pos = current_pos
+
+            command = "l"
+        # close
+        elif command == "z":
+            # Close path
+            if not np.all(current_pos == start_pos):
+                verts.append(start_pos)
                 codes.append(mpath.Path.CLOSEPOLY)
+
+            current_pos = start_pos
+            start_pos = None
+            command = None  # You can't have implicit commands after closing.
+        # lineto
+        elif command == 'l':
+            current_pos = addPathElement(mpath.Path.LINETO, popPos())
+        # horizontal lineto
+        elif command == 'h':
+            current_pos = addPathElement(mpath.Path.LINETO,
+                                         np.array([popValue()+current_pos[0]*(1-absolute), current_pos[1]]))
+        # vertical lineto
+        elif command == 'v':
+            current_pos = addPathElement(mpath.Path.LINETO,
+                                         np.array([current_pos[0], popValue() + current_pos[1] * (1 - absolute)]))
+        # cubic bezier curveto
+        elif command == 'c':
+            current_pos = addPathElement(mpath.Path.CURVE4, popPos(), popPos(), popPos())
+        # smooth cubic bezier curveto
+        elif command == 's':
+            # Smooth curve. First control point is the "reflection" of
+            # the second control point in the previous path.
+
+            if last_command not in 'cs':
+                # If there is no previous command or if the previous command
+                # was not an C, c, S or s, assume the first control point is
+                # coincident with the current point.
+                control1 = current_pos
             else:
-                raise ValueError("Unknown command", last_command)
-            continue
-        if last_command == "v":
-            x = float(part)
-            y = 0
-        elif last_command == "h":
-            x = 0
-            y = float(part)
-        else:
-            x, y = [float(s) for s in part.split(",")]
-        if last_command_relative is True:
-            x += last_x
-            y += last_y
-        verts.append([x, y])
-        if last_command == "v" or last_command == "h":
-            codes.append(mpath.Path.LINETO)
-        else:
-            codes.append(last_command)
-        if last_command == mpath.Path.MOVETO:
-            last_command = mpath.Path.LINETO
-        if last_command == mpath.Path.CURVE4:
-            index += 1
-            if index == 3:
-                last_x = x
-                last_y = y
-        else:
-            last_x = x
-            last_y = y
+                # The first control point is assumed to be the reflection of
+                # the second control point on the previous command relative
+                # to the current point.
+                control1 = current_pos + (current_pos - verts[-2])
+
+            current_pos = addPathElement(mpath.Path.CURVE4, control1, popPos(), popPos())
+        # quadratic bezier curveto
+        elif command == 'q':
+            current_pos = addPathElement(mpath.Path.CURVE3, popPos(), popPos())
+        # smooth quadratic bezier curveto
+        elif command == 't':
+            # Smooth curve. Control point is the "reflection" of
+            # the second control point in the previous path.
+
+            if last_command not in 'qt':
+                # If there is no previous command or if the previous command
+                # was not an Q, q, T or t, assume the first control point is
+                # coincident with the current point.
+                control1 = current_pos
+            else:
+                # The control point is assumed to be the reflection of
+                # the control point on the previous command relative
+                # to the current point.
+                control1 = current_pos + (current_pos - verts[-2])
+            current_pos = addPathElement(mpath.Path.CURVE3, control1, popPos())
+        # elliptical arc
+        elif command == 'a':
+            radius1, radius2, rotation, arc, sweep = popValue(5)
+            end = popPos()
+
+            for e in arcToBezier(current_pos, end, radius1, radius2, rotation, arc, sweep):
+                current_pos = addPathElement(mpath.Path.CURVE4, e[:2], e[2:4], e[4:6])
 
     path = mpath.Path(verts, codes)
-    patch = patches.PathPatch(path,
-                              transform=trans,
-                              )
+    return patches.PathPatch(path, transform=trans)
 
-    parse_style(node.getAttribute("style"), patch)
-    plt.gca().add_patch(patch)
+def svgUnitToMpl(unit, default=None):
+    import re
+    if unit == "":
+        return default
+    match = re.match(r"^([-.\d]*)(\w*)$", unit)
+    if match:
+        value, unit = match.groups()
+        value = float(value)
+        if unit == "pt":
+            value *= plt.gcf().dpi / 72
+        elif unit == "pc":
+            value *= plt.gcf().dpi / 6
+        elif unit == "in":
+            value *= plt.gcf().dpi
+        elif unit == "px":
+            pass
+        elif unit == "cm":
+            value *= plt.gcf().dpi / 2.5
+        elif unit == "mm":
+            value *= plt.gcf().dpi / 25
+        return value
 
+
+def openImageFromLink(link):
+    if link.startswith("file:///"):
+        return plt.imread(link[len("file:///"):])
+    else:
+        type, data = re.match(r"data:image/(\w*);base64,(.*)", link).groups()
+
+        data = base64.decodebytes(bytes(data, "utf-8"))
+
+        buf = io.BytesIO()
+        buf.write(data)
+        buf.seek(0)
+        im = plt.imread(buf, format=type)
+        buf.close()
+        return im
 
 def svgread(filename):
     # read the SVG file
     doc = minidom.parse(filename)
 
     svg = doc.getElementsByTagName("svg")[0]
-    x1, y1, x2, y2 = [float(s.strip()) for s in svg.getAttribute("viewBox").split()]
-    plt.gcf().set_size_inches(x2-x1, y2-y1)
-    ax = plt.axes([0, 0, 1, 1], label=filename)
+    try:
+        x1, y1, x2, y2 = [float(s.strip()) for s in svg.getAttribute("viewBox").split()]
+        plt.gcf().set_size_inches(x2 - x1, y2 - y1)
+    except ValueError:
+        width = svgUnitToMpl(svg.getAttribute("width"), default=100)
+        height = svgUnitToMpl(svg.getAttribute("height"), default=100)
+        x1, y1, x2, y2 = 0, 0, width, height
+        plt.gcf().set_size_inches(width/plt.gcf().dpi, height/plt.gcf().dpi)
+    ax = plt.axes([0, 0, 1, 1], label=filename, frameon=False)
     plt.xticks([])
     plt.yticks([])
     for spine in ["left", "right", "top", "bottom"]:
@@ -239,30 +340,47 @@ def svgread(filename):
     plt.xlim(x1, x2)
     plt.ylim(y2, y1)
 
-    def parseGroup(node, trans):
+    def parseGroup(node, trans, style):
         trans = parseTransformation(node.getAttribute("transform"), trans)
+        style = get_style(node, style)
         for node in node.childNodes:
             if node.nodeType == node.TEXT_NODE:
                 continue
             if node.tagName == "rect":
-                plt_draw_rect(node, trans)
+                plt_patch(node, trans, style, patch_rect)
             elif node.tagName == "ellipse":
-                plt_draw_ellipse(node, trans)
+                plt_patch(node, trans, style, patch_ellipse)
             elif node.tagName == "circle":
-                plt_draw_circle(node, trans)
+                plt_patch(node, trans, style, patch_circle)
             elif node.tagName == "path":
-                plt_draw_path(node, trans)
+                plt_patch(node, trans, style, patch_path)
+            elif node.tagName == "polygon":
+                # matplotlib has a designated polygon patch, but it is easier to just convert it to a path
+                node.setAttribute("d", "M "+node.getAttribute("points")+" Z")
+                plt_patch(node, trans, style, patch_path)
+            elif node.tagName == "polyline":
+                node.setAttribute("d", "M " + node.getAttribute("points"))
+                plt_patch(node, trans, style, patch_path)
+            elif node.tagName == "line":
+                node.setAttribute("d", "M " + node.getAttribute("x1") + "," + node.getAttribute("y1") + " " + node.getAttribute("x2") + "," + node.getAttribute("y2"))
+                plt_patch(node, trans, style, patch_path)
             elif node.tagName == "g":
-                parseGroup(node, trans)
+                parseGroup(node, trans, style)
             elif node.tagName == "text":
-                plt_draw_text(node, trans)
+                plt_draw_text(node, trans, style)
             elif node.tagName == "defs":
                 pass  # currently ignored might be used for example for gradient definitions
             elif node.tagName == "sodipodi:namedview":
                 pass  # used for some inkscape metadata
+            elif node.tagName == "image":
+                link = node.getAttribute("xlink:href")
+                im = openImageFromLink(link)
+                plt.imshow(im, extent=[svgUnitToMpl(node.getAttribute("x")), svgUnitToMpl(node.getAttribute("x")) + svgUnitToMpl(node.getAttribute("width")),
+                                       svgUnitToMpl(node.getAttribute("y")), svgUnitToMpl(node.getAttribute("y")) + svgUnitToMpl(node.getAttribute("height")),
+                                       ], zorder=1)
             elif node.tagName == "metadata":
                 pass  # we do not have to draw metadata
             else:
                 print("Unknown tag", node.tagName, file=sys.stderr)
 
-    parseGroup(doc.getElementsByTagName("svg")[0], plt.gca().transData)
+    parseGroup(doc.getElementsByTagName("svg")[0], plt.gca().transData, {})
