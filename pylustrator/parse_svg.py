@@ -88,6 +88,8 @@ def apply_style(style, patch):
     # matplotlib defaults differ
     if "fill" not in style:
         style["fill"] = "none"
+    if "stroke" not in style:
+        style["stroke"] = "none"
 
     for key, value in style.items():
         try:
@@ -103,6 +105,7 @@ def apply_style(style, patch):
                         patch.set_facecolor((r, g, b, fill_opacity))
                     except Exception as err:
                         patch.set_facecolor("none")
+                        raise
             elif key == "fill-opacity":
                 pass
             elif key == "stroke":
@@ -114,6 +117,7 @@ def apply_style(style, patch):
                         patch.set_edgecolor((r, g, b, stroke_opacity))
                     except Exception as err:
                         patch.set_edgecolor("none")
+                        raise
             elif key == "stroke-opacity":
                 pass
             elif key == "stroke-dasharray":
