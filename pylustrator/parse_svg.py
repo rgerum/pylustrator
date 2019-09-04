@@ -158,6 +158,10 @@ def apply_style(style, patch):
                 pass
             elif key == "font-family":
                 pass
+            elif key == "font-variant":
+                pass
+            elif key == "font-stretch":
+                pass
             else:
                 print("ERROR: unknown style key", key, file=sys.stderr)
         except ValueError:
@@ -175,6 +179,10 @@ def font_properties_from_style(style):
             fp.set_weight(value)
         if key == "font-style":
             fp.set_style(value)
+        if key == "font-variant":
+            fp.set_variant(value)
+        if key == "font-stretch":
+            fp.set_stretch(value)
     return fp
 
 def plt_patch(node, trans, style, constructor, ids, no_draw=False):
