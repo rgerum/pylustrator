@@ -484,8 +484,8 @@ def svgread(filename):
 
     svg = doc.getElementsByTagName("svg")[0]
     try:
-        x1, y1, x2, y2 = [float(s.strip()) for s in svg.getAttribute("viewBox").split()]
-        plt.gcf().set_size_inches(x2 - x1, y2 - y1)
+        x1, y1, x2, y2 = [svgUnitToMpl(s.strip()) for s in svg.getAttribute("viewBox").split()]
+        plt.gcf().set_size_inches((x2 - x1)/plt.gcf().dpi, (y2 - y1)/plt.gcf().dpi)
     except ValueError:
         width = svgUnitToMpl(svg.getAttribute("width"), default=100)
         height = svgUnitToMpl(svg.getAttribute("height"), default=100)
