@@ -97,8 +97,8 @@ def apply_style(style, patch):
                 pass
                 #patch.set_alpha(float(value))
             elif key == "fill":
-                if value == "none":
-                    patch.set_facecolor(value)
+                if value == "none" or value == "transparent":
+                    patch.set_facecolor("none")
                 else:
                     try:
                         r, g, b = mcolors.to_rgb(value)
@@ -109,8 +109,8 @@ def apply_style(style, patch):
             elif key == "fill-opacity":
                 pass
             elif key == "stroke":
-                if value == "none":
-                    patch.set_edgecolor(value)
+                if value == "none" or value == "transparent":
+                    patch.set_edgecolor("none")
                 else:
                     try:
                         r, g, b = mcolors.to_rgb(value)
@@ -162,10 +162,13 @@ def apply_style(style, patch):
                 pass
             elif key == "font-stretch":
                 pass
+            elif key == "display":
+                pass
             else:
                 print("ERROR: unknown style key", key, file=sys.stderr)
         except ValueError:
             print("ERROR: could not set style", key, value, file=sys.stderr)
+    return style
 
 def font_properties_from_style(style):
     from matplotlib.font_manager import FontProperties
@@ -185,13 +188,18 @@ def font_properties_from_style(style):
             fp.set_stretch(value)
     return fp
 
+def styleNoDisplay(style):
+    return style.get("display", "inline") == "none" or \
+            style.get("visibility", "visible") == "hidden" or \
+            style.get("visibility", "visible") == "collapse"
+
 def plt_patch(node, trans, style, constructor, ids, no_draw=False):
     trans = parseTransformation(node.getAttribute("transform"), trans)
 
     patch = constructor(node, trans)
 
-    apply_style(get_inline_style(node, get_css_style(node, ids["css"], style)), patch)
-    if not no_draw:
+    style = apply_style(get_inline_style(node, get_css_style(node, ids["css"], style)), patch)
+    if not no_draw and not styleNoDisplay(style):
         plt.gca().add_patch(patch)
     if node.getAttribute("id") != "":
         ids[node.getAttribute("id")] = patch
@@ -244,7 +252,7 @@ def plt_draw_text(node, trans, style, ids, no_draw=False):
             patch = mpatches.PathPatch(path1, transform=trans)
 
             apply_style(style_child, patch)
-            if not no_draw:
+            if not no_draw and not styleNoDisplay(style_child):
                 plt.gca().add_patch(patch)
             if child.getAttribute("id") != "":
                 ids[child.getAttribute("id")] = patch
@@ -460,7 +468,7 @@ def parseGroup(node, trans, style, ids, no_draw=False):
             child.setAttribute("d", "M " + child.getAttribute("x1") + "," + child.getAttribute("y1") + " " + child.getAttribute("x2") + "," + child.getAttribute("y2"))
             patch_list.append(plt_patch(child, trans, style, patch_path, ids, no_draw=no_draw))
         elif child.tagName == "g":
-            patch_list.append(parseGroup(child, trans, style, ids, no_draw=no_draw))
+            patch_list.append(parseGroup(child, trans, style, ids, no_draw=(no_draw or styleNoDisplay(style))))
         elif child.tagName == "text":
             patch_list.append(plt_draw_text(child, trans, style, ids, no_draw=no_draw))
         elif child.tagName == "defs":
