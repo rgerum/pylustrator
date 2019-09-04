@@ -85,6 +85,15 @@ def apply_style(style, patch):
     fill_opacity = float(style.get("opacity", 1)) * float(style.get("fill-opacity", 1))
     stroke_opacity = float(style.get("opacity", 1)) * float(style.get("stroke-opacity", 1))
 
+    def readColor(value):
+        try:
+            return mcolors.to_rgb(value)
+        except:
+            # matplotlib cannot handle html colors in the form #000
+            if len(value) == 4 and value[0] == "#":
+                return readColor("#"+value[1]*2+value[2]*2+value[3]*2)
+            raise
+
     # matplotlib defaults differ
     if "fill" not in style:
         style["fill"] = "none"
@@ -101,7 +110,7 @@ def apply_style(style, patch):
                     patch.set_facecolor("none")
                 else:
                     try:
-                        r, g, b = mcolors.to_rgb(value)
+                        r, g, b = readColor(value)
                         patch.set_facecolor((r, g, b, fill_opacity))
                     except Exception as err:
                         patch.set_facecolor("none")
@@ -113,7 +122,7 @@ def apply_style(style, patch):
                     patch.set_edgecolor("none")
                 else:
                     try:
-                        r, g, b = mcolors.to_rgb(value)
+                        r, g, b = readColor(value)
                         patch.set_edgecolor((r, g, b, stroke_opacity))
                     except Exception as err:
                         patch.set_edgecolor("none")
