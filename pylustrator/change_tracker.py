@@ -289,30 +289,30 @@ class ChangeTracker:
             try:
                 return getReference(obj)
             except (ValueError, TypeError):
-                return ""
-            if obj in self.get_reference_cached:
-                return self.get_reference_cached[obj]
-            else:
-                try:
-                    return getReference(obj)
-                except (ValueError, TypeError):
-                    return ""
+                # the ticks objects can for some reason not be referenced properly in the next code run
+                # they are somehow XTicks objects when loading but when saving they are Text objects
+                if obj in self.get_reference_cached:
+                    return self.get_reference_cached[obj]
+                raise
 
         indices = []
         for reference_obj, reference_command in self.changes:
-            if isinstance(reference_obj, Figure):
-                obj_indices = ("", "", "", "")
-            else:
-                if getattr(reference_obj, "axes", None) is not None:
-                    if reference_command == ".new":
-                        index = "0"
-                    else:
-                        index = "1"
-                    obj_indices = (getRef(reference_obj.axes), getRef(reference_obj), index, reference_command)
+            try:
+                if isinstance(reference_obj, Figure):
+                    obj_indices = ("", "", "", "")
                 else:
-                    obj_indices = (getRef(reference_obj), "", "", reference_command)
-            indices.append(
-                [(reference_obj, reference_command), self.changes[reference_obj, reference_command], obj_indices])
+                    if getattr(reference_obj, "axes", None) is not None:
+                        if reference_command == ".new":
+                            index = "0"
+                        else:
+                            index = "1"
+                        obj_indices = (getRef(reference_obj.axes), getRef(reference_obj), index, reference_command)
+                    else:
+                        obj_indices = (getRef(reference_obj), "", "", reference_command)
+                indices.append(
+                    [(reference_obj, reference_command), self.changes[reference_obj, reference_command], obj_indices])
+            except (ValueError, TypeError) as err:
+                print(err, file=sys.stderr)
 
         srt = natsorted(indices, key=lambda a: a[2])
         output = []
@@ -321,7 +321,7 @@ class ChangeTracker:
             try:
                 output.append(getRef(command_obj) + command)
             except TypeError as err:
-                print(err)
+                print(err, file=sys.stderr)
 
         return output
 
