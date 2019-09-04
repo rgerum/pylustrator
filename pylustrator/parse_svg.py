@@ -1,7 +1,7 @@
 from xml.dom import minidom
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-import matplotlib.transforms as transforms
+import matplotlib.transforms as mtransforms
 import sys
 import numpy as np
 import re
@@ -11,7 +11,7 @@ import matplotlib.text
 from .arc2bez import arcToBezier
 
 def deform(base_trans, x, y, sx=0, sy=0):
-    return transforms.Affine2D([[x, sx, 0], [sy, y, 0], [0, 0, 1]]) + base_trans
+    return mtransforms.Affine2D([[x, sx, 0], [sy, y, 0], [0, 0, 1]]) + base_trans
 
 def parseTransformation(trans, base_trans):
     if trans is None or trans == "":
@@ -19,17 +19,17 @@ def parseTransformation(trans, base_trans):
     command, main = trans.split("(")
     if command == "translate":
         ox, oy = [float(s) for s in main.strip(")").split(",")]
-        return transforms.Affine2D([[1, 0, ox], [0, 1, oy], [0, 0, 1]]) + base_trans
+        return mtransforms.Affine2D([[1, 0, ox], [0, 1, oy], [0, 0, 1]]) + base_trans
     elif command == "rotate":
         a = np.deg2rad(float(main[:-1]))
         ca, sa = np.cos(a), np.sin(a)
-        return transforms.Affine2D([[ca, -sa, 0], [sa, ca, 0], [0, 0, 1]]) + base_trans
+        return mtransforms.Affine2D([[ca, -sa, 0], [sa, ca, 0], [0, 0, 1]]) + base_trans
     elif command == "scale":
         x, y = [float(s) for s in main.strip(")").split(",")]
-        return transforms.Affine2D([[x, 0, 0], [0, y, 0], [0, 0, 1]]) + base_trans
+        return mtransforms.Affine2D([[x, 0, 0], [0, y, 0], [0, 0, 1]]) + base_trans
     elif command == "matrix":
         x, sx, sy, y, ox, oy = [float(s) for s in main.strip(")").split(",")]
-        return transforms.Affine2D([[x, sx, ox], [sy, y, oy], [0, 0, 1]]) + base_trans
+        return mtransforms.Affine2D([[x, sx, ox], [sy, y, oy], [0, 0, 1]]) + base_trans
     else:
         print("ERROR: unknown transformation", trans)
     return base_trans
@@ -115,15 +115,31 @@ def apply_style(style, patch):
                 except AttributeError:
                     pass
             elif key == "font-size":
-                patch.set_fontsize(svgUnitToMpl(value))
+                pass
             elif key == "font-weight":
-                patch.set_fontweight(value)
+                pass
             elif key == "font-style":
-                patch.set_fontstyle(value)
+                pass
+            elif key == "font-family":
+                pass
             else:
                 print("ERROR: unknown style key", key, file=sys.stderr)
         except ValueError:
             print("ERROR: could not set style", key, value, file=sys.stderr)
+
+def font_properties_from_style(style):
+    from matplotlib.font_manager import FontProperties
+    fp = FontProperties()
+    for key, value in style.items():
+        if key == "font-family":
+            fp.set_family(value)
+        if key == "font-size":
+            fp.set_size(svgUnitToMpl(value))
+        if key == "font-weight":
+            fp.set_weight(value)
+        if key == "font-style":
+            fp.set_style(value)
+    return fp
 
 def plt_patch(node, trans, style, constructor):
     trans = parseTransformation(node.getAttribute("transform"), trans)
@@ -154,17 +170,37 @@ def plt_draw_text(node, trans, style):
     from matplotlib.textpath import TextPath
     from matplotlib.font_manager import FontProperties
 
+    trans = mtransforms.Affine2D([[1, 0, 0], [0, -1, 0], [0, 0, 1]]) + trans
     trans = parseTransformation(node.getAttribute("transform"), trans)
-    x = float(node.getAttribute("x"))
-    y = float(node.getAttribute("y"))
+    pos = np.array([svgUnitToMpl(node.getAttribute("x")), -svgUnitToMpl(node.getAttribute("y"))])
+
+    style = get_style(node, style)
 
     text_content = ""
     for child in node.childNodes:
         text_content += child.firstChild.nodeValue
-        text = plt.text(float(child.getAttribute("x")), float(child.getAttribute("y")),
-                 child.firstChild.nodeValue,
-                 transform=trans)
-        apply_style(style, text)
+        if 1:
+            style_child = get_style(child, style)
+            pos_child = pos.copy()
+            if child.getAttribute("x") != "":
+                pos_child = np.array([svgUnitToMpl(child.getAttribute("x")), -svgUnitToMpl(child.getAttribute("y"))])
+            if child.getAttribute("dx") != "":
+                pos_child[0] += svgUnitToMpl(child.getAttribute("dx"))
+            if child.getAttribute("dy") != "":
+                pos_child[1] -= svgUnitToMpl(child.getAttribute("dy"))
+            #fp = FontProperties()#family="Helvetica", style="italic")
+            path1 = TextPath(pos_child,
+                             child.firstChild.nodeValue,
+                             prop=font_properties_from_style(style_child))
+            patch = patches.PathPatch(path1, transform=trans)
+
+            apply_style(style_child, patch)
+            plt.gca().add_patch(patch)
+        else:
+            text = plt.text(float(child.getAttribute("x")), float(child.getAttribute("y")),
+                     child.firstChild.nodeValue,
+                     transform=trans)
+            apply_style(style, text)
 
 def patch_path(node, trans):
     import matplotlib.path as mpath
@@ -319,6 +355,50 @@ def openImageFromLink(link):
         buf.close()
         return im
 
+def parseGroup(node, trans, style):
+    trans = parseTransformation(node.getAttribute("transform"), trans)
+    style = get_style(node, style)
+    for node in node.childNodes:
+        if node.nodeType == node.TEXT_NODE:
+            continue
+        if node.tagName == "rect":
+            plt_patch(node, trans, style, patch_rect)
+        elif node.tagName == "ellipse":
+            plt_patch(node, trans, style, patch_ellipse)
+        elif node.tagName == "circle":
+            plt_patch(node, trans, style, patch_circle)
+        elif node.tagName == "path":
+            plt_patch(node, trans, style, patch_path)
+        elif node.tagName == "polygon":
+            # matplotlib has a designated polygon patch, but it is easier to just convert it to a path
+            node.setAttribute("d", "M "+node.getAttribute("points")+" Z")
+            plt_patch(node, trans, style, patch_path)
+        elif node.tagName == "polyline":
+            node.setAttribute("d", "M " + node.getAttribute("points"))
+            plt_patch(node, trans, style, patch_path)
+        elif node.tagName == "line":
+            node.setAttribute("d", "M " + node.getAttribute("x1") + "," + node.getAttribute("y1") + " " + node.getAttribute("x2") + "," + node.getAttribute("y2"))
+            plt_patch(node, trans, style, patch_path)
+        elif node.tagName == "g":
+            parseGroup(node, trans, style)
+        elif node.tagName == "text":
+            plt_draw_text(node, trans, style)
+        elif node.tagName == "defs":
+            pass  # currently ignored might be used for example for gradient definitions
+        elif node.tagName == "sodipodi:namedview":
+            pass  # used for some inkscape metadata
+        elif node.tagName == "image":
+            link = node.getAttribute("xlink:href")
+            im = openImageFromLink(link)
+            plt.imshow(im, extent=[svgUnitToMpl(node.getAttribute("x")), svgUnitToMpl(node.getAttribute("x")) + svgUnitToMpl(node.getAttribute("width")),
+                                   svgUnitToMpl(node.getAttribute("y")), svgUnitToMpl(node.getAttribute("y")) + svgUnitToMpl(node.getAttribute("height")),
+                                   ], zorder=1)
+        elif node.tagName == "metadata":
+            pass  # we do not have to draw metadata
+        else:
+            print("Unknown tag", node.tagName, file=sys.stderr)
+
+
 def svgread(filename):
     # read the SVG file
     doc = minidom.parse(filename)
@@ -339,48 +419,5 @@ def svgread(filename):
         ax.spines[spine].set_visible(False)
     plt.xlim(x1, x2)
     plt.ylim(y2, y1)
-
-    def parseGroup(node, trans, style):
-        trans = parseTransformation(node.getAttribute("transform"), trans)
-        style = get_style(node, style)
-        for node in node.childNodes:
-            if node.nodeType == node.TEXT_NODE:
-                continue
-            if node.tagName == "rect":
-                plt_patch(node, trans, style, patch_rect)
-            elif node.tagName == "ellipse":
-                plt_patch(node, trans, style, patch_ellipse)
-            elif node.tagName == "circle":
-                plt_patch(node, trans, style, patch_circle)
-            elif node.tagName == "path":
-                plt_patch(node, trans, style, patch_path)
-            elif node.tagName == "polygon":
-                # matplotlib has a designated polygon patch, but it is easier to just convert it to a path
-                node.setAttribute("d", "M "+node.getAttribute("points")+" Z")
-                plt_patch(node, trans, style, patch_path)
-            elif node.tagName == "polyline":
-                node.setAttribute("d", "M " + node.getAttribute("points"))
-                plt_patch(node, trans, style, patch_path)
-            elif node.tagName == "line":
-                node.setAttribute("d", "M " + node.getAttribute("x1") + "," + node.getAttribute("y1") + " " + node.getAttribute("x2") + "," + node.getAttribute("y2"))
-                plt_patch(node, trans, style, patch_path)
-            elif node.tagName == "g":
-                parseGroup(node, trans, style)
-            elif node.tagName == "text":
-                plt_draw_text(node, trans, style)
-            elif node.tagName == "defs":
-                pass  # currently ignored might be used for example for gradient definitions
-            elif node.tagName == "sodipodi:namedview":
-                pass  # used for some inkscape metadata
-            elif node.tagName == "image":
-                link = node.getAttribute("xlink:href")
-                im = openImageFromLink(link)
-                plt.imshow(im, extent=[svgUnitToMpl(node.getAttribute("x")), svgUnitToMpl(node.getAttribute("x")) + svgUnitToMpl(node.getAttribute("width")),
-                                       svgUnitToMpl(node.getAttribute("y")), svgUnitToMpl(node.getAttribute("y")) + svgUnitToMpl(node.getAttribute("height")),
-                                       ], zorder=1)
-            elif node.tagName == "metadata":
-                pass  # we do not have to draw metadata
-            else:
-                print("Unknown tag", node.tagName, file=sys.stderr)
 
     parseGroup(doc.getElementsByTagName("svg")[0], plt.gca().transData, {})
