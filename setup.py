@@ -36,6 +36,7 @@ setup(name='pylustrator',
       author='Richard Gerum',
       author_email='richard.gerum@fau.de',
       packages=['pylustrator'],
+      include_package_data=True,
       install_requires=[
           'natsort',
           'numpy',
