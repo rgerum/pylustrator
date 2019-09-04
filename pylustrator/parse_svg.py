@@ -13,25 +13,39 @@ from .arc2bez import arcToBezier
 def deform(base_trans, x, y, sx=0, sy=0):
     return mtransforms.Affine2D([[x, sx, 0], [sy, y, 0], [0, 0, 1]]) + base_trans
 
-def parseTransformation(trans, base_trans):
-    if trans is None or trans == "":
+def parseTransformation(transform_text, base_trans):
+    if transform_text is None or transform_text == "":
         return base_trans
-    command, main = trans.split("(")
-    if command == "translate":
-        ox, oy = [float(s) for s in main.strip(")").split(",")]
-        return mtransforms.Affine2D([[1, 0, ox], [0, 1, oy], [0, 0, 1]]) + base_trans
-    elif command == "rotate":
-        a = np.deg2rad(float(main[:-1]))
-        ca, sa = np.cos(a), np.sin(a)
-        return mtransforms.Affine2D([[ca, -sa, 0], [sa, ca, 0], [0, 0, 1]]) + base_trans
-    elif command == "scale":
-        x, y = [float(s) for s in main.strip(")").split(",")]
-        return mtransforms.Affine2D([[x, 0, 0], [0, y, 0], [0, 0, 1]]) + base_trans
-    elif command == "matrix":
-        x, sx, sy, y, ox, oy = [float(s) for s in main.strip(")").split(",")]
-        return mtransforms.Affine2D([[x, sx, ox], [sy, y, oy], [0, 0, 1]]) + base_trans
-    else:
-        print("ERROR: unknown transformation", trans)
+    transformations_list = re.findall(r"\w*\([-.,\d\s]*\)", transform_text)
+    for transform_text in transformations_list:
+        data = [float(s) for s in re.findall(r"[-.\d]+", transform_text)]
+        command = re.findall(r"^\w+", transform_text)[0]
+        if command == "translate":
+            ox, oy = data
+            base_trans = mtransforms.Affine2D([[1, 0, ox], [0, 1, oy], [0, 0, 1]]) + base_trans
+        elif command == "rotate":
+            a = np.deg2rad(data[0])
+            ca, sa = np.cos(a), np.sin(a)
+            base_trans = mtransforms.Affine2D([[ca, -sa, 0], [sa, ca, 0], [0, 0, 1]]) + base_trans
+        elif command == "scale":
+            if len(data) >= 2:
+                x, y = data
+            else:
+                x, y = data[0], data[0]
+            base_trans = mtransforms.Affine2D([[x, 0, 0], [0, y, 0], [0, 0, 1]]) + base_trans
+        elif command == "skewX":
+            x, = data
+            x = np.tan(x*np.pi/180)
+            base_trans = mtransforms.Affine2D([[1, x, 0], [0, 1, 0], [0, 0, 1]]) + base_trans
+        elif command == "skewY":
+            y, = data
+            y = np.tan(y*np.pi/180)
+            base_trans = mtransforms.Affine2D([[1, 0, 0], [y, 1, 0], [0, 0, 1]]) + base_trans
+        elif command == "matrix":
+            x, sx, sy, y, ox, oy = data
+            base_trans = mtransforms.Affine2D([[x, sx, ox], [sy, y, oy], [0, 0, 1]]) + base_trans
+        else:
+            print("ERROR: unknown transformation", transform_text)
     return base_trans
 
 def get_style(node, base_style=None):
