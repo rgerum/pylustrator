@@ -390,7 +390,7 @@ def parseGroup(node, trans, style):
         elif node.tagName == "image":
             link = node.getAttribute("xlink:href")
             im = openImageFromLink(link)
-            plt.imshow(im, extent=[svgUnitToMpl(node.getAttribute("x")), svgUnitToMpl(node.getAttribute("x")) + svgUnitToMpl(node.getAttribute("width")),
+            plt.imshow(im[::-1], extent=[svgUnitToMpl(node.getAttribute("x")), svgUnitToMpl(node.getAttribute("x")) + svgUnitToMpl(node.getAttribute("width")),
                                    svgUnitToMpl(node.getAttribute("y")), svgUnitToMpl(node.getAttribute("y")) + svgUnitToMpl(node.getAttribute("height")),
                                    ], zorder=1)
         elif node.tagName == "metadata":
