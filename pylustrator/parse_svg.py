@@ -1,6 +1,7 @@
 from xml.dom import minidom
+import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
-import matplotlib.patches as patches
+import matplotlib.patches as mpatches
 import matplotlib.transforms as mtransforms
 import sys
 import numpy as np
@@ -48,7 +49,7 @@ def parseTransformation(transform_text, base_trans):
             print("ERROR: unknown transformation", transform_text)
     return base_trans
 
-def get_style(node, base_style=None):
+def get_inline_style(node, base_style=None):
     style = {}
     if base_style is not None:
         style.update(base_style)
@@ -65,39 +66,56 @@ def get_style(node, base_style=None):
         style[key] = value
     return style
 
+def get_css_style(node, css_list, base_style):
+    style = {}
+    if base_style is not None:
+        style.update(base_style)
+    classes = node.getAttribute("class").split()
+    for css in css_list:
+        css_condition, css_style = css
+        if css_condition[0] == "." and css_condition[1:] in classes:
+            style.update(css_style)
+        elif css_condition[0] == "#" and css_condition[1:] == node.getAttribute("id"):
+            style.update(css_style)
+        elif css_condition == node.tagName:
+            style.update(css_style)
+    return style
+
 def apply_style(style, patch):
-    print(patch, style)
+    fill_opacity = float(style.get("opacity", 1)) * float(style.get("fill-opacity", 1))
+    stroke_opacity = float(style.get("opacity", 1)) * float(style.get("stroke-opacity", 1))
+
+    # matplotlib defaults differ
+    if "fill" not in style:
+        style["fill"] = "none"
+
     for key, value in style.items():
-        print(key, value)
         try:
             if key == "opacity":
-                patch.set_alpha(float(value))
+                pass
+                #patch.set_alpha(float(value))
             elif key == "fill":
-                patch.svg_fill = value
-                try:
+                if value == "none":
                     patch.set_facecolor(value)
-                except AttributeError:
-                    patch.set_color(value)
-            elif key == "fill-opacity":
-                if getattr(patch, "svg_fill", "none") != "none":
+                else:
                     try:
-                        r, g, b, a = patch.get_facecolor()
-                        patch.set_facecolor((r, g, b, float(value)))
-                    except AttributeError:
-                        r, g, b, a = patch.get_color()
-                        patch.set_color((r, g, b, float(value)))
+                        r, g, b = mcolors.to_rgb(value)
+                        patch.set_facecolor((r, g, b, fill_opacity))
+                    except Exception as err:
+                        patch.set_facecolor("none")
+            elif key == "fill-opacity":
+                pass
             elif key == "stroke":
-                patch.svg_stroke = value
-                try:
+                if value == "none":
                     patch.set_edgecolor(value)
-                    print("stroke", value)
-                except AttributeError:
-                    pass
-                    #patch.set_color(value)
+                else:
+                    try:
+                        r, g, b = mcolors.to_rgb(value)
+                        patch.set_edgecolor((r, g, b, stroke_opacity))
+                    except Exception as err:
+                        patch.set_edgecolor("none")
             elif key == "stroke-opacity":
-                if getattr(patch, "svg_stroke", "none")[0] == "#":
-                    r, g, b, a = patch.get_edgecolor()
-                    patch.set_edgecolor((r, g, b, float(value)))
+                pass
             elif key == "stroke-dasharray":
                 if value != "none":
                     offset = 0
@@ -155,32 +173,36 @@ def font_properties_from_style(style):
             fp.set_style(value)
     return fp
 
-def plt_patch(node, trans, style, constructor):
+def plt_patch(node, trans, style, constructor, ids, no_draw=False):
     trans = parseTransformation(node.getAttribute("transform"), trans)
 
     patch = constructor(node, trans)
 
-    apply_style(get_style(node, style), patch)
-    plt.gca().add_patch(patch)
+    apply_style(get_inline_style(node, get_css_style(node, ids["css"], style)), patch)
+    if not no_draw:
+        plt.gca().add_patch(patch)
+    if node.getAttribute("id") != "":
+        ids[node.getAttribute("id")] = patch
+    return patch
 
 def patch_rect(node, trans):
-    return patches.Rectangle(xy=(float(node.getAttribute("x")), float(node.getAttribute("y"))),
-                             width=float(node.getAttribute("width")),
-                             height=float(node.getAttribute("height")),
-                             transform=trans)
+    return mpatches.Rectangle(xy=(float(node.getAttribute("x")), float(node.getAttribute("y"))),
+                              width=float(node.getAttribute("width")),
+                              height=float(node.getAttribute("height")),
+                              transform=trans)
 
 def patch_ellipse(node, trans):
-    return patches.Ellipse(xy=(float(node.getAttribute("cx")), float(node.getAttribute("cy"))),
-                           width=float(node.getAttribute("rx"))*2,
-                           height=float(node.getAttribute("ry"))*2,
-                           transform=trans)
+    return mpatches.Ellipse(xy=(float(node.getAttribute("cx")), float(node.getAttribute("cy"))),
+                            width=float(node.getAttribute("rx"))*2,
+                            height=float(node.getAttribute("ry"))*2,
+                            transform=trans)
 
 def patch_circle(node, trans):
-    return patches.Circle(xy=(float(node.getAttribute("cx")), float(node.getAttribute("cy"))),
-                          radius=float(node.getAttribute("r")),
-                          transform=trans)
+    return mpatches.Circle(xy=(float(node.getAttribute("cx")), float(node.getAttribute("cy"))),
+                           radius=float(node.getAttribute("r")),
+                           transform=trans)
 
-def plt_draw_text(node, trans, style):
+def plt_draw_text(node, trans, style, ids, no_draw=False):
     from matplotlib.textpath import TextPath
     from matplotlib.font_manager import FontProperties
 
@@ -188,13 +210,14 @@ def plt_draw_text(node, trans, style):
     trans = parseTransformation(node.getAttribute("transform"), trans)
     pos = np.array([svgUnitToMpl(node.getAttribute("x")), -svgUnitToMpl(node.getAttribute("y"))])
 
-    style = get_style(node, style)
+    style = get_inline_style(node, get_css_style(node, ids["css"], style))
 
     text_content = ""
+    patch_list = []
     for child in node.childNodes:
         text_content += child.firstChild.nodeValue
         if 1:
-            style_child = get_style(child, style)
+            style_child = get_inline_style(child, get_css_style(child, ids["css"], style))
             pos_child = pos.copy()
             if child.getAttribute("x") != "":
                 pos_child = np.array([svgUnitToMpl(child.getAttribute("x")), -svgUnitToMpl(child.getAttribute("y"))])
@@ -206,15 +229,22 @@ def plt_draw_text(node, trans, style):
             path1 = TextPath(pos_child,
                              child.firstChild.nodeValue,
                              prop=font_properties_from_style(style_child))
-            patch = patches.PathPatch(path1, transform=trans)
+            patch = mpatches.PathPatch(path1, transform=trans)
 
             apply_style(style_child, patch)
-            plt.gca().add_patch(patch)
+            if not no_draw:
+                plt.gca().add_patch(patch)
+            if child.getAttribute("id") != "":
+                ids[child.getAttribute("id")] = patch
+            patch_list.append(patch)
         else:
             text = plt.text(float(child.getAttribute("x")), float(child.getAttribute("y")),
                      child.firstChild.nodeValue,
                      transform=trans)
             apply_style(style, text)
+
+    if node.getAttribute("id") != "":
+        ids[node.getAttribute("id")] = patch_list
 
 def patch_path(node, trans):
     import matplotlib.path as mpath
@@ -329,7 +359,7 @@ def patch_path(node, trans):
                 current_pos = addPathElement(mpath.Path.CURVE4, e[:2], e[2:4], e[4:6])
 
     path = mpath.Path(verts, codes)
-    return patches.PathPatch(path, transform=trans)
+    return mpatches.PathPatch(path, transform=trans)
 
 def svgUnitToMpl(unit, default=None):
     import re
@@ -369,49 +399,84 @@ def openImageFromLink(link):
         buf.close()
         return im
 
-def parseGroup(node, trans, style):
+def parseStyleSheet(text):
+    # remove line comments
+    text = re.sub("//.*?\n", "", text)
+    # remove multiline comments
+    text = text.replace("\n", " ")
+    text = re.sub("/\*.*?\*/", "", text)
+    text = re.sub("/\*.*?\*/", "", text)
+
+    style_definitions = []
+    styles = re.findall("[^}]*{[^}]*}", text)
+    for style in styles:
+        condition, main = style.split("{", 1)
+        parts = [part.strip().split(":", 1) for part in main[:-1].split(";") if part.strip() != ""]
+        style_dict = {k: v.strip() for k, v in parts}
+        for cond in condition.split(","):
+            style_definitions.append([cond.strip(), style_dict])
+    return style_definitions
+
+def parseGroup(node, trans, style, ids, no_draw=False):
     trans = parseTransformation(node.getAttribute("transform"), trans)
-    style = get_style(node, style)
-    for node in node.childNodes:
-        if node.nodeType == node.TEXT_NODE:
+    style = get_inline_style(node, style)
+
+    patch_list = []
+    for child in node.childNodes:
+        if child.nodeType == child.TEXT_NODE or child.nodeType == child.COMMENT_NODE:
             continue
-        if node.tagName == "rect":
-            plt_patch(node, trans, style, patch_rect)
-        elif node.tagName == "ellipse":
-            plt_patch(node, trans, style, patch_ellipse)
-        elif node.tagName == "circle":
-            plt_patch(node, trans, style, patch_circle)
-        elif node.tagName == "path":
-            plt_patch(node, trans, style, patch_path)
-        elif node.tagName == "polygon":
+        if child.tagName == "style":
+            for childchild in child.childNodes:
+                if childchild.nodeType == childchild.CDATA_SECTION_NODE:
+                    ids["css"].extend(parseStyleSheet(childchild.wholeText))
+        elif child.tagName == "rect":
+            patch_list.append(plt_patch(child, trans, style, patch_rect, ids, no_draw=no_draw))
+        elif child.tagName == "ellipse":
+            patch_list.append(plt_patch(child, trans, style, patch_ellipse, ids, no_draw=no_draw))
+        elif child.tagName == "circle":
+            patch_list.append(plt_patch(child, trans, style, patch_circle, ids, no_draw=no_draw))
+        elif child.tagName == "path":
+            patch_list.append(plt_patch(child, trans, style, patch_path, ids, no_draw=no_draw))
+        elif child.tagName == "polygon":
             # matplotlib has a designated polygon patch, but it is easier to just convert it to a path
-            node.setAttribute("d", "M "+node.getAttribute("points")+" Z")
-            plt_patch(node, trans, style, patch_path)
-        elif node.tagName == "polyline":
-            node.setAttribute("d", "M " + node.getAttribute("points"))
-            plt_patch(node, trans, style, patch_path)
-        elif node.tagName == "line":
-            node.setAttribute("d", "M " + node.getAttribute("x1") + "," + node.getAttribute("y1") + " " + node.getAttribute("x2") + "," + node.getAttribute("y2"))
-            plt_patch(node, trans, style, patch_path)
-        elif node.tagName == "g":
-            parseGroup(node, trans, style)
-        elif node.tagName == "text":
-            plt_draw_text(node, trans, style)
-        elif node.tagName == "defs":
-            pass  # currently ignored might be used for example for gradient definitions
-        elif node.tagName == "sodipodi:namedview":
+            child.setAttribute("d", "M " + child.getAttribute("points") + " Z")
+            patch_list.append(plt_patch(child, trans, style, patch_path, ids, no_draw=no_draw))
+        elif child.tagName == "polyline":
+            child.setAttribute("d", "M " + child.getAttribute("points"))
+            patch_list.append(plt_patch(child, trans, style, patch_path, ids, no_draw=no_draw))
+        elif child.tagName == "line":
+            child.setAttribute("d", "M " + child.getAttribute("x1") + "," + child.getAttribute("y1") + " " + child.getAttribute("x2") + "," + child.getAttribute("y2"))
+            patch_list.append(plt_patch(child, trans, style, patch_path, ids, no_draw=no_draw))
+        elif child.tagName == "g":
+            patch_list.append(parseGroup(child, trans, style, ids, no_draw=no_draw))
+        elif child.tagName == "text":
+            patch_list.append(plt_draw_text(child, trans, style, ids, no_draw=no_draw))
+        elif child.tagName == "defs":
+            patch_list.append(parseGroup(child, trans, style, ids, no_draw=True))
+        elif child.tagName == "clipPath":
+            patch_list.append(parseGroup(child, trans, style, ids, no_draw=True))
+        elif child.tagName == "symbol":
+            patch_list.append(parseGroup(child, trans, style, ids, no_draw=True))
+        elif child.tagName == "marker":
+            patch_list.append(parseGroup(child, trans, style, ids, no_draw=True))
+        elif child.tagName == "sodipodi:namedview":
             pass  # used for some inkscape metadata
-        elif node.tagName == "image":
-            link = node.getAttribute("xlink:href")
+        elif child.tagName == "image":
+            link = child.getAttribute("xlink:href")
             im = openImageFromLink(link)
-            plt.imshow(im[::-1], extent=[svgUnitToMpl(node.getAttribute("x")), svgUnitToMpl(node.getAttribute("x")) + svgUnitToMpl(node.getAttribute("width")),
-                                   svgUnitToMpl(node.getAttribute("y")), svgUnitToMpl(node.getAttribute("y")) + svgUnitToMpl(node.getAttribute("height")),
-                                   ], zorder=1)
-        elif node.tagName == "metadata":
+            if no_draw is False:
+                im_patch = plt.imshow(im[::-1], extent=[svgUnitToMpl(child.getAttribute("x")), svgUnitToMpl(child.getAttribute("x")) + svgUnitToMpl(child.getAttribute("width")),
+                                                        svgUnitToMpl(child.getAttribute("y")), svgUnitToMpl(child.getAttribute("y")) + svgUnitToMpl(child.getAttribute("height")),
+                                                        ], zorder=1)
+                patch_list.append(im_patch)
+        elif child.tagName == "metadata":
             pass  # we do not have to draw metadata
         else:
-            print("Unknown tag", node.tagName, file=sys.stderr)
+            print("Unknown tag", child.tagName, file=sys.stderr)
 
+    if node.getAttribute("id") != "":
+        ids[node.getAttribute("id")] = patch_list
+    return patch_list
 
 def svgread(filename):
     # read the SVG file
@@ -434,4 +499,4 @@ def svgread(filename):
     plt.xlim(x1, x2)
     plt.ylim(y2, y1)
 
-    parseGroup(doc.getElementsByTagName("svg")[0], plt.gca().transData, {})
+    parseGroup(doc.getElementsByTagName("svg")[0], plt.gca().transData, {}, {"css": []})
