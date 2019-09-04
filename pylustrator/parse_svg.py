@@ -285,7 +285,7 @@ def patch_path(node, trans):
 
     current_pos = np.array([0, 0])
 
-    elements = [a[0] for a in re.findall(r'((-?\d+\.?\d*)|(-?\d*\.?\d+)|\w)', node.getAttribute("d"))]
+    elements = [a[0] for a in re.findall(r'(([-+]?\d*\.?\d+(?:e[-+]?\d*\.?\d+)?)|\w)', node.getAttribute("d"))]
     elements.reverse()
 
     def popPos():
@@ -306,7 +306,12 @@ def patch_path(node, trans):
             codes.append(type)
         return positions[-1]
 
+    i = len(elements)
     while elements:
+        # if things go wrong for some reason prevent endless loops
+        i -= 1
+        if i <= 0:
+            break
         if 'A' <= elements[-1] <= 'z':
             last_command = command
             command = elements.pop()
@@ -505,6 +510,7 @@ def parseGroup(node, trans, style, ids, no_draw=False):
 
     if node.getAttribute("id") != "":
         ids[node.getAttribute("id")] = patch_list
+
     return patch_list
 
 def svgread(filename):
