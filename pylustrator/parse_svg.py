@@ -14,7 +14,8 @@ from .arc2bez import arcToBezier
 def deform(base_trans, x, y, sx=0, sy=0):
     return mtransforms.Affine2D([[x, sx, 0], [sy, y, 0], [0, 0, 1]]) + base_trans
 
-def parseTransformation(transform_text, base_trans):
+def parseTransformation(transform_text):
+    base_trans = mtransforms.IdentityTransform()
     if transform_text is None or transform_text == "":
         return base_trans
     transformations_list = re.findall(r"\w*\([-.,\d\s]*\)", transform_text)
@@ -22,7 +23,10 @@ def parseTransformation(transform_text, base_trans):
         data = [float(s) for s in re.findall(r"[-.\d]+", transform_text)]
         command = re.findall(r"^\w+", transform_text)[0]
         if command == "translate":
-            ox, oy = data
+            try:
+                ox, oy = data
+            except ValueError:
+                ox, oy = data[0], data[0]
             base_trans = mtransforms.Affine2D([[1, 0, ox], [0, 1, oy], [0, 0, 1]]) + base_trans
         elif command == "rotate":
             a = np.deg2rad(data[0])
@@ -43,7 +47,7 @@ def parseTransformation(transform_text, base_trans):
             y = np.tan(y*np.pi/180)
             base_trans = mtransforms.Affine2D([[1, 0, 0], [y, 1, 0], [0, 0, 1]]) + base_trans
         elif command == "matrix":
-            x, sx, sy, y, ox, oy = data
+            x, sy, sx, y, ox, oy = data
             base_trans = mtransforms.Affine2D([[x, sx, ox], [sy, y, oy], [0, 0, 1]]) + base_trans
         else:
             print("ERROR: unknown transformation", transform_text)
@@ -202,41 +206,71 @@ def styleNoDisplay(style):
             style.get("visibility", "visible") == "hidden" or \
             style.get("visibility", "visible") == "collapse"
 
-def plt_patch(node, trans, style, constructor, ids, no_draw=False):
-    trans = parseTransformation(node.getAttribute("transform"), trans)
+def plt_patch(node, trans_parent_trans, style, constructor, ids, no_draw=False):
+    trans_node = parseTransformation(node.getAttribute("transform"))
+    style = get_inline_style(node, get_css_style(node, ids["css"], style))
 
-    patch = constructor(node, trans)
+    patch = constructor(node, trans_node + trans_parent_trans + plt.gca().transData, style, ids)
+    if not isinstance(patch, list):
+        patch = [patch]
 
-    style = apply_style(get_inline_style(node, get_css_style(node, ids["css"], style)), patch)
-    if not no_draw and not styleNoDisplay(style):
-        plt.gca().add_patch(patch)
+    for p in patch:
+        if not getattr(p, "is_marker", False):
+            style = apply_style(style, p)
+            p.style = style
+            #p.set_transform(p.get_transform() + plt.gca().transData)
+        p.trans_parent = trans_parent_trans
+        p.trans_node = parseTransformation(node.getAttribute("transform"))
+
+        if not no_draw and not styleNoDisplay(style):
+                plt.gca().add_patch(p)
     if node.getAttribute("id") != "":
         ids[node.getAttribute("id")] = patch
     return patch
 
-def patch_rect(node, trans):
+def clone_patch(patch):
+    if isinstance(patch, mpatches.Rectangle):
+        return mpatches.Rectangle(xy=patch.get_xy(),
+                                  width=patch.get_width(),
+                                  height=patch.get_height())
+    if isinstance(patch, mpatches.Circle):
+        return mpatches.Circle(xy=patch.get_xy(),
+                               radius=patch.get_radius())
+    if isinstance(patch, mpatches.Ellipse):
+        return mpatches.Ellipse(xy=patch.get_xy(),
+                                width=patch.get_width(),
+                                height=patch.get_height())
+    if isinstance(patch, mpatches.PathPatch):
+        return mpatches.PathPatch(patch.get_path())
+
+def patch_rect(node, trans, style, ids):
+    if node.getAttribute("d") != "":
+        return patch_path(node, trans, style, ids)
     return mpatches.Rectangle(xy=(float(node.getAttribute("x")), float(node.getAttribute("y"))),
                               width=float(node.getAttribute("width")),
                               height=float(node.getAttribute("height")),
                               transform=trans)
 
-def patch_ellipse(node, trans):
+def patch_ellipse(node, trans, style, ids):
+    if node.getAttribute("d") != "":
+        return patch_path(node, trans, style, ids)
     return mpatches.Ellipse(xy=(float(node.getAttribute("cx")), float(node.getAttribute("cy"))),
                             width=float(node.getAttribute("rx"))*2,
                             height=float(node.getAttribute("ry"))*2,
                             transform=trans)
 
-def patch_circle(node, trans):
+def patch_circle(node, trans, style, ids):
+    if node.getAttribute("d") != "":
+        return patch_path(node, trans, style, ids)
     return mpatches.Circle(xy=(float(node.getAttribute("cx")), float(node.getAttribute("cy"))),
                            radius=float(node.getAttribute("r")),
                            transform=trans)
 
 def plt_draw_text(node, trans, style, ids, no_draw=False):
     from matplotlib.textpath import TextPath
-    from matplotlib.font_manager import FontProperties
 
+    trans = parseTransformation(node.getAttribute("transform")) + trans + plt.gca().transData
     trans = mtransforms.Affine2D([[1, 0, 0], [0, -1, 0], [0, 0, 1]]) + trans
-    trans = parseTransformation(node.getAttribute("transform"), trans)
     pos = np.array([svgUnitToMpl(node.getAttribute("x")), -svgUnitToMpl(node.getAttribute("y"))])
 
     style = get_inline_style(node, get_css_style(node, ids["css"], style))
@@ -254,7 +288,6 @@ def plt_draw_text(node, trans, style, ids, no_draw=False):
                 pos_child[0] += svgUnitToMpl(child.getAttribute("dx"))
             if child.getAttribute("dy") != "":
                 pos_child[1] -= svgUnitToMpl(child.getAttribute("dy"))
-            #fp = FontProperties()#family="Helvetica", style="italic")
             path1 = TextPath(pos_child,
                              child.firstChild.nodeValue,
                              prop=font_properties_from_style(style_child))
@@ -275,13 +308,14 @@ def plt_draw_text(node, trans, style, ids, no_draw=False):
     if node.getAttribute("id") != "":
         ids[node.getAttribute("id")] = patch_list
 
-def patch_path(node, trans):
+def patch_path(node, trans, style, ids):
     import matplotlib.path as mpath
 
     start_pos = None
     command = None
     verts = []
     codes = []
+    angles = []
 
     current_pos = np.array([0, 0])
 
@@ -321,15 +355,16 @@ def patch_path(node, trans):
         # moveto
         if command == "m":
             current_pos = addPathElement(mpath.Path.MOVETO, popPos())
+            angles.append([])
             start_pos = current_pos
 
             command = "l"
         # close
         elif command == "z":
             # Close path
-            if not np.all(current_pos == start_pos):
-                verts.append(start_pos)
-                codes.append(mpath.Path.CLOSEPOLY)
+            verts.append(start_pos)
+            codes.append(mpath.Path.CLOSEPOLY)
+            angles.append([])
 
             current_pos = start_pos
             start_pos = None
@@ -337,17 +372,27 @@ def patch_path(node, trans):
         # lineto
         elif command == 'l':
             current_pos = addPathElement(mpath.Path.LINETO, popPos())
+            angles[-1].append(np.arctan2((verts[-1]-verts[-2])[1], (verts[-1]-verts[-2])[0]))
+            angles.append([angles[-1][-1]])
         # horizontal lineto
         elif command == 'h':
             current_pos = addPathElement(mpath.Path.LINETO,
                                          np.array([popValue()+current_pos[0]*(1-absolute), current_pos[1]]))
+            angles[-1].append(np.arctan2((verts[-1] - verts[-2])[1], (verts[-1] - verts[-2])[0]))
+            angles.append([angles[-1][-1]])
         # vertical lineto
         elif command == 'v':
             current_pos = addPathElement(mpath.Path.LINETO,
                                          np.array([current_pos[0], popValue() + current_pos[1] * (1 - absolute)]))
+            angles[-1].append(np.arctan2((verts[-1] - verts[-2])[1], (verts[-1] - verts[-2])[0]))
+            angles.append([angles[-1][-1]])
         # cubic bezier curveto
         elif command == 'c':
             current_pos = addPathElement(mpath.Path.CURVE4, popPos(), popPos(), popPos())
+            angles[-1].append(np.arctan2((verts[-3] - verts[-4])[1], (verts[-3] - verts[-4])[0]))
+            angles.append([])
+            angles.append([])
+            angles.append([np.arctan2((verts[-1] - verts[-2])[1], (verts[-1] - verts[-2])[0])])
         # smooth cubic bezier curveto
         elif command == 's':
             # Smooth curve. First control point is the "reflection" of
@@ -365,9 +410,16 @@ def patch_path(node, trans):
                 control1 = current_pos + (current_pos - verts[-2])
 
             current_pos = addPathElement(mpath.Path.CURVE4, control1, popPos(), popPos())
+            angles[-1].append(np.arctan2((verts[-3] - verts[-4])[1], (verts[-3] - verts[-4])[0]))
+            angles.append([])
+            angles.append([])
+            angles.append([np.arctan2((verts[-1] - verts[-2])[1], (verts[-1] - verts[-2])[0])])
         # quadratic bezier curveto
         elif command == 'q':
             current_pos = addPathElement(mpath.Path.CURVE3, popPos(), popPos())
+            angles[-1].append(np.arctan2((verts[-2] - verts[-3])[1], (verts[-2] - verts[-3])[0]))
+            angles.append([])
+            angles.append([np.arctan2((verts[-1] - verts[-2])[1], (verts[-1] - verts[-2])[0])])
         # smooth quadratic bezier curveto
         elif command == 't':
             # Smooth curve. Control point is the "reflection" of
@@ -384,16 +436,74 @@ def patch_path(node, trans):
                 # to the current point.
                 control1 = current_pos + (current_pos - verts[-2])
             current_pos = addPathElement(mpath.Path.CURVE3, control1, popPos())
+            angles[-1].append(np.arctan2((verts[-2] - verts[-3])[1], (verts[-2] - verts[-3])[0]))
+            angles.append([])
+            angles.append([np.arctan2((verts[-1] - verts[-2])[1], (verts[-1] - verts[-2])[0])])
         # elliptical arc
         elif command == 'a':
             radius1, radius2, rotation, arc, sweep = popValue(5)
             end = popPos()
 
             for e in arcToBezier(current_pos, end, radius1, radius2, rotation, arc, sweep):
-                current_pos = addPathElement(mpath.Path.CURVE4, e[:2], e[2:4], e[4:6])
+                current_pos = addPathElement(mpath.Path.CURVE4, np.array(e[:2]), np.array(e[2:4]), np.array(e[4:6]))
+                angles[-1].append(np.arctan2((verts[-3] - verts[-4])[1], (verts[-3] - verts[-4])[0]))
+                angles.append([])
+                angles.append([])
+                angles.append([np.arctan2((verts[-1] - verts[-2])[1], (verts[-1] - verts[-2])[0])])
+
+    # average angles when a point has more than one line
+    for i in range(len(angles)):
+        if len(angles[i]) == 1:
+            angles[i] = angles[i][0]
+        else:
+            angles[i] = np.arctan2(np.mean(np.sin(angles[i])), np.mean(np.cos(angles[i])))
+
+    def addMarker(i, name):
+        marker_style, patches = ids[name]
+        def add_list_elements(element):
+            if isinstance(element, list):
+                for e in element:
+                    add_list_elements(e)
+            else:
+                parent_patch = element
+                patch = clone_patch(parent_patch)
+                apply_style(parent_patch.style, patch)
+
+                a = angles[i]
+                ca, sa = np.cos(a), np.sin(a)
+                ox, oy = verts[i]
+                trans2 = parent_patch.trans_node + mtransforms.Affine2D([[ca, -sa, ox], [sa, ca, oy], [0, 0, 1]]) + parent_patch.trans_parent + trans#+ plt.gca().transAxes
+                if marker_style.get("markerUnits", "strokeWidth") == "strokeWidth":
+                    s = svgUnitToMpl(style["stroke-width"])
+                    trans2 = mtransforms.Affine2D([[s, 0, 0], [0, s, 0], [0, 0, 1]]) + trans2
+                patch.set_transform(trans2)
+                patch.is_marker = True
+                patch_list.append(patch)
+        add_list_elements(patches)
+
+    patch_list = []
 
     path = mpath.Path(verts, codes)
-    return mpatches.PathPatch(path, transform=trans)
+    patch_list.append(mpatches.PathPatch(path, transform=trans))
+
+    if style.get("marker-start"):
+        if style.get("marker-start").startswith("url(#"):
+            name = style.get("marker-start")[len("url(#"):-1]
+            if name in ids:
+                addMarker(0, name)
+    if style.get("marker-mid"):
+        if style.get("marker-mid").startswith("url(#"):
+            name = style.get("marker-mid")[len("url(#"):-1]
+            if name in ids:
+                for i in range(1, len(angles)-1):
+                    addMarker(i, name)
+    if style.get("marker-end"):
+        if style.get("marker-end").startswith("url(#"):
+            name = style.get("marker-end")[len("url(#"):-1]
+            if name in ids:
+                addMarker(len(angles)-1, name)
+
+    return patch_list
 
 def svgUnitToMpl(unit, default=None):
     import re
@@ -452,7 +562,7 @@ def parseStyleSheet(text):
     return style_definitions
 
 def parseGroup(node, trans, style, ids, no_draw=False):
-    trans = parseTransformation(node.getAttribute("transform"), trans)
+    trans = parseTransformation(node.getAttribute("transform")) + trans
     style = get_inline_style(node, style)
 
     patch_list = []
@@ -509,7 +619,7 @@ def parseGroup(node, trans, style, ids, no_draw=False):
             print("Unknown tag", child.tagName, file=sys.stderr)
 
     if node.getAttribute("id") != "":
-        ids[node.getAttribute("id")] = patch_list
+        ids[node.getAttribute("id")] = [style, patch_list]
 
     return patch_list
 
@@ -545,4 +655,4 @@ def svgread(filename):
     plt.xlim(x1, x2)
     plt.ylim(y2, y1)
 
-    parseGroup(doc.getElementsByTagName("svg")[0], plt.gca().transData, {}, {"css": []})
+    parseGroup(doc.getElementsByTagName("svg")[0], mtransforms.IdentityTransform(), {}, {"css": []})
