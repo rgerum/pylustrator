@@ -334,10 +334,22 @@ def patch_path(node, trans, style, ids):
         else:
             return [float(elements.pop()) for i in range(count)]
 
-    def addPathElement(type, *positions):
+    def addPathElement(type, *positions, no_angle=False):
         for pos in positions:
             verts.append(pos)
             codes.append(type)
+
+        def vec2angle(vec):
+            return np.arctan2(vec[1], vec[0])
+
+        if not no_angle:
+            n = len(positions)
+            angles[-1].append(vec2angle(verts[-n] - verts[-n-1]))
+            for i in range(n-1):
+                angles.append([])
+            angles.append([vec2angle(verts[-1] - verts[-2])])
+        else:
+            angles.append([])
         return positions[-1]
 
     i = len(elements)
@@ -354,45 +366,33 @@ def patch_path(node, trans, style, ids):
 
         # moveto
         if command == "m":
-            current_pos = addPathElement(mpath.Path.MOVETO, popPos())
-            angles.append([])
+            current_pos = addPathElement(mpath.Path.MOVETO, popPos(), no_angle=True)
             start_pos = current_pos
 
             command = "l"
         # close
         elif command == "z":
             # Close path
-            verts.append(start_pos)
-            codes.append(mpath.Path.CLOSEPOLY)
-            angles.append([])
+            current_pos = addPathElement(mpath.Path.CLOSEPOLY, start_pos, no_angle=True)
 
-            current_pos = start_pos
             start_pos = None
             command = None  # You can't have implicit commands after closing.
         # lineto
         elif command == 'l':
             current_pos = addPathElement(mpath.Path.LINETO, popPos())
-            angles[-1].append(np.arctan2((verts[-1]-verts[-2])[1], (verts[-1]-verts[-2])[0]))
-            angles.append([angles[-1][-1]])
+
         # horizontal lineto
         elif command == 'h':
             current_pos = addPathElement(mpath.Path.LINETO,
                                          np.array([popValue()+current_pos[0]*(1-absolute), current_pos[1]]))
-            angles[-1].append(np.arctan2((verts[-1] - verts[-2])[1], (verts[-1] - verts[-2])[0]))
-            angles.append([angles[-1][-1]])
         # vertical lineto
         elif command == 'v':
             current_pos = addPathElement(mpath.Path.LINETO,
                                          np.array([current_pos[0], popValue() + current_pos[1] * (1 - absolute)]))
-            angles[-1].append(np.arctan2((verts[-1] - verts[-2])[1], (verts[-1] - verts[-2])[0]))
-            angles.append([angles[-1][-1]])
         # cubic bezier curveto
         elif command == 'c':
             current_pos = addPathElement(mpath.Path.CURVE4, popPos(), popPos(), popPos())
-            angles[-1].append(np.arctan2((verts[-3] - verts[-4])[1], (verts[-3] - verts[-4])[0]))
-            angles.append([])
-            angles.append([])
-            angles.append([np.arctan2((verts[-1] - verts[-2])[1], (verts[-1] - verts[-2])[0])])
+
         # smooth cubic bezier curveto
         elif command == 's':
             # Smooth curve. First control point is the "reflection" of
@@ -410,16 +410,11 @@ def patch_path(node, trans, style, ids):
                 control1 = current_pos + (current_pos - verts[-2])
 
             current_pos = addPathElement(mpath.Path.CURVE4, control1, popPos(), popPos())
-            angles[-1].append(np.arctan2((verts[-3] - verts[-4])[1], (verts[-3] - verts[-4])[0]))
-            angles.append([])
-            angles.append([])
-            angles.append([np.arctan2((verts[-1] - verts[-2])[1], (verts[-1] - verts[-2])[0])])
+
         # quadratic bezier curveto
         elif command == 'q':
             current_pos = addPathElement(mpath.Path.CURVE3, popPos(), popPos())
-            angles[-1].append(np.arctan2((verts[-2] - verts[-3])[1], (verts[-2] - verts[-3])[0]))
-            angles.append([])
-            angles.append([np.arctan2((verts[-1] - verts[-2])[1], (verts[-1] - verts[-2])[0])])
+
         # smooth quadratic bezier curveto
         elif command == 't':
             # Smooth curve. Control point is the "reflection" of
@@ -436,20 +431,13 @@ def patch_path(node, trans, style, ids):
                 # to the current point.
                 control1 = current_pos + (current_pos - verts[-2])
             current_pos = addPathElement(mpath.Path.CURVE3, control1, popPos())
-            angles[-1].append(np.arctan2((verts[-2] - verts[-3])[1], (verts[-2] - verts[-3])[0]))
-            angles.append([])
-            angles.append([np.arctan2((verts[-1] - verts[-2])[1], (verts[-1] - verts[-2])[0])])
+
         # elliptical arc
         elif command == 'a':
             radius1, radius2, rotation, arc, sweep = popValue(5)
             end = popPos()
 
-            for e in arcToBezier(current_pos, end, radius1, radius2, rotation, arc, sweep):
-                current_pos = addPathElement(mpath.Path.CURVE4, np.array(e[:2]), np.array(e[2:4]), np.array(e[4:6]))
-                angles[-1].append(np.arctan2((verts[-3] - verts[-4])[1], (verts[-3] - verts[-4])[0]))
-                angles.append([])
-                angles.append([])
-                angles.append([np.arctan2((verts[-1] - verts[-2])[1], (verts[-1] - verts[-2])[0])])
+            current_pos = addPathElement(mpath.Path.CURVE4, *arcToBezier(current_pos, end, radius1, radius2, rotation, arc, sweep))
 
     # average angles when a point has more than one line
     for i in range(len(angles)):
