@@ -130,6 +130,6 @@ def arcToBezier(pos1, pos2, rx, ry, xAxisRotation = 0, largeArcFlag = 0, sweepFl
         x2, y2 = mapToEllipse(curve[1], rx, ry, cosphi, sinphi, centerx, centery)
         x, y = mapToEllipse(curve[2], rx, ry, cosphi, sinphi, centerx, centery)
 
-        return x1, y1, x2, y2, x, y
+        return np.array([x1, y1]), np.array([x2, y2]), np.array([x, y])
 
-    return [curve(c) for c in curves]
+    return [p for c in curves for p in curve(c)]

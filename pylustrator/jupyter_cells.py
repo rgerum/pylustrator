@@ -16,30 +16,13 @@ def setJupyterCellText(text):
     """
     display(Javascript(js))
 
-def setCellInput(i):
-    global _i
-    _i = i
 
 def getIpythonCurrentCell():
-    import IPython
-    import asyncio
-    from pprint import pprint
-    c = IPython.core.getipython.get_ipython()
-    # pprint(dir(c))
-    try:
-        [i for i in c.runcode("import pylustrator")]
-        [i for i in c.runcode("pylustrator.setCellInput(_ih[-1])")]
-    except TypeError:  # newer IPython versions
-        try:
-            asyncio.run(c.runcode("import pylustrator"))
-            asyncio.run(c.runcode("pylustrator.setCellInput(_ih[-1])"))
-        except AttributeError:  # Python < 3.7
-            loop = asyncio.new_event_loop()
-            loop.run_until_complete(asyncio.wait([c.runcode("import pylustrator")]))
-            loop.run_until_complete(asyncio.wait([c.runcode("pylustrator.setCellInput(_ih[-1])")]))
-            loop.close()
+    import inspect
+    # get the first stack which has a filename starting with "<ipython-input" (e.g. an ipython cell) and from
+    # this stack get the globals, there get the executed cells history and the last element from it
+    return [stack for stack in inspect.stack() if stack.filename.startswith("<ipython-input")][0][0].f_globals["_ih"][-1]
 
-    return _i
 
 global_files = {}
 build_in_open = open
