@@ -119,14 +119,23 @@ def addContentToFigure(fig, axes):
         else:
             fig.texts.append(ax)
 
+def imShowFullFigure(im, filename, fig1, dpi):
+    from matplotlib import rcParams
+    if dpi is None:
+        dpi = rcParams['figure.dpi']
+    fig1.set_size_inches(im.shape[1] / dpi, im.shape[0] / dpi)
+    ax = plt.axes([0, 0, 1, 1], label=filename)
+    plt.imshow(im, cmap="gray")
+    plt.xticks([])
+    plt.yticks([])
+    for spine in ["left", "right", "top", "bottom"]:
+        ax.spines[spine].set_visible(False)
+
 def loadFigureFromFile(filename, fig1=None, offset=None, dpi=None, cache=True):
     from matplotlib import rcParams
     from pylustrator import changeFigureSize
     import pylustrator
     import os
-
-    filename = os.path.abspath(filename)
-    cache_filename = filename + ".cache.pkl"
 
     # defaults to the current figure
     if fig1 is None:
@@ -174,6 +183,7 @@ def loadFigureFromFile(filename, fig1=None, offset=None, dpi=None, cache=True):
             from matplotlib.figure import Figure
             from matplotlib.transforms import TransformedBbox, Affine2D
             plt.figure = self.fig
+
     # get the size of the old figure
     w1, h1 = fig1.get_size_inches()
     axes1 = removeContentFromFigure(fig1)
@@ -181,52 +191,50 @@ def loadFigureFromFile(filename, fig1=None, offset=None, dpi=None, cache=True):
         w1 = 0
         h1 = 0
 
-    try:
-        if dpi is None:
-            dpi = rcParams['figure.dpi']
-        im = plt.imread(filename)
-        fig1.set_size_inches(im.shape[1]/dpi, im.shape[0]/dpi)
-        ax = plt.axes([0, 0, 1, 1], label=filename)
-        plt.imshow(im, cmap="gray")
-        plt.xticks([])
-        plt.yticks([])
-        for spine in ["left", "right", "top", "bottom"]:
-            ax.spines[spine].set_visible(False)
-    except OSError:
-        if filename.endswith(".svg"):
-            svgread(filename)
-        else:
-            with noNewFigures():
-                # prevent the script we want to load from calling show
-                with noShow():
-                    import pickle
-                    if cache and os.path.exists(cache_filename) and os.path.getmtime(cache_filename) > os.path.getmtime(filename):
-                        print("loading from cached file", cache_filename)
-                        fig2 = pickle.load(open(cache_filename, "rb"))
-                        w, h = fig2.get_size_inches()
-                        fig1.set_size_inches(w, h)
+    if isinstance(filename, np.ndarray):
+        im = filename
+        imShowFullFigure(im, str(im.shape), fig1, dpi)
+    else:
+        filename = os.path.abspath(filename)
+        cache_filename = filename + ".cache.pkl"
+        try:
+            im = plt.imread(filename)
+            imShowFullFigure(im, os.path.split(filename)[1], fig1, dpi=dpi)
+        except OSError:
+            if filename.endswith(".svg"):
+                svgread(filename)
+            else:
+                with noNewFigures():
+                    # prevent the script we want to load from calling show
+                    with noShow():
+                        import pickle
+                        if cache and os.path.exists(cache_filename) and os.path.getmtime(cache_filename) > os.path.getmtime(filename):
+                            print("loading from cached file", cache_filename)
+                            fig2 = pickle.load(open(cache_filename, "rb"))
+                            w, h = fig2.get_size_inches()
+                            fig1.set_size_inches(w, h)
 
-                        str(fig1)  # important! (for some reason I don't know)
-                        for ax in fig2.axes:
-                            fig2.delaxes(ax)
-                            fig1._axstack.add(fig1._make_key(ax), ax)
-                            fig1.bbox._parents.update(fig2.bbox._parents)
-                            fig1.dpi_scale_trans._parents.update(fig2.dpi_scale_trans._parents)
-                            replace_all_refs(fig2.bbox, fig1.bbox)
-                            replace_all_refs(fig2.dpi_scale_trans, fig1.dpi_scale_trans)
-                            replace_all_refs(fig2, fig1)
-                    else:
-                        # execute the file
-                        exec(compile(open(filename, "rb").read(), filename, 'exec'), globals())
-                        if cache is True:
-                            c = fig1.canvas
-                            fig1.canvas = None
-                            fig1.bbox.pylustrator = True
-                            fig1.dpi_scale_trans.pylustrator = True
-                            pickle.dump(fig1,
-                                        open(cache_filename, 'wb'))
+                            str(fig1)  # important! (for some reason I don't know)
+                            for ax in fig2.axes:
+                                fig2.delaxes(ax)
+                                fig1._axstack.add(fig1._make_key(ax), ax)
+                                fig1.bbox._parents.update(fig2.bbox._parents)
+                                fig1.dpi_scale_trans._parents.update(fig2.dpi_scale_trans._parents)
+                                replace_all_refs(fig2.bbox, fig1.bbox)
+                                replace_all_refs(fig2.dpi_scale_trans, fig1.dpi_scale_trans)
+                                replace_all_refs(fig2, fig1)
+                        else:
+                            # execute the file
+                            exec(compile(open(filename, "rb").read(), filename, 'exec'), globals())
+                            if cache is True:
+                                c = fig1.canvas
+                                fig1.canvas = None
+                                fig1.bbox.pylustrator = True
+                                fig1.dpi_scale_trans.pylustrator = True
+                                pickle.dump(fig1,
+                                            open(cache_filename, 'wb'))
 
-                            fig1.canvas = c
+                                fig1.canvas = c
 
     # get the size of the new figure
     w2, h2 = fig1.get_size_inches()
