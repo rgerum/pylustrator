@@ -238,8 +238,8 @@ def replace_all_refs(org_obj, new_obj):
             # print(type(referrer), file=sys.stderr)
             pass
 
-    if hit is False:
-        raise AttributeError("Object '%r' not found" % org_obj)
+    #if hit is False:
+    #    raise AttributeError("Object '%r' not found" % org_obj)
 
     return org_obj
 

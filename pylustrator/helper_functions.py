@@ -147,7 +147,7 @@ class changeFolder:
     def __exit__(self, type, value, traceback):
         os.chdir(self.old_dir)
 
-def loadFigureFromFile(filename, fig1=None, offset=None, dpi=None, cache=True):
+def loadFigureFromFile(filename, fig1=None, offset=None, dpi=None, cache=False):
     from matplotlib import rcParams
     from pylustrator import changeFigureSize
     import pylustrator
@@ -261,8 +261,7 @@ def loadFigureFromFile(filename, fig1=None, offset=None, dpi=None, cache=True):
                             fig1.canvas = None
                             fig1.bbox.pylustrator = True
                             fig1.dpi_scale_trans.pylustrator = True
-                            pickle.dump(fig1,
-                                        open(cache_filename, 'wb'))
+                            pickle.dump(fig1, open(cache_filename, 'wb'))
 
                             fig1.canvas = c
 

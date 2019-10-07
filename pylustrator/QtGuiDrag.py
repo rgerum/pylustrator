@@ -142,13 +142,14 @@ def show():
     plt.figure = old_pltfigure
 
 
+class CmapColor(list):
+    def setMeta(self, value, cmap):
+        self.value = value
+        self.cmap = cmap
+
+
 def patchColormapsWithMetaInfo():
     from matplotlib.colors import Colormap
-
-    class CmapColor(list):
-        def setMeta(self, value, cmap):
-            self.value = value
-            self.cmap = cmap
 
     cm_call = Colormap.__call__
 
