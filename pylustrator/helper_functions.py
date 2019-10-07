@@ -27,7 +27,7 @@ import traceback
 from .parse_svg import svgread
 from matplotlib.axes._subplots import Axes
 from .pyjack import replace_all_refs
-
+import os
 
 def fig_text(x, y, text, unit="cm", *args, **kwargs):
     """
@@ -131,134 +131,164 @@ def imShowFullFigure(im, filename, fig1, dpi):
     for spine in ["left", "right", "top", "bottom"]:
         ax.spines[spine].set_visible(False)
 
+
+class changeFolder:
+    """
+    An environment that changes the working directory
+    """
+    def __init__(self, directory):
+        self.directory = directory
+
+    def __enter__(self):
+        self.old_dir = os.getcwd()
+        if self.directory:
+            os.chdir(self.directory)
+
+    def __exit__(self, type, value, traceback):
+        os.chdir(self.old_dir)
+
 def loadFigureFromFile(filename, fig1=None, offset=None, dpi=None, cache=True):
     from matplotlib import rcParams
     from pylustrator import changeFigureSize
     import pylustrator
-    import os
 
-    # defaults to the current figure
-    if fig1 is None:
-        fig1 = plt.gcf()
+    # change to the directory of the filename (to execute the code relative to this directory)
+    dirname, filename = os.path.split(filename)
+    with changeFolder(dirname):
+        if dirname:
+            os.chdir(dirname)
 
-    class noShow:
-        """
-        An environment that prevents the script from calling the plt.show function
-        """
-        def __enter__(self):
-            # store the show function
-            self.show = plt.show
-            self.dragger = pylustrator.start
+        # defaults to the current figure
+        if fig1 is None:
+            fig1 = plt.gcf()
 
-            # define an empty function
-            def empty(*args, **kwargs):
-                pass
+        class noShow:
+            """
+            An environment that prevents the script from calling the plt.show function
+            """
+            def __enter__(self):
+                # store the show function
+                self.show = plt.show
+                self.dragger = pylustrator.start
 
-            # set the show function to the empty function
-            plt.show = empty
-            pylustrator.start = empty
+                # define an empty function
+                def empty(*args, **kwargs):
+                    pass
 
-        def __exit__(self, type, value, traceback):
-            # restore the old show function
-            plt.show = self.show
-            pylustrator.start = self.dragger
+                # set the show function to the empty function
+                plt.show = empty
+                pylustrator.start = empty
 
-    class noNewFigures:
-        """
-        An environment that prevents the script from creating new figures in the figure manager
-        """
-        def __enter__(self):
-            fig = plt.gcf()
-            self.fig = plt.figure
-            figsize = rcParams['figure.figsize']
-            fig.set_size_inches(figsize[0], figsize[1])
-            def figure(num=None, figsize=None, *args, **kwargs):
+            def __exit__(self, type, value, traceback):
+                # restore the old show function
+                plt.show = self.show
+                pylustrator.start = self.dragger
+
+        class noNewFigures:
+            """
+            An environment that prevents the script from creating new figures in the figure manager
+            """
+            def __enter__(self):
                 fig = plt.gcf()
-                if figsize is not None:
-                    fig.set_size_inches(figsize[0], figsize[1], forward=True)
-                return fig
-            plt.figure = figure
+                self.fig = plt.figure
+                figsize = rcParams['figure.figsize']
+                fig.set_size_inches(figsize[0], figsize[1])
+                def figure(num=None, figsize=None, *args, **kwargs):
+                    fig = plt.gcf()
+                    if figsize is not None:
+                        fig.set_size_inches(figsize[0], figsize[1], forward=True)
+                    return fig
+                plt.figure = figure
 
-        def __exit__(self, type, value, traceback):
-            from matplotlib.figure import Figure
-            from matplotlib.transforms import TransformedBbox, Affine2D
-            plt.figure = self.fig
+            def __exit__(self, type, value, traceback):
+                from matplotlib.figure import Figure
+                from matplotlib.transforms import TransformedBbox, Affine2D
+                plt.figure = self.fig
 
-    # get the size of the old figure
-    w1, h1 = fig1.get_size_inches()
-    axes1 = removeContentFromFigure(fig1)
-    if len(axes1) == 0:
-        w1 = 0
-        h1 = 0
+        # get the size of the old figure
+        w1, h1 = fig1.get_size_inches()
+        axes1 = removeContentFromFigure(fig1)
+        if len(axes1) == 0:
+            w1 = 0
+            h1 = 0
 
-    if isinstance(filename, np.ndarray):
-        im = filename
-        imShowFullFigure(im, str(im.shape), fig1, dpi)
-    else:
-        filename = os.path.abspath(filename)
-        cache_filename = filename + ".cache.pkl"
+        # try to load the filename as an image
         try:
             im = plt.imread(filename)
-            imShowFullFigure(im, os.path.split(filename)[1], fig1, dpi=dpi)
         except OSError:
-            if filename.endswith(".svg"):
-                svgread(filename)
-            else:
-                with noNewFigures():
-                    # prevent the script we want to load from calling show
-                    with noShow():
-                        import pickle
-                        if cache and os.path.exists(cache_filename) and os.path.getmtime(cache_filename) > os.path.getmtime(filename):
-                            print("loading from cached file", cache_filename)
-                            fig2 = pickle.load(open(cache_filename, "rb"))
-                            w, h = fig2.get_size_inches()
-                            fig1.set_size_inches(w, h)
+            im = None
 
-                            str(fig1)  # important! (for some reason I don't know)
-                            for ax in fig2.axes:
-                                fig2.delaxes(ax)
-                                fig1._axstack.add(fig1._make_key(ax), ax)
-                                fig1.bbox._parents.update(fig2.bbox._parents)
-                                fig1.dpi_scale_trans._parents.update(fig2.dpi_scale_trans._parents)
-                                replace_all_refs(fig2.bbox, fig1.bbox)
-                                replace_all_refs(fig2.dpi_scale_trans, fig1.dpi_scale_trans)
-                                replace_all_refs(fig2, fig1)
-                        else:
-                            # execute the file
-                            exec(compile(open(filename, "rb").read(), filename, 'exec'), globals())
-                            if cache is True:
-                                c = fig1.canvas
-                                fig1.canvas = None
-                                fig1.bbox.pylustrator = True
-                                fig1.dpi_scale_trans.pylustrator = True
-                                pickle.dump(fig1,
-                                            open(cache_filename, 'wb'))
+        # if it is an image, just display the image
+        if im is not None:
+            im = plt.imread(filename)
+            imShowFullFigure(im, os.path.split(filename)[1], fig1, dpi=dpi)
+        # if the image is a numpy array, just display the array
+        elif isinstance(filename, np.ndarray):
+            im = filename
+            imShowFullFigure(im, str(im.shape), fig1, dpi)
+        # if it is a svg file, display the svg file
+        elif filename.endswith(".svg"):
+            svgread(filename)
+        # if not, it should be a python script
+        else:
+            filename = os.path.abspath(filename)
+            cache_filename = filename + ".cache.pkl"
 
-                                fig1.canvas = c
+            with noNewFigures():
+                # prevent the script we want to load from calling show
+                with noShow():
+                    import pickle
+                    if cache and os.path.exists(cache_filename) and os.path.getmtime(cache_filename) > os.path.getmtime(filename):
+                        print("loading from cached file", cache_filename)
+                        fig2 = pickle.load(open(cache_filename, "rb"))
+                        w, h = fig2.get_size_inches()
+                        fig1.set_size_inches(w, h)
 
-    # get the size of the new figure
-    w2, h2 = fig1.get_size_inches()
-    if offset is not None:
-        if len(offset) == 2 or offset[2] == "%":
-            w2 += w1 * offset[0]
-            h2 += h1 * offset[1]
-        elif offset[2] == "in":
-            w2 += offset[0]
-            h2 += offset[1]
-        elif offset[2] == "cm":
-            w2 += offset[0] / 2.54
-            h2 += offset[1] / 2.54
-        changeFigureSize(w2, h2, cut_from_top=True, cut_from_left=True, fig=fig1)
-    w = max(w1, w2)
-    h = max(h1, h2)
-    changeFigureSize(w, h, fig=fig1)
-    if len(axes1):
-        axes2 = removeContentFromFigure(fig1)
-        changeFigureSize(w1, h1, fig=fig1)
-        addContentToFigure(fig1, axes1)
+                        str(fig1)  # important! (for some reason I don't know)
+                        for ax in fig2.axes:
+                            fig2.delaxes(ax)
+                            fig1._axstack.add(fig1._make_key(ax), ax)
+                            fig1.bbox._parents.update(fig2.bbox._parents)
+                            fig1.dpi_scale_trans._parents.update(fig2.dpi_scale_trans._parents)
+                            replace_all_refs(fig2.bbox, fig1.bbox)
+                            replace_all_refs(fig2.dpi_scale_trans, fig1.dpi_scale_trans)
+                            replace_all_refs(fig2, fig1)
+                    else:
+                        # execute the file
+                        exec(compile(open(filename, "rb").read(), filename, 'exec'), globals())
+                        if cache is True:
+                            c = fig1.canvas
+                            fig1.canvas = None
+                            fig1.bbox.pylustrator = True
+                            fig1.dpi_scale_trans.pylustrator = True
+                            pickle.dump(fig1,
+                                        open(cache_filename, 'wb'))
 
+                            fig1.canvas = c
+
+        # get the size of the new figure
+        w2, h2 = fig1.get_size_inches()
+        if offset is not None:
+            if len(offset) == 2 or offset[2] == "%":
+                w2 += w1 * offset[0]
+                h2 += h1 * offset[1]
+            elif offset[2] == "in":
+                w2 += offset[0]
+                h2 += offset[1]
+            elif offset[2] == "cm":
+                w2 += offset[0] / 2.54
+                h2 += offset[1] / 2.54
+            changeFigureSize(w2, h2, cut_from_top=True, cut_from_left=True, fig=fig1)
+        w = max(w1, w2)
+        h = max(h1, h2)
         changeFigureSize(w, h, fig=fig1)
-        addContentToFigure(fig1, axes2)
+        if len(axes1):
+            axes2 = removeContentFromFigure(fig1)
+            changeFigureSize(w1, h1, fig=fig1)
+            addContentToFigure(fig1, axes1)
+
+            changeFigureSize(w, h, fig=fig1)
+            addContentToFigure(fig1, axes2)
 
 
 def mark_inset(parent_axes, inset_axes, loc1=1, loc2=2, **kwargs):
