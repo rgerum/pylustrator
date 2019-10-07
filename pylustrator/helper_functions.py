@@ -107,7 +107,7 @@ def removeContentFromFigure(fig):
         axes.append(ax)
         fig._axstack.remove(ax)
     text = fig.texts
-    fig.text = []
+    fig.texts = []
     return axes + text
 
 def addContentToFigure(fig, axes):
