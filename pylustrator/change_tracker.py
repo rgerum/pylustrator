@@ -262,7 +262,7 @@ class ChangeTracker:
             reference_command = command
 
             if command == ".set_xticks" or command == ".set_yticks" or command == ".set_xlabels" or command == ".set_ylabels":
-                if line.find("minor=True"):
+                if line.find("minor=True") != -1:
                     reference_command = command + "_minor"
 
             # for new created texts, the reference object is the text and not the axis/figure
