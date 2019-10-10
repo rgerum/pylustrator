@@ -1754,10 +1754,11 @@ class QItemProperties(QtWidgets.QWidget):
                     pos = text.get_position()
                     self.fig.change_tracker.addChange(text, ".set_position([%f, %f])" % (pos[0], pos[1]))
 
-
+            self.fig.selection.update_selection_rectangles()
             self.fig.canvas.draw()
             self.fig.widget.updateGeometry()
             self.parent.updateFigureSize()
+            self.parent.updateRuler()
         else:
             elements = [self.element]
             elements += [element.target for element in self.element.figure.selection.targets if
