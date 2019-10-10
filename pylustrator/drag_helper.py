@@ -180,6 +180,78 @@ class GrabbableRectangleSelection(GrabFunctions):
         else:
             self.hide_grabber()
 
+    def align_points(self, mode):
+        if len(self.targets) == 0:
+            return
+
+        def align(y, func):
+            centers = []
+            for target in self.targets:
+                new_points = np.array(target.get_positions())
+                centers.append(func(new_points[:, y]))
+            new_center = func(self.positions[y::2])
+            for index, target in enumerate(self.targets):
+                new_points = np.array(target.get_positions())
+                new_points[:, y] += new_center - centers[index]
+                target.set_positions(new_points)
+            self.update_extent()
+
+        def distribute(y):
+            sizes = []
+            positions = []
+            for target in self.targets:
+                new_points = np.array(target.get_positions())
+                sizes.append(np.diff(new_points[:, y])[0])
+                positions.append(np.min(new_points[:, y]))
+            order = np.argsort(positions)
+            spaces = np.diff(self.positions[y::2])[0] - np.sum(sizes)
+            spaces /= max([(len(self.targets)-1), 1])
+            pos = np.min(self.positions[y::2])
+            for index in order:
+                target = self.targets[index]
+                new_points = np.array(target.get_positions())
+                new_points[:, y] += pos - np.min(new_points[:, y])
+                target.set_positions(new_points)
+                pos += sizes[index] + spaces
+
+        if mode == "center_x":
+            align(0, np.mean)
+
+        if mode == "left_x":
+            align(0, np.min)
+
+        if mode == "right_x":
+            align(0, np.max)
+
+        if mode == "center_y":
+            align(1, np.mean)
+
+        if mode == "bottom_y":
+            align(1, np.min)
+
+        if mode == "top_y":
+            align(1, np.max)
+
+        if mode == "distribute_x":
+            distribute(0)
+
+        if mode == "distribute_y":
+            distribute(1)
+
+    def update_selection_rectangles(self):
+        if len(self.targets) == 0:
+            return
+        for index, target in enumerate(self.targets):
+            new_points = np.array(target.get_positions())
+            for i in range(2):
+                rect = self.targets_rects[index*2+i]
+                rect.set_xy(new_points[0])
+                rect.set_width(new_points[1][0] - new_points[0][0])
+                rect.set_height(new_points[1][1] - new_points[0][1])
+
+        self.update_extent()
+
+
     def remove_target(self, target):
         targets_non_wrapped = [t.target for t in self.targets]
         if target not in targets_non_wrapped:

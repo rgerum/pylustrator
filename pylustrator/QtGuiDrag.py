@@ -208,6 +208,7 @@ def warnAboutTicks(fig):
 
 """ Window """
 
+
 class Linkable:
 
     def link(self, property_name,  signal=None, condition=None, direct=False):
@@ -1917,6 +1918,36 @@ class InfoDialog(QtWidgets.QWidget):
         self.layout.addWidget(self.label)
 
 
+class Align(QtWidgets.QWidget):
+    def __init__(self, layout, fig):
+        QtWidgets.QWidget.__init__(self)
+        layout.addWidget(self)
+        self.fig = fig
+
+        self.layout = QtWidgets.QHBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+
+        actions = ["left_x", "center_x", "right_x", "distribute_x", "top_y", "center_y", "bottom_y", "distribute_y"]
+        icons = ["left_x.png", "center_x.png", "right_x.png", "distribute_x.png", "top_y.png", "center_y.png", "bottom_y.png", "distribute_y.png"]
+        self.buttons = []
+        for index, act in enumerate(actions):
+            button = QtWidgets.QPushButton(QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", icons[index])), "")
+            self.layout.addWidget(button)
+            button.clicked.connect(lambda x, act=act: self.execute_action(act))
+            self.buttons.append(button)
+            if index == 3:
+                line = QtWidgets.QFrame()
+                line.setFrameShape(QtWidgets.QFrame.VLine)
+                line.setFrameShadow(QtWidgets.QFrame.Sunken)
+                self.layout.addWidget(line)
+        self.layout.addStretch()
+
+    def execute_action(self, act):
+        self.fig.selection.align_points(act)
+        self.fig.selection.update_selection_rectangles()
+        self.fig.canvas.draw()
+
+
 class PlotWindow(QtWidgets.QWidget):
     fitted_to_view = False
 
@@ -2016,6 +2047,7 @@ class PlotWindow(QtWidgets.QWidget):
         self.treeView.item_selected = self.elementSelected
 
         self.input_properties = QItemProperties(self.layout_tools, self.fig, self.treeView, self)
+        self.input_align = Align(self.layout_tools, self.fig)
 
         # add plot layout
         self.layout_plot = QtWidgets.QVBoxLayout()

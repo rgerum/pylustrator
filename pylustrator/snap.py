@@ -128,7 +128,7 @@ class TargetWrapper(object):
                 # if the legend doesn't have a location yet, use the left bottom corner of the bounding box
                 self.target._set_loc(tuple(self.target.axes.transAxes.inverted().transform(tuple([bbox.x0, bbox.y0]))))
             points.append(self.target.axes.transAxes.transform(self.target._get_loc()))
-            # add points to span bouning box around the frame
+            # add points to span bounding box around the frame
             points.append([bbox.x0, bbox.y0])
             points.append([bbox.x1, bbox.y1])
         return self.transform_points(points)
