@@ -1770,14 +1770,19 @@ class QItemProperties(QtWidgets.QWidget):
 
                 self.fig.change_tracker.addChange(element, ".set_position([%f, %f, %f, %f])" % (pos.x0, pos.y0, pos.width, pos.height))
 
+            self.fig.selection.update_selection_rectangles()
             self.fig.canvas.draw()
 
     def buttonDespineClicked(self):
         commands = [".spines['right'].set_visible(False)", 
                     ".spines['top'].set_visible(False)"]
         for command in commands:
-            eval("self.element"+command)
-            self.fig.change_tracker.addChange(self.element, command)
+            elements = [self.element]
+            elements += [element.target for element in self.element.figure.selection.targets if
+                         element.target != self.element and isinstance(element.target, Axes)]
+            for element in elements:
+                eval("self.element" + command)
+                self.fig.change_tracker.addChange(element, command)
         self.fig.canvas.draw()
 
     def buttonGridClicked(self):
