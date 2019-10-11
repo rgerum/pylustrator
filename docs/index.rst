@@ -62,16 +62,14 @@ python script (before your ``plt.show()``) that defines these changes:
     :linenos:
 
     #% start: automatic generated code from pylustrator
-    fig = plt.figure(1)
-    fig.ax_dict = {ax.get_label(): ax for ax in fig.axes}
-    fig.set_size_inches(8.000000/2.54, 8.000000/2.54, forward=True)
-    fig.axes[0].set_position([0.191879, 0.148168, 0.798133, 0.742010])
-    fig.axes[0].set_xlabel("data x")
-    fig.axes[0].set_ylabel("data y")
-    fig.axes[1].set_position([0.375743, 0.603616, 0.339534, 0.248372])
-    fig.axes[1].set_xlabel("data x")
-    fig.axes[1].set_ylabel("data y")
-    fig.axes[1].set_ylim(-40.0, 90.0)
+    plt.figure(1).set_size_inches(8.000000/2.54, 8.000000/2.54, forward=True)
+    plt.figure(1).axes[0].set_position([0.191879, 0.148168, 0.798133, 0.742010])
+    plt.figure(1).axes[0].set_xlabel("data x")
+    plt.figure(1).axes[0].set_ylabel("data y")
+    plt.figure(1).axes[1].set_position([0.375743, 0.603616, 0.339534, 0.248372])
+    plt.figure(1).axes[1].set_xlabel("data x")
+    plt.figure(1).axes[1].set_ylabel("data y")
+    plt.figure(1).axes[1].set_ylim(-40.0, 90.0)
     #% end: automatic generated code from pylustrator
 
 .. note::
@@ -97,7 +95,7 @@ Citing Pylustrator
 
 If you use Pylustrator for your publications I would highly appreciate it if you cite the Pylustrator:
 
-* Richard Gerum. (2018, June 21). `"Pylustrator: An interactive interface to style matplotlib plots." <https://zenodo.org/record/1294663>`_ Zenodo. doi:10.5281/zenodo.1294663
+* Richard Gerum. (2019, Oct). `"pylustrator: Code generation for reproducible figures for publication" <https://arxiv.org/abs/1910.00279>`_ ArXiv. 1910.00279
 
 License
 -------

@@ -1,5 +1,4 @@
 include readme.rst
-include pylustrator/icons/ticks.ico
-include pylustrator/icons/logo.ico
-include pylustrator/icons/logo.png
+include pylustrator/icons/*.ico
+include pylustrator/icons/*.png
 prune development
