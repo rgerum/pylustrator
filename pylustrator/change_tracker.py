@@ -34,6 +34,7 @@ from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
 from matplotlib.text import Text
+from matplotlib.collections import Collection
 from natsort import natsorted
 
 from .exception_swallower import Dummy
@@ -55,6 +56,9 @@ def getReference(element, allow_using_variable_names=True):
     if isinstance(element, matplotlib.lines.Line2D):
         index = element.axes.lines.index(element)
         return getReference(element.axes) + ".lines[%d]" % index
+    if isinstance(element, matplotlib.collections.Collection):
+        index = element.axes.collections.index(element)
+        return getReference(element.axes) + ".collections[%d]" % index
     if isinstance(element, matplotlib.patches.Patch):
         if element.axes:
             index = element.axes.patches.index(element)
@@ -211,6 +215,7 @@ class ChangeTracker:
                                r"\.texts\[\d*\]",
                                r"\.{title|_left_title|_right_title}",
                                r"\.lines\[\d*\]",
+                               r"\.collections\[\d*\]",
                                r"\.patches\[\d*\]",
                                r"\.get_[xy]axis\(\)\.get_(major|minor)_ticks\(\)\[\d*\]",
                                r"\.get_legend\(\)",
