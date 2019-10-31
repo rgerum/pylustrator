@@ -154,6 +154,7 @@ def loadFigureFromFile(filename, fig1=None, offset=None, dpi=None, cache=False):
 
     # change to the directory of the filename (to execute the code relative to this directory)
     dirname, filename = os.path.split(filename)
+    dirname = os.path.abspath(dirname)
     with changeFolder(dirname):
         if dirname:
             os.chdir(dirname)
