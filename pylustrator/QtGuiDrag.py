@@ -1450,6 +1450,8 @@ class QTickEdit(QtWidgets.QWidget):
         self.fig.canvas.draw()
 
 class QAxesProperties(QtWidgets.QWidget):
+    targetChanged_wrapped = QtCore.Signal('PyQt_PyObject')
+
     def __init__(self, layout, axis, signal_target_changed):
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
@@ -1460,7 +1462,14 @@ class QAxesProperties(QtWidgets.QWidget):
         self.targetChanged.connect(self.setTarget)
 
         self.input_label = TextWidget(self.layout, axis+"-Label:")
-        self.input_label.link(axis+"label", signal=self.targetChanged)
+        def wrapTargetLabel(axis_object):
+            try:
+                target = getattr(getattr(axis_object, f"get_{axis}axis")(), "get_label")()
+            except AttributeError:
+                target = None
+            self.targetChanged_wrapped.emit(target)
+        self.targetChanged.connect(wrapTargetLabel)
+        self.input_label.link("text", signal=self.targetChanged_wrapped)
 
         self.input_lim = DimensionsWidget(self.layout, axis+"-Lim:", "-", "", free=True)
         self.input_lim.link(axis+"lim", signal=self.targetChanged)
