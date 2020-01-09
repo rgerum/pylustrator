@@ -291,7 +291,7 @@ class ColorChooserWidget(QtWidgets.QWidget):
         #    color_button.set
         self.color_buttons_list = []
 
-        for color in self.color_artists[:10]:
+        for color in self.color_artists[:20]:
             self.addColorButton(color, color)
 
         self.trigger_no_update = True

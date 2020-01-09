@@ -560,7 +560,8 @@ class ComboWidget(QtWidgets.QWidget, Linkable):
         return "\""+str(self.get())+"\""
 
 
-class CheckWidget(QtWidgets.QWidget):
+class CheckWidget(QtWidgets.QWidget, Linkable):
+    editingFinished = QtCore.Signal()
     stateChanged = QtCore.Signal(int)
     noSignal = False
 
@@ -580,6 +581,7 @@ class CheckWidget(QtWidgets.QWidget):
     def onStateChanged(self):
         if not self.noSignal:
             self.stateChanged.emit(self.input1.isChecked())
+            self.editingFinished.emit()
 
     def setChecked(self, state):
         self.noSignal = True
@@ -588,6 +590,15 @@ class CheckWidget(QtWidgets.QWidget):
 
     def isChecked(self):
         return self.input1.isChecked()
+
+    def get(self):
+        return self.isChecked()
+
+    def set(self, value):
+        self.setChecked(value)
+
+    def getSerialized(self):
+        return "True" if self.get() else "False"
 
 
 class RadioWidget(QtWidgets.QWidget):
@@ -903,6 +914,93 @@ class TextPropertiesWidget(QtWidgets.QWidget):
                 element.set_fontsize(value)
                 element.figure.change_tracker.addChange(element, ".set_fontsize(%d)" % value)
             self.target.figure.canvas.draw()
+
+
+class LegendPropertiesWidget(QtWidgets.QWidget):
+    stateChanged = QtCore.Signal(int, str)
+    noSignal = False
+    target_list = None
+
+    def __init__(self, layout):
+        QtWidgets.QWidget.__init__(self)
+        layout.addWidget(self)
+        self.layout = QtWidgets.QVBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+
+        self.property_names = [
+            ("frameon", "frameon", bool),
+            ("borderpad", "borderpad", float),
+            ("labelspacing", "labelspacing", float),
+            ("handlelength", "handlelength", float),
+            ("handletextpad", "handletextpad", float),
+            ("columnspacing", "columnspacing", float),
+            ("markerscale", "markerscale", float),
+            ("ncol", "_ncol", int),
+        ]
+        self.properties = {}
+
+        self.widgets = {}
+        for index, (name, name2, type_) in enumerate(self.property_names):
+            if index % 3 == 0:
+                layout = QtWidgets.QHBoxLayout()
+                layout.setContentsMargins(0, 0, 0, 0)
+                self.layout.addLayout(layout)
+            if type_ == bool:
+                widget = CheckWidget(layout, name+":")
+                widget.editingFinished.connect(lambda name=name, widget=widget: self.changePropertiy(name, widget.get()))
+            else:
+                label = QtWidgets.QLabel(name+":")
+                layout.addWidget(label)
+                if type_ == float:
+                    widget = QtWidgets.QDoubleSpinBox()
+                    widget.setSingleStep(0.1)
+                elif type_ == int:
+                    widget = QtWidgets.QSpinBox()
+                layout.addWidget(widget)
+                widget.valueChanged.connect(lambda x, name=name: self.changePropertiy(name, x))
+            self.widgets[name] = widget
+
+    def changePropertiy(self, name, value):
+        if self.target is None:
+            return
+
+        bbox = self.target.get_frame().get_bbox()
+        self.properties[name] = value
+        axes = self.target.axes
+        axes.legend(**self.properties)
+        self.target = axes.get_legend()
+        fig = self.target.figure
+        fig.change_tracker.addChange(axes, ".legend(%s)" % (", ".join("%s=%s" % (k, v) for k, v in self.properties.items())))
+        self.target._set_loc(tuple(self.target.axes.transAxes.inverted().transform(tuple([bbox.x0, bbox.y0]))))
+        fig.figure_dragger.make_dragable(self.target)
+        fig.figure_dragger.select_element(self.target)
+        fig.canvas.draw()
+        fig.selection.update_selection_rectangles()
+        fig.canvas.draw()
+
+    def setTarget(self, element):
+        if isinstance(element, list):
+            self.target_list = element
+            element = element[0]
+        else:
+            if element is None:
+                self.target_list = []
+            else:
+                self.target_list = [element]
+        self.target = None
+        for name, name2, type_ in self.property_names:
+            if name2 == "frameon":
+                value = element.get_frame_on()
+            else:
+                value = getattr(element, name2)
+            print("name", name, value)
+            try:
+                self.widgets[name].setValue(value)
+            except AttributeError:
+                self.widgets[name].set(value)
+            self.properties[name] = value
+
+        self.target = element
 
 
 class myTreeWidgetItem(QtGui.QStandardItem):
@@ -1539,6 +1637,8 @@ class QItemProperties(QtWidgets.QWidget):
 
         self.input_font_properties = TextPropertiesWidget(self.layout)
 
+        self.input_legend_properties = LegendPropertiesWidget(self.layout)
+
         self.input_label = TextWidget(self.layout, "Label:")
         self.input_label.link("label", self.targetChanged)
 
@@ -1608,6 +1708,10 @@ class QItemProperties(QtWidgets.QWidget):
         self.button_grid = QtWidgets.QPushButton("grid")
         self.layout_buttons.addWidget(self.button_grid)
         self.button_grid.clicked.connect(self.buttonGridClicked)
+
+        self.button_legend = QtWidgets.QPushButton("legend")
+        self.layout_buttons.addWidget(self.button_legend)
+        self.button_legend.clicked.connect(self.buttonLegendClicked)
 
         self.fig = fig
 
@@ -1804,6 +1908,12 @@ class QItemProperties(QtWidgets.QWidget):
             self.fig.change_tracker.addChange(self.element, ".grid(True)")
         self.fig.canvas.draw()
 
+    def buttonLegendClicked(self):
+        self.element.legend()
+        self.fig.change_tracker.addChange(self.element, ".legend()")
+        self.fig.figure_dragger.make_dragable(self.element.get_legend())
+        self.fig.canvas.draw()
+
     def changePickable(self):
         if self.input_picker.isChecked():
             self.element._draggable.connect()
@@ -1851,6 +1961,7 @@ class QItemProperties(QtWidgets.QWidget):
         self.button_grid.hide()
         self.button_add_image.hide()
         self.button_add_arrow.hide()
+        self.button_legend.hide()
         if isinstance(element, Figure):
             pos = element.get_size_inches()
             self.input_shape.setTransform(self.getTransform(element))
@@ -1872,6 +1983,7 @@ class QItemProperties(QtWidgets.QWidget):
             self.button_grid.show()
             self.button_add_arrow.show()
             self.button_add_rectangle.show()
+            self.button_legend.show()
         else:
             self.input_shape.hide()
             self.button_add_text.hide()
@@ -1887,6 +1999,12 @@ class QItemProperties(QtWidgets.QWidget):
             self.input_position.show()
         except:
             self.input_position.hide()
+
+        if isinstance(element, mpl.legend.Legend):
+            self.input_legend_properties.show()
+            self.input_legend_properties.setTarget(element)
+        else:
+            self.input_legend_properties.hide()
 
         try:
             self.input_font_properties.show()

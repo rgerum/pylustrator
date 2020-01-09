@@ -218,6 +218,7 @@ class ChangeTracker:
                                r"\.collections\[\d*\]",
                                r"\.patches\[\d*\]",
                                r"\.get_[xy]axis\(\)\.get_(major|minor)_ticks\(\)\[\d*\]",
+                               r"\.get_[xy]axis\(\)\.get_label\(\)",
                                r"\.get_legend\(\)",
                                ]
         command_obj_regexes = [re.compile(r) for r in command_obj_regexes]
