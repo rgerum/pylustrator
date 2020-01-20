@@ -993,7 +993,7 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
                 value = element.get_frame_on()
             else:
                 value = getattr(element, name2)
-            print("name", name, value)
+
             try:
                 self.widgets[name].setValue(value)
             except AttributeError:

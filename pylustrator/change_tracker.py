@@ -287,6 +287,7 @@ class ChangeTracker:
 
             self.get_reference_cached[reference_obj] = reference_obj_str
 
+            #print("---", [reference_obj, reference_command], (command_obj, command + parameter))
             self.changes[reference_obj, reference_command] = (command_obj, command + parameter)
         self.sorted_changes()
 
@@ -310,8 +311,10 @@ class ChangeTracker:
                     if getattr(reference_obj, "axes", None) is not None:
                         if reference_command == ".new":
                             index = "0"
-                        else:
+                        elif reference_command == ".set_xscale" or reference_command == ".set_yscale":
                             index = "1"
+                        else:
+                            index = "2"
                         obj_indices = (getRef(reference_obj.axes), getRef(reference_obj), index, reference_command)
                     else:
                         obj_indices = (getRef(reference_obj), "", "", reference_command)
