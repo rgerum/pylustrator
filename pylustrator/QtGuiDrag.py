@@ -936,6 +936,7 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
             ("columnspacing", "columnspacing", float),
             ("markerscale", "markerscale", float),
             ("ncol", "_ncol", int),
+            ("title", "title", str),
         ]
         self.properties = {}
 
@@ -948,6 +949,10 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
             if type_ == bool:
                 widget = CheckWidget(layout, name+":")
                 widget.editingFinished.connect(lambda name=name, widget=widget: self.changePropertiy(name, widget.get()))
+            elif type_ == str:
+                widget = TextWidget(layout, name + ":")
+                widget.editingFinished.connect(
+                    lambda name=name, widget=widget: self.changePropertiy(name, widget.get()))
             else:
                 label = QtWidgets.QLabel(name+":")
                 layout.addWidget(label)
@@ -970,7 +975,10 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
         axes.legend(**self.properties)
         self.target = axes.get_legend()
         fig = self.target.figure
-        fig.change_tracker.addChange(axes, ".legend(%s)" % (", ".join("%s=%s" % (k, v) for k, v in self.properties.items())))
+        prop_copy = {k:v for k, v in self.properties.items()}
+        if prop_copy["title"] != "":
+            prop_copy["title"] = '"'+prop_copy["title"]+'"'
+        fig.change_tracker.addChange(axes, ".legend(%s)" % (", ".join("%s=%s" % (k, v) for k, v in prop_copy.items())))
         self.target._set_loc(tuple(self.target.axes.transAxes.inverted().transform(tuple([bbox.x0, bbox.y0]))))
         fig.figure_dragger.make_dragable(self.target)
         fig.figure_dragger.select_element(self.target)
@@ -991,6 +999,8 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
         for name, name2, type_ in self.property_names:
             if name2 == "frameon":
                 value = element.get_frame_on()
+            elif name2 == "title":
+                value = element.get_title().get_text()
             else:
                 value = getattr(element, name2)
 
