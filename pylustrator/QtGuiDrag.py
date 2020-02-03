@@ -1910,24 +1910,25 @@ class QItemProperties(QtWidgets.QWidget):
             self.fig.canvas.draw()
 
     def buttonDespineClicked(self):
-        commands = [".spines['right'].set_visible(False)", 
-                    ".spines['top'].set_visible(False)"]
+        commands = [".spines['right'].set_visible(False)", ".spines['top'].set_visible(False)"]
         for command in commands:
-            elements = [self.element]
-            elements += [element.target for element in self.element.figure.selection.targets if
-                         element.target != self.element and isinstance(element.target, Axes)]
+            elements = [element.target for element in self.element.figure.selection.targets
+                        if isinstance(element.target, Axes)]
             for element in elements:
-                eval("self.element" + command)
+                eval("element" + command)
                 self.fig.change_tracker.addChange(element, command)
         self.fig.canvas.draw()
 
     def buttonGridClicked(self):
-        if self.element.xaxis._gridOnMajor:
-            self.element.grid(False)
-            self.fig.change_tracker.addChange(self.element, ".grid(False)")
-        else:
-            self.element.grid(True)
-            self.fig.change_tracker.addChange(self.element, ".grid(True)")
+        elements = [element.target for element in self.element.figure.selection.targets
+                    if isinstance(element.target, Axes)]
+        for element in elements:
+            if self.element.xaxis._gridOnMajor:
+                element.grid(False)
+                self.fig.change_tracker.addChange(element, ".grid(False)")
+            else:
+                element.grid(True)
+                self.fig.change_tracker.addChange(element, ".grid(True)")
         self.fig.canvas.draw()
 
     def buttonLegendClicked(self):
