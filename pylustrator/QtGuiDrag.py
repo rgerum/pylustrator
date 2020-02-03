@@ -938,6 +938,7 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
             ("ncol", "_ncol", int, 1),
             ("title", "title", str, ""),
             ("fontsize", "_fontsize", int, None),
+            ("title_fontsize", "title_fontsize", int, None),
         ]
         self.properties = {}
 
@@ -1010,6 +1011,8 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
                 value = element.get_frame_on()
             elif name2 == "title":
                 value = element.get_title().get_text()
+            elif name2 == "title_fontsize":
+                value = element.get_title().get_fontsize()
             else:
                 value = getattr(element, name2)
 
