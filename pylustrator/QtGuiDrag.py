@@ -928,21 +928,21 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
         self.layout.setContentsMargins(0, 0, 0, 0)
 
         self.property_names = [
-            ("frameon", "frameon", bool),
-            ("borderpad", "borderpad", float),
-            ("labelspacing", "labelspacing", float),
-            ("handlelength", "handlelength", float),
-            ("handletextpad", "handletextpad", float),
-            ("columnspacing", "columnspacing", float),
-            ("markerscale", "markerscale", float),
-            ("ncol", "_ncol", int),
-            ("title", "title", str),
-            ("fontsize", "_fontsize", int),
+            ("frameon", "frameon", bool, None),
+            ("borderpad", "borderpad", float, None),
+            ("labelspacing", "labelspacing", float, None),
+            ("handlelength", "handlelength", float, None),
+            ("handletextpad", "handletextpad", float, None),
+            ("columnspacing", "columnspacing", float, None),
+            ("markerscale", "markerscale", float, None),
+            ("ncol", "_ncol", int, 1),
+            ("title", "title", str, ""),
+            ("fontsize", "_fontsize", int, None),
         ]
         self.properties = {}
 
         self.widgets = {}
-        for index, (name, name2, type_) in enumerate(self.property_names):
+        for index, (name, name2, type_, default_) in enumerate(self.property_names):
             if index % 3 == 0:
                 layout = QtWidgets.QHBoxLayout()
                 layout.setContentsMargins(0, 0, 0, 0)
@@ -976,11 +976,17 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
         axes.legend(**self.properties)
         self.target = axes.get_legend()
         fig = self.target.figure
-        prop_copy = {k:v for k, v in self.properties.items()}
-        if prop_copy["title"] != "":
-            prop_copy["title"] = '"'+prop_copy["title"]+'"'
-        else:
-            del prop_copy["title"]
+        prop_copy = {}
+        for index, (name, name2, type_, default_) in enumerate(self.property_names):
+            value = self.properties[name]
+            if default_ is not None and value == default_:
+                continue
+            if default_ is None and value == plt.rcParams["legend."+name]:
+                continue
+            if type_ == str:
+                prop_copy[name] = '"'+value+'"'
+            else:
+                prop_copy[name] = value
         fig.change_tracker.addChange(axes, ".legend(%s)" % (", ".join("%s=%s" % (k, v) for k, v in prop_copy.items())))
         self.target._set_loc(tuple(self.target.axes.transAxes.inverted().transform(tuple([bbox.x0, bbox.y0]))))
         fig.figure_dragger.make_dragable(self.target)
@@ -999,7 +1005,7 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
             else:
                 self.target_list = [element]
         self.target = None
-        for name, name2, type_ in self.property_names:
+        for name, name2, type_, default_ in self.property_names:
             if name2 == "frameon":
                 value = element.get_frame_on()
             elif name2 == "title":
