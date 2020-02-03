@@ -5,5 +5,5 @@ docs/_build_html/
 *.py.orig
 *.py~
 *.egg-info*
-dist/*
-build/*
+dist/
+build/
