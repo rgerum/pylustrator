@@ -7,3 +7,4 @@ docs/_build_html/
 *.egg-info*
 dist/
 build/
+development/playground
