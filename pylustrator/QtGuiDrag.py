@@ -937,6 +937,7 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
             ("markerscale", "markerscale", float),
             ("ncol", "_ncol", int),
             ("title", "title", str),
+            ("fontsize", "_fontsize", int),
         ]
         self.properties = {}
 
