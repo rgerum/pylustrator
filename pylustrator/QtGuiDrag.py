@@ -978,6 +978,8 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
         prop_copy = {k:v for k, v in self.properties.items()}
         if prop_copy["title"] != "":
             prop_copy["title"] = '"'+prop_copy["title"]+'"'
+        else:
+            del prop_copy["title"]
         fig.change_tracker.addChange(axes, ".legend(%s)" % (", ".join("%s=%s" % (k, v) for k, v in prop_copy.items())))
         self.target._set_loc(tuple(self.target.axes.transAxes.inverted().transform(tuple([bbox.x0, bbox.y0]))))
         fig.figure_dragger.make_dragable(self.target)
