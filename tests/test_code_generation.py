@@ -30,6 +30,14 @@ import os
 from pathlib import Path
 import matplotlib.pyplot as plt
 from matplotlib import _pylab_helpers
+from qtpy import QtCore, QtWidgets, QtGui
+
+
+""" some magic to prevent PyQt5 from swallowing exceptions """
+# Back up the reference to the exceptionhook
+sys._excepthook = sys.excepthook
+# Set the exception hook to our wrapping function
+sys.excepthook = lambda *args: sys._excepthook(*args)
 
 
 class TestFits(unittest.TestCase):
