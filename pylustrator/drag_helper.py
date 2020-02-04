@@ -468,9 +468,7 @@ class DragManager:
 
         self.figure.canvas.mpl_disconnect(self.figure.canvas.manager.key_press_handler_id)
 
-        self.c3 = self.figure.canvas.mpl_connect('button_release_event', self.button_release_event0)
-        self.c2 = self.figure.canvas.mpl_connect('button_press_event', self.button_press_event0)
-        self.c4 = self.figure.canvas.mpl_connect('key_press_event', self.key_press_event)
+        self.activate()
 
         # make all the subplots pickable
         for index, axes in enumerate(self.figure.axes):
@@ -499,6 +497,16 @@ class DragManager:
         self.figure.selection = self.selection
         self.change_tracker = ChangeTracker(figure)
         self.figure.change_tracker = self.change_tracker
+
+    def activate(self):
+        self.c3 = self.figure.canvas.mpl_connect('button_release_event', self.button_release_event0)
+        self.c2 = self.figure.canvas.mpl_connect('button_press_event', self.button_press_event0)
+        self.c4 = self.figure.canvas.mpl_connect('key_press_event', self.key_press_event)
+
+    def deactivate(self):
+        self.figure.canvas.mpl_disconnect(self.c3)
+        self.figure.canvas.mpl_disconnect(self.c2)
+        self.figure.canvas.mpl_disconnect(self.c4)
 
     def make_dragable(self, target):
         target.set_picker(True)
@@ -538,6 +546,9 @@ class DragManager:
             self.selection.button_release_event(event)
 
     def button_press_event0(self, event):
+        print("event", event)
+        for name in dir(event):
+            print(name, getattr(event, name))
         if event.button == 1:
             last = self.selection.targets[-1] if len(self.selection.targets) else None
             contained = np.any([t.target.contains(event)[0] for t in self.selection.targets])

@@ -20,30 +20,32 @@
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
 from __future__ import division, print_function
-from qtpy import QtCore, QtWidgets, QtGui
 
 import os
+import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt4 import NavigationToolbar2QT as NavigationToolbar
 from .matplotlibwidget import MatplotlibWidget
 from matplotlib import _pylab_helpers
 import matplotlib as mpl
-import qtawesome as qta
-from matplotlib.figure import Figure
-from matplotlib.axes._subplots import Axes
+import matplotlib.pyplot as plt
 import matplotlib.transforms as transforms
-
-from .drag_bib import FigureDragger
-from .helper_functions import changeFigureSize
-from .change_tracker import getReference, setFigureVariableNames
-
-from .drag_helper import DragManager
-from .exception_swallower import swallow_get_exceptions
+import numpy as np
+import qtawesome as qta
+from matplotlib import _pylab_helpers
+from matplotlib.axes._subplots import Axes
+from matplotlib.figure import Figure
+from matplotlib.figure import Figure
+from qtpy import QtCore, QtWidgets, QtGui
 
 from .ax_rasterisation import rasterizeAxes, restoreAxes
-
-import sys
+from .change_tracker import getReference, setFigureVariableNames
+from .drag_helper import DragManager
+from .exception_swallower import swallow_get_exceptions
+from .helper_functions import changeFigureSize
+from .matplotlibwidget import MatplotlibWidget
+import traceback
 
 
 def my_excepthook(type, value, tback):
@@ -73,34 +75,10 @@ def initialize(use_global_variable_names=False):
     plt.figure = figure
     patchColormapsWithMetaInfo()
 
-    import traceback
     stack_call_position = traceback.extract_stack()[-2]
     stack_call_position.filename
 
-    from matplotlib.axes._axes import Axes
-    from matplotlib.figure import Figure
-    def wrap(func, fig=True, text=""):
-        def f(axes, *args, **kwargs):
-            if args[2] == "New Text":
-                if fig is True:
-                    key = 'fig.texts[%d].new' % len(axes.texts)
-                else:
-                    index = axes.figure.axes.index(axes)
-                    key = 'fig.axes[%d].texts[%d].new' % (index, len(axes.texts))
-                    if plt.gca().get_label():
-                        key = 'fig.ax_dict["%s"].texts[%d].new' % (plt.gca().get_label(), len(axes.texts))
-                stack = traceback.extract_stack()
-                for stack_item in stack:
-                    if stack_item.filename == stack_call_position.filename:
-                        keys_for_lines[stack_item.lineno] = key
-                        break
-            return func(axes, *args, **kwargs)
-        return f
-    #Axes.text = wrap(Axes.text, fig=False, text="New Text")
-    #Axes.annotate = wrap(Axes.annotate, fig=False, text="New Annotation")
 
-    #Figure.text = wrap(Figure.text, fig=True, text="New Text")
-    #Figure.annotate = wrap(Figure.annotate, fig=True, text="New Annotation")
     plt.keys_for_lines = keys_for_lines
 
     # store the last figure save filename
@@ -240,10 +218,13 @@ class Linkable:
                 elements.append(self.element)
                 for elm in self.element.figure.selection.targets:
                     elm = elm.target
+                    print("try elem", elm, self.element, property_name)
                     if elm != self.element:
                         try:
                             getattr(elm, "set_"+property_name, None)(v)
+                            print("succ")
                         except TypeError as err:
+                            print("fail", err)
                             pass
                         else:
                             elements.append(elm)
@@ -2214,8 +2195,8 @@ class PlotWindow(QtWidgets.QWidget):
         self.layout_plot.addWidget(self.canvas_canvas)
 
         # add toolbar
-        #self.navi_toolbar = NavigationToolbar(self.canvas, self)
-        #self.layout_plot.addWidget(self.navi_toolbar)
+        self.navi_toolbar = NavigationToolbar(self.canvas, self)
+        self.layout_plot.addWidget(self.navi_toolbar)
 
         self.fig.canvas.mpl_disconnect(self.fig.canvas.manager.key_press_handler_id)
 
@@ -2239,9 +2220,6 @@ class PlotWindow(QtWidgets.QWidget):
 
         self.footer_label2 = QtWidgets.QLabel("")
         self.footer_layout.addWidget(self.footer_label2)
-
-        #self.layout_plot.addStretch()
-        #self.layout_main.addStretch()
 
         from .QtGui import ColorChooserWidget
         self.colorWidget = ColorChooserWidget(self, self.canvas)
@@ -2331,7 +2309,6 @@ class PlotWindow(QtWidgets.QWidget):
         self.x_scale.setMinimumSize(w, l)
         self.x_scale.setMaximumSize(w, l)
 
-        #height_cm = self.fig.get_size_inches()[1]*2.45
         offset = self.canvas_container.pos().y() + self.canvas_container.height()
         start_y = np.floor(trans.inverted().transform((0, +offset-h))[1])
         end_y = np.ceil(trans.inverted().transform((0, +offset))[1])
