@@ -113,7 +113,7 @@ def initialize(use_global_variable_names=False):
 
 
 
-def show():
+def show(hide_window=False):
     global figures
     # set an application id, so that windows properly stacks them in the task bar
     if sys.platform[:3] == 'win':
@@ -130,13 +130,14 @@ def show():
         # warn about ticks not fitting tick labels
         warnAboutTicks(window.fig)
         # add dragger
-        #FigureDragger(_pylab_helpers.Gcf.figs[figure].canvas.figure, [], [], "cm")
         DragManager(_pylab_helpers.Gcf.figs[figure].canvas.figure)
         window.update()
         # and show it
-        window.show()
-    # execute the application
-    app.exec_()
+        if hide_window is False:
+            window.show()
+    if hide_window is False:
+        # execute the application
+        app.exec_()
 
     plt.show = old_pltshow
     plt.figure = old_pltfigure
