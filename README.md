@@ -1,9 +1,8 @@
 # Pylustrator
 
-[![DOC](image:: https://readthedocs.org/projects/pylustrator/badge/)](https://pylustrator.readthedocs.io)
-[![License](image:: https://img.shields.io/badge/License-GPLv3-blue.svg)](http://www.gnu.org/licenses/gpl-3.0.html)
+[![DOC](https://readthedocs.org/projects/pylustrator/badge/)](https://pylustrator.readthedocs.io)
+[![License](https://img.shields.io/badge/License-GPLv3-blue.svg)](http://www.gnu.org/licenses/gpl-3.0.html)
 [![DOI](https://img.shields.io/badge/DOI-10.5281/zenodo.1294663-blue.svg)](https://zenodo.org/record/1294664)
-
 
 <img style="float: left;" alt="docs/images/logo.png" src="docs/images/logo.png" />
 
@@ -28,8 +27,11 @@ Please submit your questions, suggestions, and bug reports to the
 You want to contribute? Great!
 Contributing works best if you creat a pull request with your changes.
 
-1. Fork it!
-2. Create your feature branch: `git checkout -b my-new-feature`
-3. Commit your changes: `git commit -am 'Add some feature'`
-4. Push to the branch: `git push origin my-new-feature`
+1. Fork the project.
+2. Create a branch for your feature: `git checkout -b cool-new-feature`
+3. Commit your changes: `git commit -am 'My new feature'`
+4. Push to the branch: `git push origin cool-new-feature`
 5. Submit a pull request!
+
+If you are unfamilar with pull requests, you find more information on pull requests in the
+ [github help](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/about-pull-requests)
