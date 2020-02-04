@@ -48,7 +48,7 @@ Using pylustrator is very easy and does not require substantial modifications to
 before creating your first figure in your code. When calling ``plt.show()`` the plot will be displayed in a pylustrator
 window.
 
-You can test pylustrator with the following example code `example_pylustrator.py <https://bitbucket.org/fabry_biophysics/pylustrator/raw/tip/docs/example_pylustrator.py>`_:
+You can test pylustrator with the following example code `example_pylustrator.py <https://raw.githubusercontent.com/rgerum/pylustrator/master/docs/example_pylustrator.py>`_:
 
 .. literalinclude:: example_pylustrator.py
    :language: python
@@ -87,7 +87,7 @@ Note
 ----
 
 If you encounter any bugs or unexpected behaviour, you are encouraged to report a bug in our
-Bitbucket `bugtracker <https://github.com/rgerum/pylustrator/issues>`_.
+Github `bugtracker <https://github.com/rgerum/pylustrator/issues>`_.
 
 
 Citing Pylustrator
