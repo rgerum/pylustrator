@@ -1,0 +1,11 @@
+numpy
+pytest-cov
+hypothesis
+bbcs-tools
+mock
+matplotlib
+natsort
+pyqt5
+qtpy
+qtawesome
+scikit-image

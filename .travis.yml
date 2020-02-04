@@ -1,0 +1,16 @@
+language: python
+python:
+  - "3.6"
+before_install:
+  - pip install pytest pytest-cov==2.5.1
+  - pip install coveralls
+install:
+  - python --version
+  - pip install --upgrade pip setuptools wheel
+  - pip install -r requirements.txt
+  - pip install -e . --no-dependencies
+  - python setup.py develop
+script:
+  - py.test --cov=pylustrator
+after_success:
+  - coveralls
