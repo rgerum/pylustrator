@@ -1549,7 +1549,7 @@ class QTickEdit(QtWidgets.QWidget):
         self.fig.canvas.draw()
 
 class QAxesProperties(QtWidgets.QWidget):
-    targetChanged_wrapped = QtCore.Signal('PyQt_PyObject')
+    targetChanged_wrapped = QtCore.Signal(object)
 
     def __init__(self, layout, axis, signal_target_changed):
         QtWidgets.QWidget.__init__(self)
@@ -1593,7 +1593,7 @@ class QAxesProperties(QtWidgets.QWidget):
 
 
 class QItemProperties(QtWidgets.QWidget):
-    targetChanged = QtCore.Signal('PyQt_PyObject')
+    targetChanged = QtCore.Signal(object)
     valueChanged = QtCore.Signal(tuple)
     element = None
     transform = None
