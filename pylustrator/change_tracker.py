@@ -19,29 +19,29 @@
 # You should have received a copy of the GNU General Public License
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
-from __future__ import division, print_function
-
 import re
 import sys
 import traceback
+from typing import IO
 
 import matplotlib
 import matplotlib as mpl
-import matplotlib.pyplot as plt
 from matplotlib import _pylab_helpers
+from matplotlib.artist import Artist
 from matplotlib.axes._subplots import Axes
+from matplotlib.collections import Collection
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
 from matplotlib.text import Text
-from matplotlib.collections import Collection
 from natsort import natsorted
 
 from .exception_swallower import Dummy
 from .jupyter_cells import open
 
 
-def getReference(element, allow_using_variable_names=True):
+def getReference(element: Artist, allow_using_variable_names=True):
+    """ get the code string that represents the given Artist. """
     if element is None:
         return ""
     if isinstance(element, Figure):
@@ -121,7 +121,8 @@ def getReference(element, allow_using_variable_names=True):
     raise TypeError(str(type(element)) + " not found")
 
 
-def setFigureVariableNames(figure):
+def setFigureVariableNames(figure: Figure):
+    """ get the global variable names that refer to the given figure """
     import inspect
     mpl_figure = _pylab_helpers.Gcf.figs[figure].canvas.figure
     calling_globals = inspect.stack()[2][0].f_globals
@@ -137,10 +138,11 @@ def setFigureVariableNames(figure):
 
 
 class ChangeTracker:
+    """ a class that records a list of the change to the figure """
     changes = None
     saved = True
 
-    def __init__(self, figure):
+    def __init__(self, figure: Figure):
         global stack_position
         self.figure = figure
         self.edits = []
@@ -159,7 +161,8 @@ class ChangeTracker:
 
         self.load()
 
-    def addChange(self, command_obj, command, reference_obj=None, reference_command=None):
+    def addChange(self, command_obj: Artist, command: str, reference_obj: Artist = None, reference_command: str = None):
+        """ add a change """
         command = command.replace("\n", "\\n")
         if reference_obj is None:
             reference_obj = command_obj
@@ -168,7 +171,8 @@ class ChangeTracker:
         self.changes[reference_obj, reference_command] = (command_obj, command)
         self.saved = False
 
-    def removeElement(self, element):
+    def removeElement(self, element: Artist):
+        """ remove an Artis from the figure """
         # create_key = key+".new"
         created_by_pylustrator = (element, ".new") in self.changes
         # delete changes related to this element
@@ -183,13 +187,15 @@ class ChangeTracker:
             element.remove()
         self.figure.selection.remove_target(element)
 
-    def addEdit(self, edit):
+    def addEdit(self, edit: list):
+        """ add an edit to the stored list of edits """
         if self.last_edit < len(self.edits) - 1:
             self.edits = self.edits[:self.last_edit + 1]
         self.edits.append(edit)
         self.last_edit = len(self.edits) - 1
 
     def backEdit(self):
+        """ undo an edit in the list """
         if self.last_edit < 0:
             return
         edit = self.edits[self.last_edit]
@@ -198,6 +204,7 @@ class ChangeTracker:
         self.figure.canvas.draw()
 
     def forwardEdit(self):
+        """ redo an edit """
         if self.last_edit >= len(self.edits) - 1:
             return
         edit = self.edits[self.last_edit + 1]
@@ -206,6 +213,7 @@ class ChangeTracker:
         self.figure.canvas.draw()
 
     def load(self):
+        """ load a set of changes from a script file. The changes are the code that pylustrator generated """
         regex = re.compile(r"(\.[^\(= ]*)(.*)")
         command_obj_regexes = [getReference(self.figure),
                                r"plt\.figure\([^)]*\)",
@@ -292,6 +300,7 @@ class ChangeTracker:
         self.sorted_changes()
 
     def sorted_changes(self):
+        """ sort the changes by their priority. For example setting to logscale needs to be executed before xlim. """
         def getRef(obj):
             try:
                 return getReference(obj)
@@ -335,6 +344,7 @@ class ChangeTracker:
         return output
 
     def save(self):
+        """ save the changes to the .py file """
         header = [getReference(self.figure) + ".ax_dict = {ax.get_label(): ax for ax in " + getReference(
             self.figure) + ".axes}", "import matplotlib as mpl"]
 
@@ -360,7 +370,8 @@ class ChangeTracker:
         self.saved = True
 
 
-def getTextFromFile(block_id, stack_pos):
+def getTextFromFile(block_id: str, stack_pos: traceback.FrameSummary):
+    """ get the text which corresponds to the block_id (e.g. which figure) at the given position sepcified by stack_pos. """
     block_id = lineToId(block_id)
     block = None
 
@@ -392,15 +403,16 @@ def getTextFromFile(block_id, stack_pos):
 
 
 class Block:
+    """ an object to represent the code block generated by a pylustrator save """
     id = None
     finished = False
 
-    def __init__(self, line):
+    def __init__(self, line: str):
         self.text = line
         self.size = 1
         self.indent = getIndent(line)
 
-    def add(self, line):
+    def add(self, line: str):
         if self.id is None:
             self.id = lineToId(line)
         self.text += line
@@ -413,7 +425,8 @@ class Block:
         return iter(self.text.split("\n"))
 
 
-def getIndent(line):
+def getIndent(line: str):
+    """ get the indent part of a line of code """
     i = 0
     for i in range(len(line)):
         if line[i] != " " and line[i] != "\t":
@@ -422,11 +435,12 @@ def getIndent(line):
     return indent
 
 
-def addLineCounter(fp):
+def addLineCounter(fp: IO):
+    """ wrap a file pointer to store th line numbers """
     fp.lineno = 0
     write = fp.write
 
-    def write_with_linenumbers(line):
+    def write_with_linenumbers(line: str):
         write(line)
         fp.lineno += line.count("\n")
 
@@ -441,7 +455,8 @@ def lineToId(line):
     return line
 
 
-def insertTextToFile(new_block, stack_pos, figure_id_line):
+def insertTextToFile(new_block: str, stack_pos: traceback.FrameSummary, figure_id_line: str):
+    """ insert a text block into a file """
     figure_id_line = lineToId(figure_id_line)
     block = None
     written = False
