@@ -218,13 +218,10 @@ class Linkable:
                 elements.append(self.element)
                 for elm in self.element.figure.selection.targets:
                     elm = elm.target
-                    print("try elem", elm, self.element, property_name)
                     if elm != self.element:
                         try:
                             getattr(elm, "set_"+property_name, None)(v)
-                            print("succ")
                         except TypeError as err:
-                            print("fail", err)
                             pass
                         else:
                             elements.append(elm)
@@ -626,7 +623,7 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
     valueChanged = QtCore.Signal(str)
 
     def __init__(self, layout, text=None, value=None):
-        super(QtWidgets.QWidget, self).__init__()
+        super().__init__()
         self.layout = QtWidgets.QHBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self)
@@ -1034,7 +1031,7 @@ class MyTreeView(QtWidgets.QTreeView):
     last_hover = None
 
     def __init__(self, parent, layout, fig):
-        super(QtWidgets.QTreeView, self).__init__()
+        super().__init__()
 
         self.fig = fig
 
@@ -1081,7 +1078,7 @@ class MyTreeView(QtWidgets.QTreeView):
         while entry:
             item = self.getItemFromEntry(entry)
             if item is not None:
-                super(QtWidgets.QTreeView, self).setCurrentIndex(item.index())
+                super().setCurrentIndex(item.index())
                 return
             try:
                 entry = entry.tree_parent
@@ -2195,8 +2192,8 @@ class PlotWindow(QtWidgets.QWidget):
         self.layout_plot.addWidget(self.canvas_canvas)
 
         # add toolbar
-        self.navi_toolbar = NavigationToolbar(self.canvas, self)
-        self.layout_plot.addWidget(self.navi_toolbar)
+        #self.navi_toolbar = NavigationToolbar(self.canvas, self)
+        #self.layout_plot.addWidget(self.navi_toolbar)
 
         self.fig.canvas.mpl_disconnect(self.fig.canvas.manager.key_press_handler_id)
 

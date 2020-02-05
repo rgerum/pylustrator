@@ -154,7 +154,6 @@ class ChangeTracker:
 
         # store the position where StartPylustrator was called
         stack_position = traceback.extract_stack()[-4]
-        print("stack_position", stack_position)
 
         self.fig_inch_size = self.figure.get_size_inches()
 

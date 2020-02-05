@@ -546,9 +546,6 @@ class DragManager:
             self.selection.button_release_event(event)
 
     def button_press_event0(self, event):
-        print("event", event)
-        for name in dir(event):
-            print(name, getattr(event, name))
         if event.button == 1:
             last = self.selection.targets[-1] if len(self.selection.targets) else None
             contained = np.any([t.target.contains(event)[0] for t in self.selection.targets])
