@@ -79,7 +79,9 @@ plt.show(hide_window=True)
 
     def tearDown(self):
         self.filename.unlink()
-        Path(str(self.filename)+".tmp").unlink()
+        tmp_file = Path(str(self.filename)+".tmp")
+        if tmp_file.exists():
+            tmp_file.unlink()
 
     def test_fitCamParametersFromObjects(self):
         exec(compile(open(self.filename, "rb").read(), self.filename, 'exec'), globals())
