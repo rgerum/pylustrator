@@ -1,16 +1,22 @@
 import io
 import matplotlib.pyplot as plt
 from matplotlib.axes._subplots import Axes
+from matplotlib.figure import Figure
+from typing import List
 
 from .helper_functions import removeContentFromFigure, addContentToFigure
 
-def stashElements(ax, names):
+
+def stashElements(ax: Axes, names: List[str]):
+    """ remove elements from a figure and store them"""
     for attribute in names:
         element = getattr(ax, attribute)
         setattr(ax, "pylustrator_" + attribute, element)
         setattr(ax, attribute, [] if isinstance(element, list) else None)
 
-def popStashedElements(ax, names):
+
+def popStashedElements(ax: Axes, names: List[str]):
+    """ add elements to a figure that were previously removed from it """
     for attribute in names:
         element_list = getattr(ax, attribute)
         if isinstance(element_list, list):
@@ -21,7 +27,9 @@ def popStashedElements(ax, names):
         setattr(ax, attribute, element_list)
         setattr(ax, "pylustrator_" + attribute, None)
 
-def rasterizeAxes(fig):
+
+def rasterizeAxes(fig: Figure):
+    """ replace contents of a figure with a rasterized image of it """
     restoreAxes(fig)
 
     parts = removeContentFromFigure(fig)
@@ -66,7 +74,9 @@ def rasterizeAxes(fig):
     removeContentFromFigure(fig)
     addContentToFigure(fig, parts)
 
-def restoreAxes(fig):
+
+def restoreAxes(fig: Figure):
+    """ restore contents of a figure """
     list_axes = fig.axes
     for ax in list_axes:
         im = getattr(ax, "pylustrator_rasterized", None)
