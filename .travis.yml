@@ -1,0 +1,26 @@
+dist: xenial   # required for Python >= 3.7
+services:
+  - xvfb
+language: python
+python:
+   - "3.6"
+before_install:
+  - sudo apt-get update
+  - sudo apt-get install -y libdbus-1-3 libxkbcommon-x11-0
+# command to install dependencies
+install:
+  - pip install numpy
+  - pip install pytest-cov
+  - pip install hypothesis
+  - pip install bbcs-tools
+  - pip install mock
+  - pip install matplotlib
+  - pip install natsort
+  - pip install pyside2
+  - pip install qtpy
+  - pip install qtawesome
+  - pip install scikit-image
+  - pip install -e . --no-dependencies
+# command to run tests
+script:
+  - pytest
