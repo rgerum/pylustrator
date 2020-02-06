@@ -26,6 +26,7 @@ from typing import IO
 
 import matplotlib
 import matplotlib as mpl
+import matplotlib.pyplot as plt
 from matplotlib import _pylab_helpers
 from matplotlib.artist import Artist
 from matplotlib.axes._subplots import Axes
@@ -408,20 +409,24 @@ class Block:
     finished = False
 
     def __init__(self, line: str):
+        """ initialize the block with its first line """
         self.text = line
         self.size = 1
         self.indent = getIndent(line)
 
     def add(self, line: str):
+        """ add a line to the block """
         if self.id is None:
             self.id = lineToId(line)
         self.text += line
         self.size += 1
 
     def end(self):
+        """ end the block """
         self.finished = True
 
     def __iter__(self):
+        """ iterate over all the lines of the block """
         return iter(self.text.split("\n"))
 
 
@@ -447,7 +452,8 @@ def addLineCounter(fp: IO):
     fp.write = write_with_linenumbers
 
 
-def lineToId(line):
+def lineToId(line: str):
+    """ get the id of a line, e.g. part which specifies which figure it refers to """
     line = line.strip()
     line = line.split(".ax_dict")[0]
     if line.startswith("fig = "):
