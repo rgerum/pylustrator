@@ -21,33 +21,31 @@
 
 from qtpy import QtCore, QtGui, QtWidgets
 import numpy as np
+from matplotlib import pyplot as plt
 import matplotlib as mpl
-
-
-def getColorFromCoordinates(p):
-    desktop = QtWidgets.QApplication.desktop()
-    pixmap = QtWidgets.QGuiApplication.screens().at(desktop.screenNumber()).grabWindow(desktop.winId(),
-                                                                                         p.x(), p.y(), 1, 1)
-    i = pixmap.toImage()
-    return i.pixel(0, 0)
 
 
 """ Color Chooser """
 
 class QDragableColor(QtWidgets.QLineEdit):
+    """ a color widget that can be dragged onto another QDragableColor widget to exchange the two colors.
+    alternatively it can be right-clicked to select a color.
+    """
+
     color_changed = QtCore.Signal(str)
 
-    def __init__(self, value):
-        QtWidgets.QLineEdit.__init__(self, value)
+    def __init__(self, value: str):
+        """ initialize with a color """
+        super().__init__(value)
         import matplotlib.pyplot as plt
         self.maps = plt.colormaps()
         self.setAcceptDrops(True)
         self.setAlignment(QtCore.Qt.AlignHCenter)
         self.setColor(value, True)
 
-    def getBackground(self):
-        import matplotlib.pyplot as plt
-        import matplotlib as mpl
+    def getBackground(self) -> str:
+        """ get the background of the color button """
+
         try:
             cmap = plt.get_cmap(self.color)
         except:
@@ -60,7 +58,8 @@ class QDragableColor(QtWidgets.QLineEdit):
         text = text[:-2] + ");"
         return text
 
-    def setColor(self, value, no_signal=False):
+    def setColor(self, value: str, no_signal=False):
+        """ set the current color """
         # display and save the new color
         self.color = value
         self.setText(value)
@@ -70,11 +69,14 @@ class QDragableColor(QtWidgets.QLineEdit):
         else:
             self.setStyleSheet("text-align: center; background-color: %s; border: 2px solid black" % value)
 
-    def getColor(self):
+    def getColor(self) -> str:
+        """ get teh current color """
         # return the color
         return self.color
 
     def mousePressEvent(self, event):
+        """ when a mouse button is pressed """
+        # a left mouse button lets the user drag the color
         if event.button() == QtCore.Qt.LeftButton:
             drag = QtGui.QDrag(self)
             drag.setPixmap(self.grab())
@@ -91,10 +93,12 @@ class QDragableColor(QtWidgets.QLineEdit):
                 self.setStyleSheet("text-align: center; border: 2px solid black; "+self.getBackground())
             else:
                 self.setStyleSheet("text-align: center; background-color: %s; border: 2px solid black" % self.color)
+        # a right mouse button opens a color choose menu
         elif event.button() == QtCore.Qt.RightButton:
             self.openDialog()
 
     def dragEnterEvent(self, event):
+        """ when a color widget is dragged over the current widget """
         if event.mimeData().hasFormat("text/plain") and event.source() != self:
             event.acceptProposedAction()
             if self.color in self.maps:
@@ -103,24 +107,23 @@ class QDragableColor(QtWidgets.QLineEdit):
                 self.setStyleSheet("background-color: %s; border: 2px solid red" % self.color)
 
     def dragLeaveEvent(self, event):
+        """ when the color widget which is dragged leaves the area of this widget """
         if self.color in self.maps:
             self.setStyleSheet("border: 2px solid black; "+self.getBackground())
         else:
             self.setStyleSheet("background-color: %s; border: 2px solid black" % self.color)
 
     def dropEvent(self, event):
+        """ when a color widget is dropped here, exchange the two colors """
         color = event.source().getColor()
         event.source().setColor(self.getColor())
         self.setColor(color)
 
     def openDialog(self):
+        """ open a color choosed dialog """
         if self.color in self.maps:
             dialog = ColorMapChoose(self.parent(), self.color)
             colormap, selected = dialog.exec()
-            print(colormap, selected)
-            #return
-            #colormap, selected = QtWidgets.QInputDialog.getItem(self.parent(), "Select Colormap", "Colormap:", self.maps,
-            #                                                    self.maps.index(self.color), False)
             if selected is False:
                 return
             self.setColor(colormap)
@@ -134,12 +137,13 @@ class QDragableColor(QtWidgets.QLineEdit):
                 self.setColor(color)
 
 
-from matplotlib import pyplot as plt
-import matplotlib as mpl
+
 class ColorMapChoose(QtWidgets.QDialog):
+    """ A dialog to select a colormap """
     result = ""
 
-    def __init__(self, parent, map):
+    def __init__(self, parent: QtWidgets.QWidget, map):
+        """ initialize the dialog with all the colormap of matplotlib """
         QtWidgets.QDialog.__init__(self, parent)
         main_layout = QtWidgets.QVBoxLayout(self)
         self.layout = QtWidgets.QHBoxLayout()
@@ -193,15 +197,18 @@ class ColorMapChoose(QtWidgets.QDialog):
             layout.addStretch()
             self.layout.addLayout(layout)
 
-    def buttonClicked(self, text):
+    def buttonClicked(self, text: str):
+        """ the used as selected a colormap, we are done """
         self.result = text
         self.done(1)
 
     def exec(self):
+        """ execute the dialog and return the result """
         result = QtWidgets.QDialog.exec(self)
         return self.result, result == 1
 
-    def getBackground(self, color):
+    def getBackground(self, color: str) -> str:
+        """ convert a colormap to a gradient background """
         import matplotlib.pyplot as plt
         import matplotlib as mpl
         try:
@@ -215,70 +222,3 @@ class ColorMapChoose(QtWidgets.QDialog):
             text += "stop: %.2f %s, " % (i, mpl.colors.to_hex(cmap(i)))
         text = text[:-2] + ");"
         return text
-
-
-def AddQColorChoose(layout, text, value=None, strech=False):
-    # add a layout
-    horizontal_layout = QtWidgets.QHBoxLayout()
-    layout.addLayout(horizontal_layout)
-    # add a text
-    # text = QtWidgets.QLabel(text)
-    button = QtWidgets.QPushButton("")
-
-    # button.label = text
-
-    def OpenDialog():
-        # get new color from color picker
-        qcolor = QtGui.QColor(*np.array(mpl.colors.to_rgb(button.getColor())) * 255)
-        color = QtWidgets.QColorDialog.getColor(qcolor)
-        # if a color is set, apply it
-        if color.isValid():
-            color = "#%02x%02x%02x" % color.getRgb()[:3]
-            button.setColor(color)
-            lineEdit.setText(color)
-            try:
-                button.color_changed(color)
-            except AttributeError:
-                pass
-
-    def setColor(value):
-        # display and save the new color
-        button.setStyleSheet("background-color: %s;" % value)
-        button.color = value
-        try:
-            button.color_changed(value)
-        except AttributeError:
-            pass
-
-    def getColor():
-        # return the color
-        return button.color
-
-    def editFinished():
-        new_color = lineEdit.text()
-        setColor(new_color)
-
-    # default value for the color
-    if value is None:
-        value = "#FF0000"
-
-    lineEdit = QtWidgets.QLineEdit()
-    lineEdit.setFixedWidth(50)
-    lineEdit.setText(value)
-    # lineEdit.label = text
-    lineEdit.editingFinished.connect(editFinished)
-
-    # add functions to button
-    button.pressed.connect(OpenDialog)
-    button.setColor = setColor
-    button.getColor = getColor
-    # set the color
-    button.setColor(value)
-    # add widgets to the layout
-    # horizontal_layout.addWidget(text)
-    horizontal_layout.addWidget(button)
-    horizontal_layout.addWidget(lineEdit)
-    # add a strech if requested
-    if strech:
-        horizontal_layout.addStretch()
-    return button

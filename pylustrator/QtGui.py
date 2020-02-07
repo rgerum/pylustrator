@@ -31,7 +31,7 @@ from matplotlib import _pylab_helpers
 import matplotlib as mpl
 import qtawesome as qta
 
-from .QtShortCuts import AddQColorChoose, QDragableColor
+from .QtShortCuts import QDragableColor
 
 import sys
 
