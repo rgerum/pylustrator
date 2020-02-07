@@ -1,5 +1,31 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# lab_colormap.py
 
-def setJupyterCellText(text):
+# Copyright (c) 2016-2019, Richard Gerum
+#
+# This file is part of Pylustrator.
+#
+# Pylustrator is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Pylustrator is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
+
+"""
+This file implements pylustrator for jupyter notebooks. Basically it provides an file open function that checks if
+the file is instead of a normal file a jupyter notebook and redirects writes accordingly.
+"""
+
+def setJupyterCellText(text: str):
+    """ the function replaces the text in the current jupyter cell with the given text """
     from IPython.display import Javascript, display
     text = text.replace("\n", "\\n").replace("'", "\\'")
     js = """
@@ -17,7 +43,8 @@ def setJupyterCellText(text):
     display(Javascript(js))
 
 
-def getIpythonCurrentCell():
+def getIpythonCurrentCell() -> str:
+    """ this function returns the text of the current jupyter cell """
     import inspect
     # get the first stack which has a filename starting with "<ipython-input" (e.g. an ipython cell) and from
     # this stack get the globals, there get the executed cells history and the last element from it
@@ -26,7 +53,8 @@ def getIpythonCurrentCell():
 
 global_files = {}
 build_in_open = open
-def open(filename, *args, **kwargs):
+def open(filename: str, *args, **kwargs):
+    """ open a file and if its a jupyter cell then mock a filepointer to that cell """
     if filename.startswith("<ipython"):
         class IPythonCell:
             text = None
