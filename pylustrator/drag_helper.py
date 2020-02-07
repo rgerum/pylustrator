@@ -142,6 +142,7 @@ class GrabbableRectangleSelection(GrabFunctions):
         self.hide_grabber()
 
     def add_target(self, target: Artist):
+        """ add an artist to the selection """
         target = TargetWrapper(target)
 
         new_points = np.array(target.get_positions())

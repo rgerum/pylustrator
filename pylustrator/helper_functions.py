@@ -26,10 +26,13 @@ import numpy as np
 import traceback
 from .parse_svg import svgread
 from matplotlib.axes._subplots import Axes
+from matplotlib.figure import Figure
 from .pyjack import replace_all_refs
 import os
+from typing import Sequence, Union
 
-def fig_text(x, y, text, unit="cm", *args, **kwargs):
+
+def fig_text(x: float, y: float, text: str, unit: str = "cm", *args, **kwargs):
     """
     add a text to the figure positioned in cm
     """
@@ -44,7 +47,7 @@ def fig_text(x, y, text, unit="cm", *args, **kwargs):
     return fig.text(x, y, text, picker=True, *args, **kwargs)
 
 
-def add_axes(dim, unit="cm", *args, **kwargs):
+def add_axes(dim: Sequence, unit: str = "cm", *args, **kwargs):
     """
     add an axes with dimensions specified in cm
     """
@@ -62,13 +65,17 @@ def add_axes(dim, unit="cm", *args, **kwargs):
     return plt.axes([x, y, w, h], *args, **kwargs)
 
 
-def add_image(filename):
+def add_image(filename: str):
+    """ add an image to the current axes """
     plt.imshow(plt.imread(filename))
     plt.xticks([])
     plt.yticks([])
 
 
-def changeFigureSize(w, h, cut_from_top=False, cut_from_left=False, fig=None):
+def changeFigureSize(w: float, h: float, cut_from_top: bool = False, cut_from_left: bool = False, fig: Figure = None):
+    """ change the figure size to the given dimensions. Optionally define if to remove or add space at the top or bottom
+        and left or right.
+    """
     if fig is None:
         fig = plt.gcf()
     oldw, oldh = fig.get_size_inches()
@@ -101,7 +108,9 @@ def changeFigureSize(w, h, cut_from_top=False, cut_from_left=False, fig=None):
                 text.set_position([x0 * fx, 1 - (1 - y0) * fy])
     fig.set_size_inches(w, h, forward=True)
 
-def removeContentFromFigure(fig):
+
+def removeContentFromFigure(fig: Figure):
+    """ remove axes and text from a figure """
     axes = []
     for ax in fig._axstack.as_list():
         axes.append(ax)
@@ -110,7 +119,9 @@ def removeContentFromFigure(fig):
     fig.texts = []
     return axes + text
 
-def addContentToFigure(fig, axes):
+
+def addContentToFigure(fig: Figure, axes: Sequence):
+    """ add axes and texts to a figure """
     index = len(fig._axstack.as_list())
     for ax in axes:
         if isinstance(ax, Axes):
@@ -119,7 +130,9 @@ def addContentToFigure(fig, axes):
         else:
             fig.texts.append(ax)
 
-def imShowFullFigure(im, filename, fig1, dpi):
+
+def imShowFullFigure(im: np.ndarray, filename: str, fig1: Figure, dpi: int):
+    """ create a new axes and display an image in this axes """
     from matplotlib import rcParams
     if dpi is None:
         dpi = rcParams['figure.dpi']
@@ -147,7 +160,11 @@ class changeFolder:
     def __exit__(self, type, value, traceback):
         os.chdir(self.old_dir)
 
-def loadFigureFromFile(filename, fig1=None, offset=None, dpi=None, cache=False):
+
+def loadFigureFromFile(filename: str, fig1: Figure = None, offset: Figure = None, dpi: int = None, cache: bool = False):
+    """ add contents to the current figure from the file defined by filename. It can be either a python script defining
+    a figure, an image (filename or directly the numpy array), or an svg file.
+    """
     from matplotlib import rcParams
     from pylustrator import changeFigureSize
     import pylustrator
@@ -291,7 +308,8 @@ def loadFigureFromFile(filename, fig1=None, offset=None, dpi=None, cache=False):
             addContentToFigure(fig1, axes2)
 
 
-def mark_inset(parent_axes, inset_axes, loc1=1, loc2=2, **kwargs):
+def mark_inset(parent_axes: Axes, inset_axes: Axes, loc1: Union[int, Sequence[int]] = 1, loc2: Union[int, Sequence[int]] = 2, **kwargs):
+    """ like the mark_inset function from matplotlib, but loc can also be a tuple """
     from mpl_toolkits.axes_grid1.inset_locator import TransformedBbox, BboxPatch, BboxConnector
     try:
         loc1a, loc1b = loc1
@@ -319,7 +337,8 @@ def mark_inset(parent_axes, inset_axes, loc1=1, loc2=2, **kwargs):
     return pp, p1, p2
 
 
-def draw_from_point_to_bbox(parent_axes, insert_axes, point, loc=1, **kwargs):
+def draw_from_point_to_bbox(parent_axes: Axes, insert_axes: Axes, point: Sequence, loc=1, **kwargs):
+    """ add a box connector from a point to an axes """
     from mpl_toolkits.axes_grid1.inset_locator import TransformedBbox, BboxConnector, Bbox
     rect = TransformedBbox(Bbox([point, point]), parent_axes.transData)
     # rect = TransformedBbox(Bbox([[1, 0], [1, 0]]), parent_axes.transData)
@@ -329,7 +348,8 @@ def draw_from_point_to_bbox(parent_axes, insert_axes, point, loc=1, **kwargs):
     return p1
 
 
-def draw_from_point_to_point(parent_axes, insert_axes, point1, point2, **kwargs):
+def draw_from_point_to_point(parent_axes: Axes, insert_axes: Axes, point1: Sequence, point2: Sequence, **kwargs):
+    """ add a box connector from a point in on axes to a point in another axes """
     from mpl_toolkits.axes_grid1.inset_locator import TransformedBbox, BboxConnector, Bbox
     rect = TransformedBbox(Bbox([point1, point1]), parent_axes.transData)
     rect2 = TransformedBbox(Bbox([point2, point2]), insert_axes.transData)
@@ -341,7 +361,8 @@ def draw_from_point_to_point(parent_axes, insert_axes, point1, point2, **kwargs)
     return p1
 
 
-def mark_inset_pos(parent_axes, inset_axes, loc1, loc2, point, **kwargs):
+def mark_inset_pos(parent_axes: Axes, inset_axes: Axes, loc1: Union[int, Sequence[int]], loc2: Union[int, Sequence[int]], point: Sequence, **kwargs):
+    """ add a box connector where the second axis is shrinked to a point """
     kwargs["lw"] = 0.8
     ax_new = plt.axes(inset_axes.get_position())
     ax_new.set_xlim(point[0], point[0])
@@ -352,7 +373,8 @@ def mark_inset_pos(parent_axes, inset_axes, loc1, loc2, point, **kwargs):
     ax_new.set_zorder(inset_axes.get_zorder() - 1)
 
 
-def VoronoiPlot(points, values, vmin=None, vmax=None, cmap=None):
+def VoronoiPlot(points: Sequence, values: Sequence, vmin: float = None, vmax:float = None, cmap=None):
+    """ plot the voronoi regions of the poins with the given colormap """
     from matplotlib.patches import Polygon
     from matplotlib.collections import PatchCollection
     from scipy.spatial import Voronoi, voronoi_plot_2d
@@ -397,7 +419,8 @@ def VoronoiPlot(points, values, vmin=None, vmax=None, cmap=None):
     return p, excluded_indices
 
 
-def selectRectangle(axes=None):
+def selectRectangle(axes: Axes = None):
+    """ add a rectangle selector to the given axes """
     if axes is None:
         axes = plt.gca()
 
@@ -412,7 +435,8 @@ def selectRectangle(axes=None):
     return rect_selector
 
 
-def despine(ax=None, complete=False):
+def despine(ax: Axes = None, complete: bool = False):
+    """ despine the given axes """
     if not ax:
         ax = plt.gca()
     ax.spines['right'].set_visible(False)
@@ -430,7 +454,8 @@ def despine(ax=None, complete=False):
 
 
 letter_index = 0
-def add_letter(ax = None, offset=0, offset2=0, letter=None):
+def add_letter(ax: Axes = None, offset: float = 0, offset2: float = 0, letter: str = None):
+    """ add a letter indicating which subplot it is to the given figure """
     global letter_index
     from matplotlib.transforms import Affine2D, ScaledTranslation
 
@@ -460,7 +485,9 @@ def add_letter(ax = None, offset=0, offset2=0, letter=None):
     # add a text a the given position
     ax.text(-0.5+offset, offset2, letter, fontproperties=font, transform=transform, ha="center", va="bottom", picker=True)
 
+
 def get_letter_font_prop():
+    """ get the properties of the subplot letters to add """
     from matplotlib.font_manager import FontProperties
     font = FontProperties()
     font.set_family("C:\\WINDOWS\\Fonts\\HelveticaNeue-CondensedBold.ttf")
@@ -469,6 +496,8 @@ def get_letter_font_prop():
     font.letter_format = "a"
     return font
 
+
 def add_letters(*args, **kwargs):
+    """ add a letter indicating which subplot it is to all of the axes of the given figure """
     for ax in plt.gcf().axes:
         add_letter(ax, *args, **kwargs)
