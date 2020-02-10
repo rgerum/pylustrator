@@ -35,6 +35,8 @@ import mock
 while True:
     try:
         # here are the modules that should be imported for the documentation
+        import PyQt5
+        from PyQt5 import QtCore, QtWidgets, QtGui
         import pylustrator
     # if an import error occurs
     except ImportError as err:
