@@ -3,6 +3,9 @@ import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import matplotlib.transforms as mtransforms
+import matplotlib.path as mpath
+from matplotlib.textpath import TextPath
+from matplotlib.font_manager import FontProperties
 import sys
 import numpy as np
 import re
@@ -11,10 +14,14 @@ import base64
 import matplotlib.text
 from .arc2bez import arcToBezier
 
-def deform(base_trans, x, y, sx=0, sy=0):
+
+def deform(base_trans: mtransforms.Transform, x: float, y: float, sx: float = 0, sy: float = 0):
+    """ apply an affine transformation to the given transformation """
     return mtransforms.Affine2D([[x, sx, 0], [sy, y, 0], [0, 0, 1]]) + base_trans
 
-def parseTransformation(transform_text):
+
+def parseTransformation(transform_text: str) -> mtransforms.Transform:
+    """ convert a transform string in the svg file to a matplotlib transformation """
     base_trans = mtransforms.IdentityTransform()
     if transform_text is None or transform_text == "":
         return base_trans
@@ -53,7 +60,9 @@ def parseTransformation(transform_text):
             print("ERROR: unknown transformation", transform_text)
     return base_trans
 
-def get_inline_style(node, base_style=None):
+
+def get_inline_style(node: minidom.Element, base_style: dict = None) -> dict:
+    """ update the basestyle with the style defined by the style property of the node """
     style = {}
     if base_style is not None:
         style.update(base_style)
@@ -70,7 +79,11 @@ def get_inline_style(node, base_style=None):
         style[key] = value
     return style
 
-def get_css_style(node, css_list, base_style):
+
+def get_css_style(node: minidom.Element, css_list: list, base_style: dict) -> dict:
+    """ update the base_style with the style definitions from the stylesheet that are applicable to the node
+        defined by the classes or id of the node
+    """
     style = {}
     if base_style is not None:
         style.update(base_style)
@@ -85,7 +98,9 @@ def get_css_style(node, css_list, base_style):
             style.update(css_style)
     return style
 
-def apply_style(style, patch):
+
+def apply_style(style: dict, patch: mpatches.Patch) -> dict:
+    """ apply the properties defined in style to the given patch """
     fill_opacity = float(style.get("opacity", 1)) * float(style.get("fill-opacity", 1))
     stroke_opacity = float(style.get("opacity", 1)) * float(style.get("stroke-opacity", 1))
 
@@ -183,8 +198,9 @@ def apply_style(style, patch):
             print("ERROR: could not set style", key, value, file=sys.stderr)
     return style
 
-def font_properties_from_style(style):
-    from matplotlib.font_manager import FontProperties
+
+def font_properties_from_style(style: dict) -> FontProperties:
+    """ convert a style to a FontProperties object """
     fp = FontProperties()
     for key, value in style.items():
         if key == "font-family":
@@ -201,12 +217,16 @@ def font_properties_from_style(style):
             fp.set_stretch(value)
     return fp
 
-def styleNoDisplay(style):
+
+def styleNoDisplay(style: dict) -> bool:
+    """ check whether the style defines not to display the element """
     return style.get("display", "inline") == "none" or \
             style.get("visibility", "visible") == "hidden" or \
             style.get("visibility", "visible") == "collapse"
 
-def plt_patch(node, trans_parent_trans, style, constructor, ids, no_draw=False):
+
+def plt_patch(node: minidom.Element, trans_parent_trans: mtransforms.Transform, style: dict, constructor: callable, ids: dict, no_draw: bool = False) -> mpatches.Patch:
+    """ add a node to the figure by calling the provided constructor """
     trans_node = parseTransformation(node.getAttribute("transform"))
     style = get_inline_style(node, get_css_style(node, ids["css"], style))
 
@@ -228,7 +248,9 @@ def plt_patch(node, trans_parent_trans, style, constructor, ids, no_draw=False):
         ids[node.getAttribute("id")] = patch
     return patch
 
-def clone_patch(patch):
+
+def clone_patch(patch: mpatches.Patch) -> mpatches.Patch:
+    """ clone a patch element with the same properties as the given patch """
     if isinstance(patch, mpatches.Rectangle):
         return mpatches.Rectangle(xy=patch.get_xy(),
                                   width=patch.get_width(),
@@ -243,7 +265,9 @@ def clone_patch(patch):
     if isinstance(patch, mpatches.PathPatch):
         return mpatches.PathPatch(patch.get_path())
 
-def patch_rect(node, trans, style, ids):
+
+def patch_rect(node: minidom.Element, trans: mtransforms.Transform, style: dict, ids: dict) -> mpatches.Rectangle:
+    """ draw a svg rectangle node as a rectangle patch element into the figure (with the given transformation and style) """
     if node.getAttribute("d") != "":
         return patch_path(node, trans, style, ids)
     return mpatches.Rectangle(xy=(float(node.getAttribute("x")), float(node.getAttribute("y"))),
@@ -251,7 +275,9 @@ def patch_rect(node, trans, style, ids):
                               height=float(node.getAttribute("height")),
                               transform=trans)
 
-def patch_ellipse(node, trans, style, ids):
+
+def patch_ellipse(node: minidom.Element, trans: mtransforms.Transform, style: dict, ids: dict) -> mpatches.Ellipse:
+    """ draw a svg ellipse node as a ellipse patch element into the figure (with the given transformation and style) """
     if node.getAttribute("d") != "":
         return patch_path(node, trans, style, ids)
     return mpatches.Ellipse(xy=(float(node.getAttribute("cx")), float(node.getAttribute("cy"))),
@@ -259,16 +285,18 @@ def patch_ellipse(node, trans, style, ids):
                             height=float(node.getAttribute("ry"))*2,
                             transform=trans)
 
-def patch_circle(node, trans, style, ids):
+
+def patch_circle(node: minidom.Element, trans: mtransforms.Transform, style: dict, ids: dict) -> mpatches.Circle:
+    """ draw a svg circle node as a circle patch element into the figure (with the given transformation and style) """
     if node.getAttribute("d") != "":
         return patch_path(node, trans, style, ids)
     return mpatches.Circle(xy=(float(node.getAttribute("cx")), float(node.getAttribute("cy"))),
                            radius=float(node.getAttribute("r")),
                            transform=trans)
 
-def plt_draw_text(node, trans, style, ids, no_draw=False):
-    from matplotlib.textpath import TextPath
 
+def plt_draw_text(node: minidom.Element, trans: mtransforms.Transform, style: dict, ids: dict, no_draw: bool = False):
+    """ draw a svg text node as a text patch element into the figure (with the given transformation and style) """
     trans = parseTransformation(node.getAttribute("transform")) + trans + plt.gca().transData
     trans = mtransforms.Affine2D([[1, 0, 0], [0, -1, 0], [0, 0, 1]]) + trans
     pos = np.array([svgUnitToMpl(node.getAttribute("x")), -svgUnitToMpl(node.getAttribute("y"))])
@@ -308,8 +336,10 @@ def plt_draw_text(node, trans, style, ids, no_draw=False):
     if node.getAttribute("id") != "":
         ids[node.getAttribute("id")] = patch_list
 
-def patch_path(node, trans, style, ids):
-    import matplotlib.path as mpath
+
+def patch_path(node: minidom.Element, trans: mtransforms.Transform, style: dict, ids: dict) -> list:
+    """ draw a path svg node by using a matplotlib path patch (with the given transform and style) """
+
 
     start_pos = None
     command = None
@@ -493,7 +523,9 @@ def patch_path(node, trans, style, ids):
 
     return patch_list
 
-def svgUnitToMpl(unit, default=None):
+
+def svgUnitToMpl(unit: str, default=None) -> float:
+    """ convert a unit text to svg pixels """
     import re
     if unit == "":
         return default
@@ -516,7 +548,8 @@ def svgUnitToMpl(unit, default=None):
         return value
 
 
-def openImageFromLink(link):
+def openImageFromLink(link: str) -> np.ndarray:
+    """ load an embedded image file or an externally liked image file"""
     if link.startswith("file:///"):
         return plt.imread(link[len("file:///"):])
     else:
@@ -531,7 +564,9 @@ def openImageFromLink(link):
         buf.close()
         return im
 
-def parseStyleSheet(text):
+
+def parseStyleSheet(text: str) -> list:
+    """ parse a style sheet text """
     # remove line comments
     text = re.sub("//.*?\n", "", text)
     # remove multiline comments
@@ -549,7 +584,9 @@ def parseStyleSheet(text):
             style_definitions.append([cond.strip(), style_dict])
     return style_definitions
 
-def parseGroup(node, trans, style, ids, no_draw=False):
+
+def parseGroup(node: minidom.Element, trans: mtransforms.Transform, style: dict, ids: dict, no_draw: bool = False) -> list:
+    """ parse the children of a group node with the inherited transformation and style """
     trans = parseTransformation(node.getAttribute("transform")) + trans
     style = get_inline_style(node, style)
 
@@ -611,8 +648,9 @@ def parseGroup(node, trans, style, ids, no_draw=False):
 
     return patch_list
 
-def svgread(filename):
-    # read the SVG file
+
+def svgread(filename: str):
+    """ read an SVG file """
     doc = minidom.parse(filename)
 
     svg = doc.getElementsByTagName("svg")[0]
