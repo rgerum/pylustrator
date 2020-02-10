@@ -129,8 +129,12 @@ def make_pickelable(cls):
     cls.__getstate__ = __getstate__
     cls.__setstate__ = __setstate__
 
-make_pickelable(NavigationToolbar)
-make_pickelable(MatplotlibWidget)
+
+try:
+    make_pickelable(NavigationToolbar)
+    make_pickelable(MatplotlibWidget)
+except AttributeError:
+    pass
 
 
 class CanvasWindow(QtWidgets.QWidget):
