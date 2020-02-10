@@ -1,3 +1,4 @@
+.. _styling:
 
 Styling Figures
 ===============

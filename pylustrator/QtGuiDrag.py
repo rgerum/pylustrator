@@ -61,6 +61,19 @@ keys_for_lines = {}
 
 
 def initialize(use_global_variable_names=False):
+    """
+    This will overload the commands ``plt.figure()`` and ``plt.show()``.
+    If a figure is created after this command was called (directly or indirectly), a GUI window will be initialized
+    that allows to interactively manipulate the figure and generate code in the calling script to define these changes.
+    The window will be shown when ``plt.show()`` is called.
+
+    See also :ref:`styling`.
+
+    Parameters
+    ---------
+    use_global_variable_names : bool, optional
+        if used, try to find global variables that reference a figure and use them in the generated code.
+    """
     global app, keys_for_lines, old_pltshow, old_pltfigure, setting_use_global_variable_names
 
     setting_use_global_variable_names = use_global_variable_names

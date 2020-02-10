@@ -161,9 +161,25 @@ class changeFolder:
         os.chdir(self.old_dir)
 
 
-def loadFigureFromFile(filename: str, fig1: Figure = None, offset: Figure = None, dpi: int = None, cache: bool = False):
-    """ add contents to the current figure from the file defined by filename. It can be either a python script defining
+def loadFigureFromFile(filename: str, figure: Figure = None, offset: list = None, dpi: int = None, cache: bool = False):
+    """
+    Add contents to the current figure from the file defined by filename. It can be either a python script defining
     a figure, an image (filename or directly the numpy array), or an svg file.
+
+    See also :ref:`composing`.
+
+    Parameters
+    ----------
+    filename : str
+        The file to load. Can point to a python script file, an image file or an svg file.
+    figure : Figure, optional
+        The figure where to add the loaded file. Defaults to the current figure.
+    offset : list, optional
+        The offset where to import the file. The first two parts define the x and y position and the third part defines
+        the units to use. Default is "%", a percentage of the current figure size. It can also be "cm" or "in".
+    cache : bool, optional
+        Whether to try to cache the figure generated from the file. Only for python files. This option is experimental
+        and may not be stable.
     """
     from matplotlib import rcParams
     from pylustrator import changeFigureSize
@@ -177,8 +193,8 @@ def loadFigureFromFile(filename: str, fig1: Figure = None, offset: Figure = None
             os.chdir(dirname)
 
         # defaults to the current figure
-        if fig1 is None:
-            fig1 = plt.gcf()
+        if figure is None:
+            figure = plt.gcf()
 
         class noShow:
             """
@@ -224,8 +240,8 @@ def loadFigureFromFile(filename: str, fig1: Figure = None, offset: Figure = None
                 plt.figure = self.fig
 
         # get the size of the old figure
-        w1, h1 = fig1.get_size_inches()
-        axes1 = removeContentFromFigure(fig1)
+        w1, h1 = figure.get_size_inches()
+        axes1 = removeContentFromFigure(figure)
         if len(axes1) == 0:
             w1 = 0
             h1 = 0
@@ -239,11 +255,11 @@ def loadFigureFromFile(filename: str, fig1: Figure = None, offset: Figure = None
         # if it is an image, just display the image
         if im is not None:
             im = plt.imread(filename)
-            imShowFullFigure(im, os.path.split(filename)[1], fig1, dpi=dpi)
+            imShowFullFigure(im, os.path.split(filename)[1], figure, dpi=dpi)
         # if the image is a numpy array, just display the array
         elif isinstance(filename, np.ndarray):
             im = filename
-            imShowFullFigure(im, str(im.shape), fig1, dpi)
+            imShowFullFigure(im, str(im.shape), figure, dpi)
         # if it is a svg file, display the svg file
         elif filename.endswith(".svg"):
             svgread(filename)
@@ -260,31 +276,31 @@ def loadFigureFromFile(filename: str, fig1: Figure = None, offset: Figure = None
                         print("loading from cached file", cache_filename)
                         fig2 = pickle.load(open(cache_filename, "rb"))
                         w, h = fig2.get_size_inches()
-                        fig1.set_size_inches(w, h)
+                        figure.set_size_inches(w, h)
 
-                        str(fig1)  # important! (for some reason I don't know)
+                        str(figure)  # important! (for some reason I don't know)
                         for ax in fig2.axes:
                             fig2.delaxes(ax)
-                            fig1._axstack.add(fig1._make_key(ax), ax)
-                            fig1.bbox._parents.update(fig2.bbox._parents)
-                            fig1.dpi_scale_trans._parents.update(fig2.dpi_scale_trans._parents)
-                            replace_all_refs(fig2.bbox, fig1.bbox)
-                            replace_all_refs(fig2.dpi_scale_trans, fig1.dpi_scale_trans)
-                            replace_all_refs(fig2, fig1)
+                            figure._axstack.add(figure._make_key(ax), ax)
+                            figure.bbox._parents.update(fig2.bbox._parents)
+                            figure.dpi_scale_trans._parents.update(fig2.dpi_scale_trans._parents)
+                            replace_all_refs(fig2.bbox, figure.bbox)
+                            replace_all_refs(fig2.dpi_scale_trans, figure.dpi_scale_trans)
+                            replace_all_refs(fig2, figure)
                     else:
                         # execute the file
                         exec(compile(open(filename, "rb").read(), filename, 'exec'), globals())
                         if cache is True:
-                            c = fig1.canvas
-                            fig1.canvas = None
-                            fig1.bbox.pylustrator = True
-                            fig1.dpi_scale_trans.pylustrator = True
-                            pickle.dump(fig1, open(cache_filename, 'wb'))
+                            c = figure.canvas
+                            figure.canvas = None
+                            figure.bbox.pylustrator = True
+                            figure.dpi_scale_trans.pylustrator = True
+                            pickle.dump(figure, open(cache_filename, 'wb'))
 
-                            fig1.canvas = c
+                            figure.canvas = c
 
         # get the size of the new figure
-        w2, h2 = fig1.get_size_inches()
+        w2, h2 = figure.get_size_inches()
         if offset is not None:
             if len(offset) == 2 or offset[2] == "%":
                 w2 += w1 * offset[0]
@@ -295,17 +311,17 @@ def loadFigureFromFile(filename: str, fig1: Figure = None, offset: Figure = None
             elif offset[2] == "cm":
                 w2 += offset[0] / 2.54
                 h2 += offset[1] / 2.54
-            changeFigureSize(w2, h2, cut_from_top=True, cut_from_left=True, fig=fig1)
+            changeFigureSize(w2, h2, cut_from_top=True, cut_from_left=True, fig=figure)
         w = max(w1, w2)
         h = max(h1, h2)
-        changeFigureSize(w, h, fig=fig1)
+        changeFigureSize(w, h, fig=figure)
         if len(axes1):
-            axes2 = removeContentFromFigure(fig1)
-            changeFigureSize(w1, h1, fig=fig1)
-            addContentToFigure(fig1, axes1)
+            axes2 = removeContentFromFigure(figure)
+            changeFigureSize(w1, h1, fig=figure)
+            addContentToFigure(figure, axes1)
 
-            changeFigureSize(w, h, fig=fig1)
-            addContentToFigure(fig1, axes2)
+            changeFigureSize(w, h, fig=figure)
+            addContentToFigure(figure, axes2)
 
 
 def mark_inset(parent_axes: Axes, inset_axes: Axes, loc1: Union[int, Sequence[int]] = 1, loc2: Union[int, Sequence[int]] = 2, **kwargs):
