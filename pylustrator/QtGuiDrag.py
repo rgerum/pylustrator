@@ -532,7 +532,7 @@ class MyTreeView(QtWidgets.QTreeView):
         if parent_item:
             name = self.getNameOfEntry(parent_entry)
             if name is not None:
-                parent_item.setText(name)
+                parent_item.setLabel(name)
 
 
 class InfoDialog(QtWidgets.QWidget):

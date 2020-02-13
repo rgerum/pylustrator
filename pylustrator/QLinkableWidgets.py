@@ -1,16 +1,4 @@
-import os
-import sys
-import traceback
-
-import qtawesome as qta
-from matplotlib import _pylab_helpers
-
-from .QComplexWidgets import *
-from .ax_rasterisation import rasterizeAxes, restoreAxes
-from .change_tracker import setFigureVariableNames
-from .drag_helper import DragManager
-from .exception_swallower import swallow_get_exceptions
-from .matplotlibwidget import MatplotlibWidget
+from typing import Optional, Sequence
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -31,11 +19,13 @@ class Linkable:
         if direct:
             parts = property_name.split(".")
             s = self
+
             def get():
                 target = s.element
                 for part in parts:
                     target = getattr(target, part)
                 return target
+
             def set(v):
                 get()
                 target = s.element
@@ -43,6 +33,7 @@ class Linkable:
                     target = getattr(target, part)
                 setattr(target, parts[-1], v)
                 return [s.element]
+
             self.setLinkedProperty = set
             self.getLinkedProperty = get
             self.serializeLinkedProperty = lambda x: "." + property_name + " = %s" % x
@@ -55,15 +46,16 @@ class Linkable:
                     elm = elm.target
                     if elm != self.element:
                         try:
-                            getattr(elm, "set_"+property_name, None)(v)
+                            getattr(elm, "set_" + property_name, None)(v)
                         except TypeError as err:
                             pass
                         else:
                             elements.append(elm)
                 return elements
-            self.setLinkedProperty = set#lambda text: getattr(self.element, "set_"+property_name)(text)
-            self.getLinkedProperty = lambda: getattr(self.element, "get_"+property_name)()
-            self.serializeLinkedProperty = lambda x: ".set_"+property_name+"(%s)" % x
+
+            self.setLinkedProperty = set  # lambda text: getattr(self.element, "set_"+property_name)(text)
+            self.getLinkedProperty = lambda: getattr(self.element, "get_" + property_name)()
+            self.serializeLinkedProperty = lambda x: ".set_" + property_name + "(%s)" % x
 
         if condition is None:
             self.condition = lambda x: True
@@ -112,17 +104,23 @@ class Linkable:
 
 
 class FreeNumberInput(QtWidgets.QLineEdit):
-    """ like a QSpinBox for number import, but without min or max range or a fixed resolution.
-    Especially important for the limits of logarithmic plots.
-    """
     send_signal = True
     valueChanged = QtCore.Signal(float)
 
     def __init__(self):
+        """ Like a QSpinBox for number import, but without min or max range or a fixed resolution.
+        Especially important for the limits of logarithmic plots.
+
+        Attributes:
+            send_signal : Whether to currently emit the valueChanged signal or not (to prevent the signal from being
+                emitted when the value is set by script.
+            valueChanged : a signal that is emitted when the value is changed by the user
+        """
         QtWidgets.QLineEdit.__init__(self)
         self.textChanged.connect(self.emitValueChanged)
 
-    def emitValueChanged(self, value):
+    def emitValueChanged(self):
+        """ connected to the textChanged signal """
         if self.send_signal:
             try:
                 value = self.value()
@@ -132,7 +130,8 @@ class FreeNumberInput(QtWidgets.QLineEdit):
                 self.setStyleSheet("background: #d56060; border: red")
                 pass
 
-    def value(self):
+    def value(self) -> Optional[float]:
+        """ return the value of the input field """
         try:
             return float(self.text())
         except ValueError:
@@ -141,7 +140,8 @@ class FreeNumberInput(QtWidgets.QLineEdit):
             except ValueError:
                 return None
 
-    def setValue(self, value):
+    def setValue(self, value: float):
+        """ set the value of the input field """
         self.send_signal = False
         try:
             self.setText(str(value))
@@ -151,19 +151,19 @@ class FreeNumberInput(QtWidgets.QLineEdit):
 
 
 class DimensionsWidget(QtWidgets.QWidget, Linkable):
-    """ a widget that lets the user input a pair of dimensions (e.g. widh and height)
-    """
     valueChanged = QtCore.Signal(tuple)
     transform = None
     noSignal = False
 
     def __init__(self, layout: QtWidgets.QLayout, text: str, join: str, unit: str, free: bool = False):
-        """
-        :param layout: the layout to which to add the widget
-        :param text: the label of the widget
-        :param join: a text between the two parts
-        :param unit: a unit for the values
-        :param free: whether to use free number input widgets instead of QSpinBox
+        """ a widget that lets the user input a pair of dimensions (e.g. widh and height)
+
+        Args:
+            layout: the layout to which to add the widget
+            text: the label of the widget
+            join: a text between the two parts
+            unit: a unit for the values
+            free: whether to use free number input widgets instead of QSpinBox
         """
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
@@ -176,7 +176,7 @@ class DimensionsWidget(QtWidgets.QWidget, Linkable):
             self.input1 = FreeNumberInput()
         else:
             self.input1 = QtWidgets.QDoubleSpinBox()
-            self.input1.setSuffix(" "+unit)
+            self.input1.setSuffix(" " + unit)
             self.input1.setSingleStep(0.1)
             self.input1.setMaximum(99999)
             self.input1.setMinimum(-99999)
@@ -191,7 +191,7 @@ class DimensionsWidget(QtWidgets.QWidget, Linkable):
             self.input2 = FreeNumberInput()
         else:
             self.input2 = QtWidgets.QDoubleSpinBox()
-            self.input2.setSuffix(" "+unit)
+            self.input2.setSuffix(" " + unit)
             self.input2.setSingleStep(0.1)
             self.input2.setMaximum(99999)
             self.input2.setMinimum(-99999)
@@ -200,40 +200,26 @@ class DimensionsWidget(QtWidgets.QWidget, Linkable):
 
         self.editingFinished = self.valueChanged
 
-    def setText(self, text: str):
-        """
-        :param text: The test to set.
-        :return:
-        """
+    def setLabel(self, text: str):
+        """ set the text of the label """
         self.text.setText(text)
 
     def setUnit(self, unit: str):
-        """
-        Sets the text for the unit for the values
-        :param unit: the unit text to set
-        :return:
-        """
-        self.input1.setSuffix(" "+unit)
-        self.input2.setSuffix(" "+unit)
+        """ Sets the text for the unit for the values """
+        self.input1.setSuffix(" " + unit)
+        self.input2.setSuffix(" " + unit)
 
     def setTransform(self, transform: mpl.transforms.Transform):
-        """
-        :param transform: the transform which is applied to the values
-        :return:
-        """
+        """ set the transform for the units """
         self.transform = transform
 
-    def onValueChanged(self, value):
-        """ called when the value was changed -> emit the value changed signal
-        """
+    def onValueChanged(self):
+        """ called when the value was changed -> emit the value changed signal """
         if not self.noSignal:
             self.valueChanged.emit(tuple(self.value()))
 
     def setValue(self, values: tuple):
-        """
-        :param values: the two values to set
-        :return:
-        """
+        """ set the two values """
         self.noSignal = True
         if self.transform:
             values = self.transform.transform(values)
@@ -249,16 +235,11 @@ class DimensionsWidget(QtWidgets.QWidget, Linkable):
         return tuple
 
     def get(self) -> tuple:
-        """
-        :return: get the value
-        """
+        """ get the value (used for the Linkable parent class) """
         return self.value()
 
     def set(self, value: tuple):
-        """
-        :param value: the value to set
-        :return:
-        """
+        """ set both values (used for the Linkable parent class) """
         self.setValue(value)
 
     def getSerialized(self) -> str:
@@ -267,17 +248,18 @@ class DimensionsWidget(QtWidgets.QWidget, Linkable):
 
 
 class TextWidget(QtWidgets.QWidget, Linkable):
-    """ a text input widget with a label. """
     editingFinished = QtCore.Signal()
     noSignal = False
     last_text = None
 
     def __init__(self, layout: QtWidgets.QLayout, text: str, multiline: bool = False, horizontal: bool = True):
-        """
-        :param layout: the layout to which to add the widget
-        :param text: the label text
-        :param multiline: whether the text input should be a single line or not
-        :param horizontal: whether the layout should be left or above the input
+        """ a text input widget with a label.
+
+        Args:
+            layout: the layout to which to add the widget
+            text: the label text
+            multiline: whether the text input should be a single line or not
+            horizontal:  whether the layout should be left or above the input
         """
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
@@ -300,13 +282,16 @@ class TextWidget(QtWidgets.QWidget, Linkable):
         self.layout.addWidget(self.input1)
 
     def valueChangeEvent(self):
+        """ an event that is triggered when the text in the input field is changed """
         if not self.noSignal and self.input1.text() != self.last_text:
             self.editingFinished.emit()
 
     def setLabel(self, text: str):
+        """ set the text of the label """
         self.label.setLabel(text)
 
     def setText(self, text: str):
+        """ set contents of the text input widget """
         self.noSignal = True
         text = text.replace("\n", "\\n")
         self.last_text = text
@@ -317,24 +302,36 @@ class TextWidget(QtWidgets.QWidget, Linkable):
         self.noSignal = False
 
     def text(self) -> str:
+        """ return the text """
         text = self.input1.text()
         return text.replace("\\n", "\n")
 
     def get(self) -> str:
+        """ get the value (used for the Linkable parent class) """
         return self.text()
 
     def set(self, value: str):
+        """ set the value (used for the Linkable parent class) """
         self.setText(value)
 
     def getSerialized(self) -> str:
-        return "\""+str(self.get())+"\""
+        """ serialize the value (used for the Linkable parent class) """
+        return "\"" + str(self.get()) + "\""
 
 
 class NumberWidget(QtWidgets.QWidget, Linkable):
     editingFinished = QtCore.Signal()
     noSignal = False
 
-    def __init__(self, layout, text, min=None, use_float=True):
+    def __init__(self, layout: QtWidgets.QLayout, text: str, min: float = None, use_float: bool = True):
+        """ A spin box with a label next to it.
+
+        Args:
+            layout: the layout to which to add the widget
+            text: the label text
+            min: the minimum value of the spin box
+            use_float: whether to use a float spin box or an int spin box.
+        """
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
         self.layout = QtWidgets.QHBoxLayout(self)
@@ -353,36 +350,50 @@ class NumberWidget(QtWidgets.QWidget, Linkable):
         self.layout.addWidget(self.input1)
 
     def valueChangeEvent(self):
+        """ when the value of the spin box changes """
         if not self.noSignal:
             self.editingFinished.emit()
 
-    def setLabel(self, text):
+    def setLabel(self, text: str):
+        """ set the text label """
         self.label.setLabel(text)
 
-    def setValue(self, text):
+    def setValue(self, text: float):
+        """ set the value of the spin box """
         self.noSignal = True
         self.input1.setValue(text)
         self.noSignal = False
 
-    def value(self):
+    def value(self) -> float:
+        """ get the value of the spin box """
         text = self.input1.value()
         return text
 
-    def get(self):
+    def get(self) -> float:
+        """ get the value (used for the Linkable parent class) """
         return self.value()
 
-    def set(self, value):
+    def set(self, value: float):
+        """ set the value (used for the Linkable parent class) """
         self.setValue(value)
 
-    def getSerialized(self):
-        return self.get()
+    def getSerialized(self) -> str:
+        """ serialize the value (used for the Linkable parent class) """
+        return str(self.get())
 
 
 class ComboWidget(QtWidgets.QWidget, Linkable):
     editingFinished = QtCore.Signal()
     noSignal = False
 
-    def __init__(self, layout, text, values):
+    def __init__(self, layout: QtWidgets.QLayout, text: str, values: Sequence):
+        """ A combo box widget with a label
+
+        Args:
+            layout: the layout to which to add the widget
+            text: the label text
+            values: the possible values of the combo box
+        """
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
         self.layout = QtWidgets.QHBoxLayout(self)
@@ -400,42 +411,50 @@ class ComboWidget(QtWidgets.QWidget, Linkable):
         self.layout.addWidget(self.input1)
 
     def valueChangeEvent(self):
+        """ called when the value has changed """
         if not self.noSignal:
             self.editingFinished.emit()
 
-    def setLabel(self, text):
+    def setLabel(self, text: str):
+        """ set the text of the label """
         self.label.setLabel(text)
 
-    def setText(self, text):
+    def setText(self, text: str):
+        """ set the value of the combo box """
         self.noSignal = True
         index = self.values.index(text)
         self.input1.setCurrentIndex(index)
         self.noSignal = False
 
-    def text(self):
+    def text(self) -> str:
+        """ get the value of the combo box """
         index = self.input1.currentIndex()
         return self.values[index]
 
-    def get(self):
+    def get(self) -> str:
+        """ get the value (used for the Linkable parent class) """
         return self.text()
 
-    def set(self, value):
+    def set(self, value: str):
+        """ set the value (used for the Linkable parent class) """
         self.setText(value)
 
-    def getSerialized(self):
-        return "\""+str(self.get())+"\""
+    def getSerialized(self) -> str:
+        """ serialize the value (used for the Linkable parent class) """
+        return "\"" + str(self.get()) + "\""
 
 
 class CheckWidget(QtWidgets.QWidget, Linkable):
-    """ a Widget that contains a checkbox and a label """
     editingFinished = QtCore.Signal()
     stateChanged = QtCore.Signal(int)
     noSignal = False
 
     def __init__(self, layout: QtWidgets.QLabel, text: str):
-        """
-        :param layout: the layout to which to add the widget
-        :param text: the label text
+        """ a widget that contains a checkbox with a label
+
+        Args:
+            layout: the layout to which to add the widget
+            text: the label text
         """
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
@@ -450,25 +469,31 @@ class CheckWidget(QtWidgets.QWidget, Linkable):
         self.layout.addWidget(self.input1)
 
     def onStateChanged(self):
+        """ when the state of the checkbox changes """
         if not self.noSignal:
             self.stateChanged.emit(self.input1.isChecked())
             self.editingFinished.emit()
 
     def setChecked(self, state: bool):
+        """ set the value of the check box """
         self.noSignal = True
         self.input1.setChecked(state)
         self.noSignal = False
 
     def isChecked(self) -> bool:
+        """ get the value of the checkbox """
         return self.input1.isChecked()
 
     def get(self) -> bool:
+        """ set the value (used for the Linkable parent class) """
         return self.isChecked()
 
     def set(self, value: bool):
+        """ get the value (used for the Linkable parent class) """
         self.setChecked(value)
 
     def getSerialized(self) -> str:
+        """ serialize the value (used for the Linkable parent class) """
         return "True" if self.get() else "False"
 
 
@@ -476,7 +501,13 @@ class RadioWidget(QtWidgets.QWidget):
     stateChanged = QtCore.Signal(int, str)
     noSignal = False
 
-    def __init__(self, layout, texts):
+    def __init__(self, layout: QtWidgets.QLayout, texts: Sequence[str]):
+        """ a group of radio buttons
+
+        Args:
+            layout: the layout to which to add the widget
+            texts: the text label
+        """
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
         self.layout = QtWidgets.QHBoxLayout(self)
@@ -493,28 +524,37 @@ class RadioWidget(QtWidgets.QWidget):
             self.radio_buttons.append(radio)
         self.radio_buttons[0].setChecked(True)
 
-    def onToggled(self, checked):
+    def onToggled(self, checked: int):
+        """ called when a radio button is toggled """
         if checked:
             self.checked = np.argmax([radio.isChecked() for radio in self.radio_buttons])
             if not self.noSignal:
                 self.stateChanged.emit(self.checked, self.texts[self.checked])
 
-    def setState(self, state):
+    def setState(self, state: int):
+        """ set the state of the widget """
         self.noSignal = True
         for index, radio in enumerate(self.radio_buttons):
             radio.setChecked(state == index)
         self.checked = state
         self.noSignal = False
 
-    def getState(self):
+    def getState(self) -> int:
+        """ get the state of the widget """
         return self.checked
-
 
 
 class QColorWidget(QtWidgets.QWidget, Linkable):
     valueChanged = QtCore.Signal(str)
 
-    def __init__(self, layout, text=None, value=None):
+    def __init__(self, layout: QtWidgets.QLayout, text: str = None, value: str = None):
+        """ A colored button what acts as an color input
+
+        Args:
+            layout: the layout to which to add the widget
+            text: the label text
+            value: the value of the color widget
+        """
         super().__init__()
         self.layout = QtWidgets.QHBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
@@ -537,6 +577,7 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
         self.editingFinished = self.valueChanged
 
     def changeEvent(self, event):
+        """ when the widget is enabled """
         if event.type() == QtCore.QEvent.EnabledChange:
             if not self.isEnabled():
                 self.button.setStyleSheet("background-color: #f0f0f0;")
@@ -544,8 +585,9 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
                 self.setColor(self.color)
 
     def OpenDialog(self):
+        """ open a color chooser dialog """
         # get new color from color picker
-        self.current_color = QtGui.QColor(*tuple(mpl.colors.to_rgba_array(self.getColor())[0]*255))
+        self.current_color = QtGui.QColor(*tuple(mpl.colors.to_rgba_array(self.getColor())[0] * 255))
         self.dialog = QtWidgets.QColorDialog(self.current_color, self.parent())
         self.dialog.setOptions(QtWidgets.QColorDialog.ShowAlphaChannel)
         for index, color in enumerate(plt.rcParams['axes.prop_cycle'].by_key()['color']):
@@ -555,55 +597,63 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
         self.dialog.rejected.connect(self.dialog_rejected)
 
     def dialog_rejected(self):
+        """ called when the dialog is cancelled """
         color = self.current_color
-        color = color.name()+"%0.2x" % color.alpha()
+        color = color.name() + "%0.2x" % color.alpha()
         self.setColor(color)
         self.valueChanged.emit(self.color)
 
     def dialog_changed(self):
+        """ called when the value in the dialog changes """
         color = self.dialog.currentColor()
         # if a color is set, apply it
         if color.isValid():
-            color = color.name()+"%0.2x" % color.alpha()
+            color = color.name() + "%0.2x" % color.alpha()
             self.setColor(color)
             self.valueChanged.emit(self.color)
 
     def dialog_finished(self):
+        """ called when the dialog is finished with a click on 'ok' """
         color = self.dialog.selectedColor()
         self.dialog = None
         # if a color is set, apply it
         if color.isValid():
-            color = color.name()+"%0.2x" % color.alpha()
+            color = color.name() + "%0.2x" % color.alpha()
             self.setColor(color)
             self.valueChanged.emit(self.color)
 
-    def setColor(self, value):
+    def setColor(self, value: str):
+        """ set the color """
         # display and save the new color
         if value is None:
             value = "#FF0000FF"
         self.button.setAttribute(QtCore.Qt.WA_TranslucentBackground, True)
         if len(value) == 9:
-            self.button.setStyleSheet("background-color: rgba(%d, %d, %d, %d%%);" % (int(value[1:3], 16), int(value[3:5], 16), int(value[5:7], 16), int(value[7:], 16)*100/255))
+            self.button.setStyleSheet("background-color: rgba(%d, %d, %d, %d%%);" % (
+            int(value[1:3], 16), int(value[3:5], 16), int(value[5:7], 16), int(value[7:], 16) * 100 / 255))
         else:
             self.button.setStyleSheet("background-color: %s;" % (value,))
         self.color = value
 
-    def getColor(self):
+    def getColor(self) -> str:
+        """ get the color value """
         # return the color
         return self.color
 
     def get(self):
+        """ get the value (used for the Linkable parent class) """
         return self.getColor()
 
     def set(self, value):
+        """ set the value (used for the Linkable parent class) """
         try:
             if len(value) == 4:
-                self.setColor(mpl.colors.to_hex(value) + "%02X" % int(value[-1]*255))
+                self.setColor(mpl.colors.to_hex(value) + "%02X" % int(value[-1] * 255))
             else:
                 self.setColor(mpl.colors.to_hex(value))
         except ValueError:
             self.setColor(None)
 
-    def getSerialized(self):
-        return "\""+self.color+"\""
-
+    def getSerialized(self) -> str:
+        """ serialize the value (used for the Linkable parent class) """
+        return "\"" + self.color + "\""

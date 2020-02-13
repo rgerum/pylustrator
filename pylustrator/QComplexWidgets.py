@@ -1,12 +1,31 @@
 import os
 import sys
 
+import os
+import sys
+import traceback
+
+import qtawesome as qta
+from matplotlib import _pylab_helpers
+
+from .ax_rasterisation import rasterizeAxes, restoreAxes
+from .change_tracker import setFigureVariableNames
+from .drag_helper import DragManager
+from .exception_swallower import swallow_get_exceptions
+from .matplotlibwidget import MatplotlibWidget
+
 import qtawesome as qta
 from matplotlib import _pylab_helpers
 from matplotlib.axes._subplots import Axes
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import matplotlib.transforms as transforms
+import numpy as np
+from matplotlib.artist import Artist
+from matplotlib.figure import Figure
+from qtpy import QtCore, QtWidgets, QtGui
 
-
-from .QLinkableWidgets import *
+from .QLinkableWidgets import QColorWidget, CheckWidget, TextWidget, RadioWidget, DimensionsWidget, NumberWidget, ComboWidget
 
 
 class TextPropertiesWidget(QtWidgets.QWidget):
