@@ -547,6 +547,11 @@ class DragManager:
         self.figure.canvas.mpl_disconnect(self.c2)
         self.figure.canvas.mpl_disconnect(self.c4)
 
+        self.selection.clear_targets()
+        self.selected_element = None
+        self.on_select(None, None)
+        self.figure.canvas.draw()
+
     def make_dragable(self, target: Artist):
         """ make an artist draggable """
         target.set_picker(True)

@@ -744,8 +744,8 @@ class PlotWindow(QtWidgets.QWidget):
         self.layout_plot.addWidget(self.canvas_canvas)
 
         # add toolbar
-        # self.navi_toolbar = NavigationToolbar(self.canvas, self)
-        # self.layout_plot.addWidget(self.navi_toolbar)
+        self.toolbar = ToolBar(self.canvas, self.fig)
+        self.layout_plot.addWidget(self.toolbar)
 
         self.fig.canvas.mpl_disconnect(self.fig.canvas.manager.key_press_handler_id)
 

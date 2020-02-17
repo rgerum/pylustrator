@@ -30,6 +30,15 @@ from .change_tracker import getReference
 from .helper_functions import changeFigureSize
 from .QLinkableWidgets import QColorWidget, CheckWidget, TextWidget, RadioWidget, DimensionsWidget, NumberWidget, ComboWidget
 
+from qtpy import API_NAME as QT_API_NAME
+
+if QT_API_NAME.startswith("PyQt4"):
+    from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as Canvas
+    from matplotlib.backends.backend_qt4 import NavigationToolbar2QT as NavigationToolbar
+else:
+    from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as Canvas
+    from matplotlib.backends.backend_qt5 import NavigationToolbar2QT as NavigationToolbar
+
 
 class TextPropertiesWidget(QtWidgets.QWidget):
     stateChanged = QtCore.Signal(int, str)
@@ -1094,3 +1103,71 @@ class QItemProperties(QtWidgets.QWidget):
             self.input_font_properties.hide()
 
         self.targetChanged.emit(element)
+
+
+class ToolBar(QtWidgets.QToolBar):
+
+    def __init__(self, canvas: Canvas, figure: Figure):
+        """ A widget that displays a toolbar similar to the default Matplotlib toolbar (for the zoom and pan tool)
+
+        Args:
+            canvas: the canvas of the figure
+            figure: the figure
+        """
+        super().__init__()
+        self.canvas = canvas
+        self.fig = figure
+        self.navi_toolbar = NavigationToolbar(self.canvas, self)
+        self.navi_toolbar.hide()
+
+        self._actions = self.navi_toolbar._actions
+        self._actions["home"] = self.addAction(self.navi_toolbar._icon("home.png"), "", self.navi_toolbar.home)
+        self._actions["back"] = self.addAction(self.navi_toolbar._icon("back.png"), "", self.navi_toolbar.back)
+        self._actions["forward"] = self.addAction(self.navi_toolbar._icon("forward.png"), "", self.navi_toolbar.forward)
+        self.addSeparator()
+        self._actions["drag"] = self.addAction(self.icon("arrow.png"), "", self.setSelect)
+        self._actions["drag"].setCheckable(True)
+        self._actions["pan"] = self.addAction(self.navi_toolbar._icon("move.png"), "", self.setPan)
+        self._actions["pan"].setCheckable(True)
+        self._actions["zoom"] = self.addAction(self.navi_toolbar._icon("zoom_to_rect.png"), "", self.setZoom)
+        self._actions["zoom"].setCheckable(True)
+
+        self.navi_toolbar._active = 'DRAG'
+        self.checkActive()
+
+    def icon(self, name: str):
+        """ get an icon with the given filename """
+        pm = QtGui.QPixmap(os.path.join(os.path.dirname(__file__), "icons", name))
+        if hasattr(pm, 'setDevicePixelRatio'):
+            pm.setDevicePixelRatio(self.canvas._dpi_ratio)
+        return QtGui.QIcon(pm)
+
+    def setSelect(self):
+        """ select the pylustrator selection and drag tool """
+        if self.navi_toolbar._active == 'PAN':
+            self.navi_toolbar.pan()
+        if self.navi_toolbar._active == 'ZOOM':
+            self.navi_toolbar.zoom()
+        self.fig.figure_dragger.activate()
+        self.navi_toolbar._active = 'DRAG'
+        self.checkActive()
+
+    def setPan(self):
+        """ select the mpl pan tool """
+        self.fig.figure_dragger.deactivate()
+        if self.navi_toolbar._active != 'PAN':
+            self.navi_toolbar.pan()
+        self.checkActive()
+
+    def setZoom(self):
+        """ select the mpl zoom tool """
+        self.fig.figure_dragger.deactivate()
+        if self.navi_toolbar._active != 'ZOOM':
+            self.navi_toolbar.zoom()
+        self.checkActive()
+
+    def checkActive(self):
+        """ check which buttons are active """
+        self._actions['drag'].setChecked(self.navi_toolbar._active == 'DRAG')
+        self._actions['pan'].setChecked(self.navi_toolbar._active == 'PAN')
+        self._actions['zoom'].setChecked(self.navi_toolbar._active == 'ZOOM')
