@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# lab_colormap.py
+# jupyter_cells.py
 
-# Copyright (c) 2016-2019, Richard Gerum
+# Copyright (c) 2016-2020, Richard Gerum
 #
 # This file is part of Pylustrator.
 #
