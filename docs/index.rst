@@ -26,6 +26,10 @@ Just get pylustrator over the pip installation:
 
     ``pip install pylustrator``
 
+The package depends on:
+
+numpy, matplotlib, pyqt5, qtpy, qtawesome, scikit-image, natsort
+
 Usage
 -----
 
