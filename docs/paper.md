@@ -63,11 +63,11 @@ Therefore, each change is defined by two parts, the affected object (e.g. a text
 (e.g. its color). If a change has the same object and property as a previous change, it overwrites the previous change.
 
 Changes are converted to code by first, serializing the affected object by iteratively going up the parent-child tree
- from e.g. a text to the axis that contains the text to the figure that contains the axis. From this dependency a python is generated (e.g. `plt.figure(1).axes[0].texts[0]`, the first text of the first axes of figure 1).
+ from e.g. a text to the axis that contains the text to the figure that contains the axis. From this dependency relation a python code segment is generated (e.g. `plt.figure(1).axes[0].texts[0]`, the first text of the first axes of figure 1).
   Then the property command is added (e.g. `.set_color("#ff0000ff")`).
   When saving, ``pylustrator`` introspects its current execution stack to find the line of code from where it was called and inserts the automatically generated code directly before the command calling ``pylustrator``.
    
- When a file with automatically generated code is loaded, ``pylustrator`` splits all the automatically generated lines into the affected objects and affected properties. New changes, where both the affected object and the affected property match a previous change, overwrite the previous change. This ensures that previously generated code can be loaded appropriately, and saving the same figure multiple times does not generate the line of code for this change multiple times.
+ When a file with automatically generated code is loaded (see code example in figure 1), ``pylustrator`` splits all the automatically generated lines into the affected objects and affected properties. New changes, where both the affected object and the affected property match a previous change, overwrite the previous change. This ensures that previously generated code can be loaded appropriately, and saving the same figure multiple times does not generate the line of code for this change multiple times.
   
 It is important to note that the automatically generated code only relies on Matplotlib and does not need the ``pylustrator`` package anymore. Thus, the ``pylustrator`` import can later be removed to allow to share the code without an additional introduced dependency. 
 
