@@ -28,7 +28,7 @@ except FileNotFoundError:
     pass
 
 setup(name='pylustrator',
-      version="0.14.0",
+      version="-v",
       description='Adds interactivity to arrange panels in matplotlib',
       long_description=long_description,
       url='https://bitbucket.org/fabry_biophysics/pylustrator',
