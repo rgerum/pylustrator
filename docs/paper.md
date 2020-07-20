@@ -30,7 +30,7 @@ To address the issue of data availability, researchers are encouraged to make th
 The first part of generating the building blocks of figures, the plots, is already covered in various toolkits, e.g., Matplotlib [@Hunter2007], Bokeh [@Bokeh] or Seaborn [@seaborn]. There already exist some software that records user interactions to generate 3D plots [@ahrens2005paraview,@westenberger2008avizo,@dragonfly], but no convenient Python toolkit is yet available to generate reproducible figures from simple plots scripts. Matplotlib offers figures composed of several subplots, but to create a complete, publication-ready figure a lot of code is needed to add all formatting, annotation and styling commands. Users often prefer graphical tools like image manipulation software, e.g., GIMP [@GIMP] or Inkscape [@Inkscape]. These offer great flexibility, but do not provide a reproducible way of generating figures and bear the risk of accidentally changing data points. It is also important to note that when using an image manipulation software, every small change in the analysis requires re-editing the figure in the image manipulation software. This process slows down the creation of figures and is prone to errors.
 The ``pylustrator`` package was developed to address this issue.
 
-# Algorithm and Exemples
+# Algorithm and Examples
 
 ``Pylustrator`` fills the gap from single plots to complete figures via a code-generation algorithm that converts user input into Python code for reproducible figure assembly (Fig. 1).  Minor changes to the analysis or new data only require re-execution of the code to update the figure.
 
