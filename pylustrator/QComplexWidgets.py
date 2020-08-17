@@ -256,6 +256,164 @@ class TextPropertiesWidget(QtWidgets.QWidget):
                 element.figure.change_tracker.addChange(element, ".set_fontsize(%d)" % value)
             self.target.figure.canvas.draw()
 
+class TextPropertiesWidget2(QtWidgets.QWidget):
+    stateChanged = QtCore.Signal(int, str)
+    propertiesChanged = QtCore.Signal()
+    noSignal = False
+    target_list = None
+
+    def __init__(self, layout: QtWidgets.QLayout):
+        """ A widget to edit the properties of a Matplotlib text
+
+        Args:
+            layout: the layout to which to add the widget
+        """
+        QtWidgets.QWidget.__init__(self)
+        layout.addWidget(self)
+        self.layout = QtWidgets.QHBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+
+        self.buttons_align = []
+        self.align_names = ["left", "center", "right"]
+        for align in self.align_names:
+            button = QtWidgets.QPushButton(qta.icon("fa.align-" + align), "")
+            button.setCheckable(True)
+            button.clicked.connect(lambda x, name=align: self.changeAlign(name))
+            self.layout.addWidget(button)
+            self.buttons_align.append(button)
+
+        self.button_bold = QtWidgets.QPushButton(qta.icon("fa.bold"), "")
+        self.button_bold.setCheckable(True)
+        self.button_bold.clicked.connect(self.changeWeight)
+        self.layout.addWidget(self.button_bold)
+
+        self.button_italic = QtWidgets.QPushButton(qta.icon("fa.italic"), "")
+        self.button_italic.setCheckable(True)
+        self.button_italic.clicked.connect(self.changeStyle)
+        self.layout.addWidget(self.button_italic)
+
+        self.button_color = QColorWidget(self.layout)
+        self.button_color.valueChanged.connect(self.changeColor)
+
+        self.layout.addStretch()
+
+        self.font_size = QtWidgets.QSpinBox()
+        self.layout.addWidget(self.font_size)
+        self.font_size.valueChanged.connect(self.changeFontSize)
+
+        self.label = QtWidgets.QPushButton(qta.icon("fa.font"), "")  # .pixmap(16))
+        self.layout.addWidget(self.label)
+        self.label.clicked.connect(self.selectFont)
+
+        self.property_names = [
+            ("fontsize", "fontsize", int, None),
+            ("fontweight", "fontweight", str, None),
+            ("color", "color", str, None),
+            ("fontstyle", "fontstyle", str, None),
+            ("fontname", "fontname", str, None),
+            ("horizontalalignment", "horizontalalignment", str, None),
+        ]
+
+        self.properties = {}
+
+    def convertMplWeightToQtWeight(self, weight: str) -> int:
+        """ convert a font weight string to a weight enumeration of Qt """
+        weight_dict = {'normal': QtGui.QFont.Normal, 'bold': QtGui.QFont.Bold, 'heavy': QtGui.QFont.ExtraBold,
+                       'light': QtGui.QFont.Light, 'ultrabold': QtGui.QFont.Black, 'ultralight': QtGui.QFont.ExtraLight}
+        if weight in weight_dict:
+            return weight_dict[weight]
+        return weight_dict["normal"]
+
+    def convertQtWeightToMplWeight(self, weight: int) -> str:
+        """ convert a Qt weight value to a string for use in matmplotlib """
+        weight_dict = {QtGui.QFont.Normal: 'normal', QtGui.QFont.Bold: 'bold', QtGui.QFont.ExtraBold: 'heavy',
+                       QtGui.QFont.Light: 'light', QtGui.QFont.Black: 'ultrabold', QtGui.QFont.ExtraLight: 'ultralight'}
+        if weight in weight_dict:
+            return weight_dict[weight]
+        return "normal"
+
+    def selectFont(self):
+        """ open a font select dialog """
+        font0 = QtGui.QFont()
+        font0.setFamily(self.target.get_fontname())
+        font0.setWeight(self.convertMplWeightToQtWeight(self.target.get_weight()))
+        font0.setItalic(self.target.get_style() == "italic")
+        font0.setPointSizeF(self.target.get_fontsize())
+        font, x = QtWidgets.QFontDialog.getFont(font0, self)
+
+        self.properties["fontname"] = font.family()
+        if font.weight() != font0.weight():
+            self.properties["fontweight"] = self.convertQtWeightToMplWeight(font.weight())
+        if font.pointSizeF() != font0.pointSizeF():
+            self.properties["fontsize"] = font.pointSizeF()
+        if font.italic() != font0.italic():
+            style = "italic" if font.italic() else "normal"
+            self.properties["fontstyle"] = style
+
+        self.propertiesChanged.emit()
+        #self.target.figure.canvas.draw()
+        self.setTarget(self.target_list)
+
+    def setTarget(self, element: Artist):
+        """ set the target artist for this widget """
+        if isinstance(element, list):
+            self.target_list = element
+            element = element[0]
+        else:
+            if element is None:
+                self.target_list = []
+            else:
+                self.target_list = [element]
+        self.target = None
+        self.font_size.setValue(element.get_fontsize())
+
+        index_selected = self.align_names.index(element.get_ha())
+        for index, button in enumerate(self.buttons_align):
+            button.setChecked(index == index_selected)
+
+        self.button_bold.setChecked(element.get_weight() == "bold")
+        self.button_italic.setChecked(element.get_style() == "italic")
+        self.button_color.setColor(element.get_color())
+
+        for name, name2, type_, default_ in self.property_names:
+            value = getattr(element, "get_"+name2)()
+            self.properties[name] = value
+
+        self.target = element
+
+    def delete(self):
+        """ delete the target text """
+        if self.target is not None:
+            fig = self.target.figure
+            fig.change_tracker.removeElement(self.target)
+            self.target = None
+            # self.target.set_visible(False)
+            fig.canvas.draw()
+
+    def changeWeight(self, checked: bool):
+        """ set bold or normal """
+        self.properties["fontweight"] = "bold" if checked else "normal"
+        self.propertiesChanged.emit()
+
+    def changeStyle(self, checked: bool):
+        """ set italic or normal """
+        self.properties["fontstyle"] = "italic" if checked else "normal"
+        self.propertiesChanged.emit()
+
+    def changeColor(self, color: str):
+        """ set the text color """
+        self.properties["color"] = color
+        self.propertiesChanged.emit()
+
+    def changeAlign(self, align: str):
+        """ set the text algin """
+        self.properties["horizontalalignment"] = align
+        self.propertiesChanged.emit()
+
+    def changeFontSize(self, value: int):
+        """ set the font size """
+        self.properties["fontsize"] = value
+        self.propertiesChanged.emit()
 
 class LegendPropertiesWidget(QtWidgets.QWidget):
     stateChanged = QtCore.Signal(int, str)
@@ -404,7 +562,8 @@ class QTickEdit(QtWidgets.QWidget):
         self.input_scale = ComboWidget(self.layout, axis + "-Scale", ["linear", "log", "symlog", "logit"])
         self.input_scale.link(axis + "scale", signal_target_changed)
 
-        self.input_font = TextPropertiesWidget(self.layout)
+        self.input_font = TextPropertiesWidget2(self.layout)
+        self.input_font.propertiesChanged.connect(self.fontStateChanged)
 
         self.input_labelpad = NumberWidget(self.layout, axis + "-Labelpad", min=-999)
         self.input_labelpad.link(axis + "axis.labelpad", signal_target_changed, direct=True)
@@ -574,6 +733,29 @@ class QTickEdit(QtWidgets.QWidget):
                 '"' + l + '"' for l in labels), element, ".set_" + self.axis + "labels_minor")
         self.fig.canvas.draw()
 
+    def getFontProperties(self):
+        prop_copy = {}
+        prop_copy2 = {}
+        for index, (name, name2, type_, default_) in enumerate(self.input_font.property_names):
+            if name not in self.input_font.properties:
+                continue
+            value = self.input_font.properties[name]
+            if default_ is not None and value == default_:
+                continue
+            #if default_ is None and value == plt.rcParams["legend." + name]:
+            #    continue
+            if type_ == str:
+                prop_copy[name] = '"' + value + '"'
+            else:
+                prop_copy[name] = value
+            prop_copy2[name] = value
+        return (", ".join("%s=%s" % (k, v) for k, v in prop_copy.items())), prop_copy2
+
+    def fontStateChanged(self):
+        self.ticksChanged()
+        #fig.change_tracker.addChange(axes, ".legend(%s)" % (", ".join("%s=%s" % (k, v) for k, v in prop_copy.items())))
+
+
     def ticksChanged(self):
         """ when the major ticks changed """
         ticks, labels = self.parseTicks(self.input_ticks.text())
@@ -585,7 +767,7 @@ class QTickEdit(QtWidgets.QWidget):
         for element in elements:
             getattr(element, "set_" + self.axis + "lim")(self.range)
             getattr(element, "set_" + self.axis + "ticks")(ticks)
-            getattr(element, "set_" + self.axis + "ticklabels")(labels)
+            getattr(element, "set_" + self.axis + "ticklabels")(labels, **self.getFontProperties()[1])
             min, max = getattr(element, "get_" + self.axis + "lim")()
             if min != self.range[0] or max != self.range[1]:
                 self.fig.change_tracker.addChange(element,
@@ -598,8 +780,8 @@ class QTickEdit(QtWidgets.QWidget):
             # self.setTarget(self.element)
             self.fig.change_tracker.addChange(element, ".set_" + self.axis + "ticks([%s])" % ", ".join(
                 self.str(t) for t in ticks))
-            self.fig.change_tracker.addChange(element, ".set_" + self.axis + "ticklabels([%s])" % ", ".join(
-                '"' + l + '"' for l in labels))
+            self.fig.change_tracker.addChange(element, ".set_" + self.axis + "ticklabels([%s], %s)" % (", ".join(
+                '"' + l + '"' for l in labels), self.getFontProperties()[0]))
         self.fig.canvas.draw()
 
 
