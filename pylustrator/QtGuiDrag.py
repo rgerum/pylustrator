@@ -90,7 +90,7 @@ def initialize(use_global_variable_names=False):
     Figure.savefig = savefig
 
     # iterate over figures
-    for fig_number in _pylab_helpers.Gcf.figs:
+    for fig_number in _pylab_helpers.Gcf.figs.copy():
         fig_old = plt.figure(fig_number)
         fig = plt.figure(fig_number, force_add=True)
         convertFromPyplot(fig_old, fig)
@@ -108,7 +108,7 @@ def show(hide_window: bool = False):
         myappid = 'rgerum.pylustrator'  # arbitrary string
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
     # iterate over figures
-    for figure in _pylab_helpers.Gcf.figs:
+    for figure in _pylab_helpers.Gcf.figs.copy():
         # get variable names that point to this figure
         if setting_use_global_variable_names:
             setFigureVariableNames(figure)
