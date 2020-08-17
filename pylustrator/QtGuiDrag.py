@@ -32,6 +32,7 @@ from .change_tracker import setFigureVariableNames
 from .drag_helper import DragManager
 from .exception_swallower import swallow_get_exceptions
 from .matplotlibwidget import MatplotlibWidget
+from .helper_functions import convertFromPyplot
 
 
 def my_excepthook(type, value, tback):
@@ -87,6 +88,13 @@ def initialize(use_global_variable_names=False):
         sf(self, filename, *args, **kwargs)
 
     Figure.savefig = savefig
+
+    # iterate over figures
+    for fig_number in _pylab_helpers.Gcf.figs:
+        fig_old = plt.figure(fig_number)
+        fig = plt.figure(fig_number, force_add=True)
+        convertFromPyplot(fig_old, fig)
+        plt.close(fig_old)
 
 
 def show(hide_window: bool = False):
@@ -146,14 +154,14 @@ def patchColormapsWithMetaInfo():
     Colormap.__call__ = new_call
 
 
-def figure(num=None, figsize=None, *args, **kwargs):
+def figure(num=None, figsize=None, force_add=False, *args, **kwargs):
     """ overloads the matplotlib figure call and wrapps the Figure in a PlotWindow """
     global figures
     # if num is not defined create a new number
     if num is None:
         num = len(_pylab_helpers.Gcf.figs) + 1
     # if number is not defined
-    if num not in _pylab_helpers.Gcf.figs.keys():
+    if force_add or num not in _pylab_helpers.Gcf.figs.keys():
         # create a new window and store it
         canvas = PlotWindow(num, figsize, *args, **kwargs).canvas
         canvas.figure.number = num

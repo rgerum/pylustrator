@@ -324,6 +324,24 @@ def loadFigureFromFile(filename: str, figure: Figure = None, offset: list = None
             addContentToFigure(figure, axes2)
 
 
+# helper_functions.py
+def convertFromPyplot(old, new):
+
+    w, h = old.get_size_inches()
+    new.set_size_inches(w, h)
+
+    str(new)  # important! (for some reason I don't know)
+    for ax in old.axes:
+        old.delaxes(ax)
+        new._axstack.add(new._make_key(ax), ax)
+        new.bbox._parents.update(old.bbox._parents)
+        new.dpi_scale_trans._parents.update(old.dpi_scale_trans._parents)
+        replace_all_refs(old.bbox, new.bbox)
+        replace_all_refs(old.dpi_scale_trans, new.dpi_scale_trans)
+        replace_all_refs(old.canvas, new.canvas)
+        replace_all_refs(old, new)
+
+
 def mark_inset(parent_axes: Axes, inset_axes: Axes, loc1: Union[int, Sequence[int]] = 1, loc2: Union[int, Sequence[int]] = 2, **kwargs):
     """ like the mark_inset function from matplotlib, but loc can also be a tuple """
     from mpl_toolkits.axes_grid1.inset_locator import TransformedBbox, BboxPatch, BboxConnector
