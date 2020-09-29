@@ -41,6 +41,18 @@ from .exception_swallower import Dummy
 from .jupyter_cells import open
 
 
+""" External overload """
+class CustomStackPosition:
+    filename = None
+    lineno = None
+    def __init__(self, filename, lineno):
+        self.filename = filename
+        self.lineno = lineno
+custom_stack_position = None
+custom_prepend = ""
+custom_append = ""
+
+
 def getReference(element: Artist, allow_using_variable_names=True):
     """ get the code string that represents the given Artist. """
     if element is None:
@@ -156,7 +168,10 @@ class ChangeTracker:
             axes.number = index
 
         # store the position where StartPylustrator was called
-        stack_position = traceback.extract_stack()[-4]
+        if custom_stack_position is None:
+            stack_position = traceback.extract_stack()[-4]
+        else:
+            stack_position = custom_stack_position
 
         self.fig_inch_size = self.figure.get_size_inches()
 
@@ -350,7 +365,7 @@ class ChangeTracker:
             self.figure) + ".axes}", "import matplotlib as mpl"]
 
         # block = getTextFromFile(header[0], self.stack_position)
-        output = ["#% start: automatic generated code from pylustrator"]
+        output = [custom_prepend + "#% start: automatic generated code from pylustrator"]
         # add the lines from the header
         for line in header:
             output.append(line)
@@ -359,7 +374,7 @@ class ChangeTracker:
             output.append(line)
             if line.startswith("fig.add_axes"):
                 output.append(header[1])
-        output.append("#% end: automatic generated code from pylustrator")
+        output.append("#% end: automatic generated code from pylustrator" + custom_append)
         # print("\n".join(output))
 
         block_id = getReference(self.figure)
@@ -376,8 +391,9 @@ def getTextFromFile(block_id: str, stack_pos: traceback.FrameSummary):
     block_id = lineToId(block_id)
     block = None
 
-    if not stack_pos.filename.endswith('.py') and not stack_pos.filename.startswith("<ipython-input-"):
-        raise RuntimeError("pylustrator must used in a python file (*.py) or a jupyter notebook; not a shell session.")
+    if not custom_stack_position:
+        if not stack_pos.filename.endswith('.py') and not stack_pos.filename.startswith("<ipython-input-"):
+            raise RuntimeError("pylustrator must used in a python file (*.py) or a jupyter notebook; not a shell session.")
 
     with open(stack_pos.filename, 'r', encoding="utf-8") as fp1:
         for lineno, line in enumerate(fp1, start=1):
@@ -386,10 +402,10 @@ def getTextFromFile(block_id: str, stack_pos: traceback.FrameSummary):
                 # add the line to the block
                 block.add(line)
                 # and see if we have found the end
-                if line.strip().startswith("#% end:"):
+                if line.strip().startswith("#% end:") and line.strip().endswith(custom_append):
                     block.end()
             # if there is a new pylustrator block
-            elif line.strip().startswith("#% start:"):
+            elif line.strip().startswith(custom_prepend + "#% start:"):
                 block = Block(line)
 
             # if we are currently reading a block, continue with the next line
@@ -480,11 +496,11 @@ def insertTextToFile(new_block: str, stack_pos: traceback.FrameSummary, figure_i
                     # add the line to the block
                     block.add(line)
                     # and see if we have found the end
-                    if line.strip().startswith("#% end:"):
+                    if line.strip().startswith("#% end:") and line.strip().endswith(custom_append):
                         block.end()
                         line = ""
                 # if there is a new pylustrator block
-                elif line.strip().startswith("#% start:"):
+                elif line.strip().startswith(custom_prepend + "#% start:"):
                     block = Block(line)
 
                 # if we are currently reading a block, continue with the next line

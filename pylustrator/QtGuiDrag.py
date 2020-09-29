@@ -75,8 +75,8 @@ def initialize(use_global_variable_names=False):
     plt.figure = figure
     patchColormapsWithMetaInfo()
 
-    stack_call_position = traceback.extract_stack()[-2]
-    stack_call_position.filename
+    #stack_call_position = traceback.extract_stack()[-2]
+    #stack_call_position.filename
 
     plt.keys_for_lines = keys_for_lines
 
@@ -1123,3 +1123,4 @@ class PlotWindow(QtWidgets.QWidget):
                 event.ignore()
             if reply == QtWidgets.QMessageBox.Yes:
                 self.fig.change_tracker.save()
+                # app.clipboard().setText("\r\n".join(output))
