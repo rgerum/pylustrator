@@ -249,6 +249,7 @@ class ChangeTracker:
 
         fig = self.figure
         header = []
+        header += ["from matplotlib import pyplot as plt"]
         header += ["fig = plt.figure(%s)" % self.figure.number]
         header += ["import matplotlib as mpl"]
 
