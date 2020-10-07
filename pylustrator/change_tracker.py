@@ -338,8 +338,14 @@ class ChangeTracker:
                             index = "0"
                         elif reference_command == ".set_xscale" or reference_command == ".set_yscale":
                             index = "1"
-                        else:
+                        elif reference_command == ".set_xlim" or reference_command == ".set_ylim":
                             index = "2"
+                        elif reference_command == ".set_xticks" or reference_command == ".set_yticks":
+                            index = "3"
+                        elif reference_command == ".set_xticklabels" or reference_command == ".set_yticklabels":
+                            index = "4"
+                        else:
+                            index = "5"
                         obj_indices = (getRef(reference_obj.axes), getRef(reference_obj), index, reference_command)
                     else:
                         obj_indices = (getRef(reference_obj), "", "", reference_command)
