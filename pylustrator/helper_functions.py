@@ -535,3 +535,84 @@ def add_letters(*args, **kwargs):
     """ add a letter indicating which subplot it is to all of the axes of the given figure """
     for ax in plt.gcf().axes:
         add_letter(ax, *args, **kwargs)
+
+
+def axes_to_grid(axes=None):
+    # get the axes list
+    if axes is None:
+        fig = plt.gcf()
+        axes = fig.axes
+
+    # get width and heights
+    width = np.mean([ax.get_position().width for ax in axes])
+    height = np.mean([ax.get_position().height for ax in axes])
+    dims = [width, height]
+
+    # group the axes to positions on a grid
+    pos = [[], []]
+    axes_indices = []
+    for ax in fig.axes:
+        center = np.mean(ax.get_position().get_points(), axis=0)
+        new_indices = [0, 0]
+        for i in [0, 1]:
+            d = np.abs(pos[i] - center[i])
+            print(d, pos[i], center[i])
+            if len(d) == 0 or np.min(d) > dims[i]/2:
+                pos[i].append(center[i])
+                new_indices[i] = len(pos[i])-1
+            else:
+                new_indices[i] = np.argmin(d)
+        axes_indices.append(new_indices)
+    # sort the indices
+    pos = np.array(pos)
+    for i in [0, 1]:
+        sorted_indices = np.argsort(pos[i], axis=0)
+        for indices in axes_indices:
+            indices[i] = sorted_indices[indices[i]]
+
+    # the count of plots
+    x_count = np.max([i[0] for i in axes_indices])
+    y_count = np.max([i[1] for i in axes_indices])
+
+    # extent of the whole plot area
+    x_min = np.min([ax.get_position().get_points()[0][0] for ax in axes])
+    x_max = np.max([ax.get_position().get_points()[1][0] for ax in axes])
+    y_min = np.min([ax.get_position().get_points()[0][1] for ax in axes])
+    y_max = np.max([ax.get_position().get_points()[1][1] for ax in axes])
+
+    # the space between plots
+    if x_count == 0:
+        x_gap = 0
+    else:
+        x_gap = ((x_max-x_min)-(x_count+1)*width)/x_count
+    if y_count == 0:
+        y_gap = 0
+    else:
+        y_gap = ((y_max-y_min)-(y_count+1)*height)/y_count
+
+    # make all the plots the same size and align them on the grid
+    for i, ax in enumerate(axes):
+        ax.set_position([x_min+axes_indices[i][0] * (width+x_gap),
+                        y_min+axes_indices[i][1] * (height + y_gap),
+                        width,
+                        height,
+                        ])
+
+    # make all the plots have the same limits
+    xmin = np.min([ax.get_xlim()[0] for ax in axes])
+    xmax = np.max([ax.get_xlim()[1] for ax in axes])
+    ymin = np.min([ax.get_ylim()[0] for ax in axes])
+    ymax = np.max([ax.get_ylim()[1] for ax in axes])
+    for ax in axes:
+        ax.set_xlim(xmin, xmax)
+        ax.set_ylim(ymin, ymax)
+
+    # hide ticks and labels on plots that are not on the left or bottom
+    for i, ax in enumerate(axes):
+        if axes_indices[i][0] != 0:
+            ax.set_ylabel("")
+            ax.set_yticklabels([])
+        if axes_indices[i][1] != 0:
+            ax.set_xlabel("")
+            ax.set_xticklabels([])
+        despine(ax)
