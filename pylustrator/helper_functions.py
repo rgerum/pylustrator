@@ -551,12 +551,11 @@ def axes_to_grid(axes=None):
     # group the axes to positions on a grid
     pos = [[], []]
     axes_indices = []
-    for ax in fig.axes:
+    for ax in axes:
         center = np.mean(ax.get_position().get_points(), axis=0)
         new_indices = [0, 0]
         for i in [0, 1]:
             d = np.abs(pos[i] - center[i])
-            print(d, pos[i], center[i])
             if len(d) == 0 or np.min(d) > dims[i]/2:
                 pos[i].append(center[i])
                 new_indices[i] = len(pos[i])-1

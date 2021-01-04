@@ -1,5 +1,24 @@
-# translated from
-# https://github.com/colinmeinke/svg-arc-to-cubic-bezier/blob/master/src/index.js
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# arc2bez.py
+
+# Copyright (c) 2016-2020, Richard Gerum
+#
+# This file is part of Pylustrator.
+#
+# Pylustrator is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Pylustrator is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
+
 import numpy as np
 
 def mapToEllipse(pos, rx, ry, cosphi, sinphi, centerx, centery):
