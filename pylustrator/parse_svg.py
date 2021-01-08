@@ -293,6 +293,12 @@ def patch_rect(node: minidom.Element, trans: mtransforms.Transform, style: dict,
     """ draw a svg rectangle node as a rectangle patch element into the figure (with the given transformation and style) """
     if node.getAttribute("d") != "":
         return patch_path(node, trans, style, ids)
+    if node.getAttribute("ry") != "" and node.getAttribute("ry") != 0:
+        return mpatches.FancyBboxPatch(xy=(float(node.getAttribute("x")), float(node.getAttribute("y"))),
+                                       width=float(node.getAttribute("width")),
+                                       height=float(node.getAttribute("height")),
+                                       boxstyle=mpatches.BoxStyle.Round(0, float(node.getAttribute("ry"))),
+                                       transform=trans)
     return mpatches.Rectangle(xy=(float(node.getAttribute("x")), float(node.getAttribute("y"))),
                               width=float(node.getAttribute("width")),
                               height=float(node.getAttribute("height")),
@@ -345,6 +351,8 @@ def plt_draw_text(node: minidom.Element, trans: mtransforms.Transform, style: di
             part_id = ""
         else:
             part_id = node.getAttribute("id")
+            if child.firstChild is None:
+                continue
             partial_content = child.firstChild.nodeValue
             style_child = get_inline_style(child, get_css_style(child, ids["css"], style))
             pos_child = pos.copy()
@@ -536,6 +544,8 @@ def patch_path(node: minidom.Element, trans: mtransforms.Transform, style: dict,
 
     patch_list = []
 
+    if len(verts) == 0:
+        return patch_list
     path = mpath.Path(verts, codes)
     patch_list.append(mpatches.PathPatch(path, transform=trans))
 
