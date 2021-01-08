@@ -564,7 +564,7 @@ def svgUnitToMpl(unit: str, default=None) -> float:
     import re
     if unit == "":
         return default
-    match = re.match(r"^([-.\d]*)(\w*)$", unit)
+    match = re.match(r"^([-.\d]*)(\w*).*$", unit)
     if match:
         value, unit = match.groups()
         value = float(value)
