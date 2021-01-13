@@ -537,7 +537,7 @@ def add_letters(*args, **kwargs):
         add_letter(ax, *args, **kwargs)
 
 
-def axes_to_grid(axes=None):
+def axes_to_grid(axes=None, track_changes=False):
     # get the axes list
     if axes is None:
         fig = plt.gcf()
@@ -596,6 +596,8 @@ def axes_to_grid(axes=None):
                         width,
                         height,
                         ])
+        if track_changes is True:
+            ax.figure.change_tracker.addChange(ax, ".set_position([%f, %f, %f, %f])" % (x_min+axes_indices[i][0] * (width+x_gap), y_min+axes_indices[i][1] * (height + y_gap), width, height))
 
     # make all the plots have the same limits
     xmin = np.min([ax.get_xlim()[0] for ax in axes])
@@ -611,7 +613,16 @@ def axes_to_grid(axes=None):
         if axes_indices[i][0] != 0:
             ax.set_ylabel("")
             ax.set_yticklabels([])
+            if track_changes is True:
+                ax.figure.change_tracker.addChange(ax, ".set_ylabel('')")
+                ax.figure.change_tracker.addChange(ax, ".set_yticklabels([])")
         if axes_indices[i][1] != 0:
             ax.set_xlabel("")
             ax.set_xticklabels([])
+            if track_changes is True:
+                ax.figure.change_tracker.addChange(ax, ".set_xlabel('')")
+                ax.figure.change_tracker.addChange(ax, ".set_xticklabels([])")
         despine(ax)
+        if track_changes is True:
+            ax.figure.change_tracker.addChange(ax, ".spines['right'].set_visible(False)")
+            ax.figure.change_tracker.addChange(ax, ".spines['top'].set_visible(False)")

@@ -198,6 +198,10 @@ class GrabbableRectangleSelection(GrabFunctions):
         if len(self.targets) == 0:
             return
 
+        if mode == "group":
+            from pylustrator.helper_functions import axes_to_grid
+            return axes_to_grid([target.target for target in self.targets], track_changes=True)
+
         def align(y: int, func: callable):
             centers = []
             for target in self.targets:
