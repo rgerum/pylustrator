@@ -27,6 +27,8 @@ import matplotlib.transforms as transforms
 import numpy as np
 from matplotlib.artist import Artist
 from matplotlib.figure import Figure
+from matplotlib.text import Text
+from matplotlib.axes import Axes
 from qtpy import QtCore, QtWidgets, QtGui
 
 
@@ -60,11 +62,26 @@ class Linkable:
             self.serializeLinkedProperty = lambda x: "." + property_name + " = %s" % x
         else:
             def set(v):
+                # special treatment for the xylabels, as they are not directly the target objects
+                label_object = None
+                if isinstance(self.element, Text) and isinstance(self.element.figure.selection.targets[0].target, Axes):
+                    for elm in self.element.figure.selection.targets:
+                        elm = elm.target
+                        if self.element == getattr(getattr(elm, f"get_xaxis")(), "get_label")():
+                            label_object = "x"
+                            break
+                        if self.element == getattr(getattr(elm, f"get_yaxis")(), "get_label")():
+                            label_object = "y"
+                            break
+
                 elements = []
                 getattr(self.element, "set_" + property_name)(v)
                 elements.append(self.element)
                 for elm in self.element.figure.selection.targets:
                     elm = elm.target
+                    # special treatment for the xylabels, as they are not directly the target objects
+                    if label_object is not None:
+                        elm = getattr(getattr(elm, f"get_{label_object}axis")(), "get_label")()
                     if elm != self.element:
                         try:
                             getattr(elm, "set_" + property_name, None)(v)

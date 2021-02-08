@@ -614,13 +614,13 @@ def axes_to_grid(axes=None, track_changes=False):
             ax.set_ylabel("")
             ax.set_yticklabels([])
             if track_changes is True:
-                ax.figure.change_tracker.addChange(ax, ".set_ylabel('')")
+                ax.figure.change_tracker.addChange(ax, ".get_yaxis().get_label().set_text('')")
                 ax.figure.change_tracker.addChange(ax, ".set_yticklabels([])")
         if axes_indices[i][1] != 0:
             ax.set_xlabel("")
             ax.set_xticklabels([])
             if track_changes is True:
-                ax.figure.change_tracker.addChange(ax, ".set_xlabel('')")
+                ax.figure.change_tracker.addChange(ax, ".get_xaxis().get_label().set_text('')")
                 ax.figure.change_tracker.addChange(ax, ".set_xticklabels([])")
         despine(ax)
         if track_changes is True:
