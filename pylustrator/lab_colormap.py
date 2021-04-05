@@ -67,7 +67,7 @@ class LabColormap(ListedColormap):
         stops = self.get_stops()
         for j in range(len(self.init_colors) - 1):
             # interpolate between stops in lab
-            for i in np.linspace(stops[j], stops[j + 1], self.N / (len(stops) - 1)):
+            for i in np.linspace(stops[j], stops[j + 1], int(self.N / (len(stops) - 1))):
                 colors.append(lab_colors[j] * (1 - i) + i * lab_colors[j + 1])
         # convert back to rgb
         self.colors = convert_lab2rgb(colors)
