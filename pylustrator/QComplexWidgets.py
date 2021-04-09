@@ -356,6 +356,8 @@ class TextPropertiesWidget2(QtWidgets.QWidget):
 
     def setTarget(self, element: Artist):
         """ set the target artist for this widget """
+        if len(element) == 0:
+            return
         if isinstance(element, list):
             self.target_list = element
             element = element[0]
@@ -640,7 +642,7 @@ class QTickEdit(QtWidgets.QWidget):
             try:
                 l = float(l)
             except ValueError:
-                pass
+                continue
             if min <= t <= max:
                 if l != t:
                     text.append("%s \"%s\"" % (str(t), l_text))
@@ -691,8 +693,9 @@ class QTickEdit(QtWidgets.QWidget):
                 except ValueError as err:
                     pass
                 else:
-                    ticks.append(tick)
-                    labels.append(label)
+                    if not np.isnan(tick):
+                        ticks.append(tick)
+                        labels.append(label)
         except Exception as err:
             pass
         return ticks, labels

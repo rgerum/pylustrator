@@ -124,7 +124,7 @@ def addChildren(color_artists: list, parent: Artist):
                 continue
 
             # convert to array
-            if not (isinstance(colors, np.ndarray) and len(colors.shape) > 1):
+            if not (isinstance(colors, np.ndarray) and len(colors.shape) > 1) and not isinstance(colors, list):
                 colors = [colors]
 
             # iterate over the colors
