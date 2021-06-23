@@ -1188,7 +1188,8 @@ class QItemProperties(QtWidgets.QWidget):
         elements = [element.target for element in self.element.figure.selection.targets
                     if isinstance(element.target, Axes)]
         for element in elements:
-            if self.element.xaxis._gridOnMajor:
+            # _gridOnMajor for older matplotlib version (<=3.3.2) or _major_tick_kw["gridOn"] for newer matplotlib version (>=3.3.4)
+            if getattr(self.element.xaxis, "_gridOnMajor", False) or getattr(self.element.xaxis, "_major_tick_kw", {"gridOn": False})['gridOn']:
                 element.grid(False)
                 self.fig.change_tracker.addChange(element, ".grid(False)")
             else:
