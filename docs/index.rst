@@ -99,8 +99,7 @@ Citing Pylustrator
 
 If you use Pylustrator for your publications I would highly appreciate it if you cite the Pylustrator:
 
-* Gerum, R., (2020). **pylustrator: code generation for reproducible figures for publication**. Journal of Open Source Software, 5(51), 1989.
-`doi.org/10.21105/joss.01989 <https://doi.org/10.21105/joss.01989>`_.
+* Gerum, R., (2020). **pylustrator: code generation for reproducible figures for publication**. Journal of Open Source Software, 5(51), 1989. `doi:10.21105/joss.01989 <https://doi.org/10.21105/joss.01989>`_
 
 
 License
