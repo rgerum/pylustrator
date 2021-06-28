@@ -131,13 +131,30 @@ def addContentToFigure(fig: Figure, axes: Sequence):
             fig.texts.append(ax)
 
 
-def imShowFullFigure(im: np.ndarray, filename: str, fig1: Figure, dpi: int):
+def check_label_exists(fig, label):
+    for ax in fig.axes:
+        if ax.get_label() == label:
+            return True
+    return False
+
+
+def get_unique_label(fig1, label_base):
+    label = label_base
+    for i in range(9999):
+        if check_label_exists(fig1, label):
+            label = f"{label_base}_{i}"
+        else:
+            break
+    return label
+
+
+def imShowFullFigure(im: np.ndarray, filename: str, fig1: Figure, dpi: int, label: str):
     """ create a new axes and display an image in this axes """
     from matplotlib import rcParams
     if dpi is None:
         dpi = rcParams['figure.dpi']
     fig1.set_size_inches(im.shape[1] / dpi, im.shape[0] / dpi)
-    ax = plt.axes([0, 0, 1, 1], label=filename)
+    ax = plt.axes([0, 0, 1, 1], label=label)
     plt.imshow(im, cmap="gray")
     plt.xticks([])
     plt.yticks([])
@@ -161,7 +178,7 @@ class changeFolder:
         os.chdir(self.old_dir)
 
 
-def loadFigureFromFile(filename: str, figure: Figure = None, offset: list = None, dpi: int = None, cache: bool = False):
+def loadFigureFromFile(filename: str, figure: Figure = None, offset: list = None, dpi: int = None, cache: bool = False, label: str = ""):
     """
     Add contents to the current figure from the file defined by filename. It can be either a python script defining
     a figure, an image (filename or directly the numpy array), or an svg file.
@@ -184,6 +201,9 @@ def loadFigureFromFile(filename: str, figure: Figure = None, offset: list = None
     from matplotlib import rcParams
     from pylustrator import changeFigureSize
     import pylustrator
+
+    if label is "":
+        label = get_unique_label(figure if figure is not None else plt.gcf(), filename)
 
     # change to the directory of the filename (to execute the code relative to this directory)
     dirname, filename = os.path.split(filename)
@@ -255,7 +275,7 @@ def loadFigureFromFile(filename: str, figure: Figure = None, offset: list = None
         # if it is an image, just display the image
         if im is not None:
             im = plt.imread(filename)
-            imShowFullFigure(im, os.path.split(filename)[1], figure, dpi=dpi)
+            imShowFullFigure(im, os.path.split(filename)[1], figure, dpi=dpi, label=label)
         # if the image is a numpy array, just display the array
         elif isinstance(filename, np.ndarray):
             im = filename
