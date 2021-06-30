@@ -84,7 +84,7 @@ def initialize(use_global_variable_names=False):
     sf = Figure.savefig
 
     def savefig(self, filename, *args, **kwargs):
-        self._last_saved_figure = filename
+        self._last_saved_figure = getattr(self, "_last_saved_figure", []) + [(filename, args, kwargs)]
         sf(self, filename, *args, **kwargs)
 
     Figure.savefig = savefig
@@ -798,15 +798,12 @@ class PlotWindow(QtWidgets.QWidget):
     def actionSave(self):
         """ save the code for the figure """
         self.fig.change_tracker.save()
-        if getattr(self.fig, "_last_saved_figure", None):
-            if os.path.splitext(self.fig._last_saved_figure)[1] == ".pdf":
-                self.fig.savefig(self.fig._last_saved_figure, dpi=300)
-            else:
-                self.fig.savefig(self.fig._last_saved_figure)
+        for _last_saved_figure, args, kwargs in getattr(self.fig, "_last_saved_figure", []):
+            self.fig.savefig(_last_saved_figure, *args, **kwargs)
 
     def actionSaveImage(self):
         """ save figure as an image """
-        path = QtWidgets.QFileDialog.getSaveFileName(self, "Save Image", getattr(self.fig, "_last_saved_figure", None),
+        path = QtWidgets.QFileDialog.getSaveFileName(self, "Save Image", getattr(self.fig, "_last_saved_figure", [(None,)])[0][0],
                                                      "Images (*.png *.jpg *.pdf)")
         if isinstance(path, tuple):
             path = str(path[0])
