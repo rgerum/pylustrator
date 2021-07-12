@@ -125,7 +125,10 @@ def addContentToFigure(fig: Figure, axes: Sequence):
     index = len(fig._axstack.as_list())
     for ax in axes:
         if isinstance(ax, Axes):
-            fig._axstack.add(index, ax)
+            try:  # old matplotlib
+                fig._axstack.add(index, ax)
+            except TypeError:  # newer matplotlib
+                fig._axstack.add(ax)
             index += 1
         else:
             fig.texts.append(ax)
@@ -202,7 +205,7 @@ def loadFigureFromFile(filename: str, figure: Figure = None, offset: list = None
     from pylustrator import changeFigureSize
     import pylustrator
 
-    if label is "":
+    if label == "":
         label = get_unique_label(figure if figure is not None else plt.gcf(), filename)
 
     # change to the directory of the filename (to execute the code relative to this directory)
