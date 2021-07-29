@@ -52,6 +52,21 @@ custom_stack_position = None
 custom_prepend = ""
 custom_append = ""
 
+escape_pairs = [
+    ("\\", "\\\\"),
+    ("\n", "\\n"),
+    ("\r", "\\r"),
+    ("\"", "\\\""),
+]
+def escape_string(str):
+    for pair in escape_pairs:
+        str = str.replace(pair[0], pair[1])
+    return str
+
+def unescape_string(str):
+    for pair in escape_pairs:
+        str = str.replace(pair[1], pair[0])
+    return str
 
 def getReference(element: Artist, allow_using_variable_names=True):
     """ get the code string that represents the given Artist. """
@@ -126,7 +141,7 @@ def getReference(element: Artist, allow_using_variable_names=True):
 
     if isinstance(element, matplotlib.axes._axes.Axes):
         if element.get_label():
-            return getReference(element.figure) + ".ax_dict[\"%s\"]" % element.get_label()
+            return getReference(element.figure) + ".ax_dict[\"%s\"]" % escape_string(element.get_label())
         return getReference(element.figure) + ".axes[%d]" % element.number
 
     if isinstance(element, matplotlib.legend.Legend):
