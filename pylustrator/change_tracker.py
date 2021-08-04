@@ -381,7 +381,7 @@ class ChangeTracker:
 
         return output
 
-    def save(self, output_file):
+    def save(self, output_file, placeholder):
         """ save the changes to the .py file """
         header = [getReference(self.figure) + ".ax_dict = {ax.get_label(): ax for ax in " + getReference(
             self.figure) + ".axes}", "import matplotlib as mpl"]
@@ -404,7 +404,7 @@ class ChangeTracker:
         if not block:
             block_id = getReference(self.figure, allow_using_variable_names=False)
             block = getTextFromFile(block_id, stack_position)
-        insertTextToFile(output, stack_position, block_id, output_file)
+        insertTextToFile(output, stack_position, block_id, output_file, placeholder)
         self.saved = True
 
 
@@ -499,7 +499,7 @@ def lineToId(line: str):
     return line
 
 
-def insertTextToFile(new_block: str, stack_pos: traceback.FrameSummary, figure_id_line: str, output_file: str):
+def insertTextToFile(new_block: str, stack_pos: traceback.FrameSummary, figure_id_line: str, output_file: str, placeholder: str):
     """ insert a text block into a file """
     figure_id_line = lineToId(figure_id_line)
     block = None
@@ -578,13 +578,16 @@ def insertTextToFile(new_block: str, stack_pos: traceback.FrameSummary, figure_i
         # now copy the temporary file over the new file
         with open(stack_pos.filename + ".tmp", 'r', encoding="utf-8") as fp2:
             with open(output_file, 'w', encoding="utf-8") as fp1:
-                # write the import and plotting
-                fp1.write("import matplotlib.pyplot as plt\nplt.figure(1)\n")
-                # write the plotted data into the file
-                line = plt.gca().get_lines()[0]
-                xd = line.get_xdata()
-                yd = line.get_ydata()
-                fp1.write("plt.plot({},{})\n".format(str(xd).replace(" ",","), str(yd).replace(" ",",")))
+                if not placeholder:
+                    # write the import and plotting
+                    fp1.write("import matplotlib.pyplot as plt\nplt.figure(1)\n")
+                    # write the plotted data into the file
+                    line = plt.gca().get_lines()[0]
+                    xd = line.get_xdata()
+                    yd = line.get_ydata()
+                    fp1.write("plt.plot({},{})\n".format(str(xd).replace(" ", ","), str(yd).replace(" ", ",")))
+                else:
+                    fp1.write(placeholder)
                 # write only the changes made by pylustrator into the plot
                 start_writing = False
                 for line in fp2:

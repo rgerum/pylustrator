@@ -5,9 +5,15 @@ import pylustrator
 
 pylustrator.start()
 
-plt.figure(output_file="thisisatest.py")
-plt.plot([1,2,3],[1,2,3])
+a = [1,2,3]
+b = [1,2,3]
+
+plt.figure(
+    output_file="thisisatest.py",
+    placeholder="import matplotlib\nplt.plot({},{})".format(
+        str(a).replace(" ",","),str(b).replace(" ",",")
+    )
+)
 
 
 plt.show()
-
