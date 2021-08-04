@@ -154,7 +154,7 @@ def patchColormapsWithMetaInfo():
     Colormap.__call__ = new_call
 
 
-def figure(num=None, figsize=None, force_add=False, *args, **kwargs):
+def figure(num=None, figsize=None, force_add=False, output_file: str = "source", *args, **kwargs):
     """ overloads the matplotlib figure call and wrapps the Figure in a PlotWindow """
     global figures
     # if num is not defined create a new number
@@ -163,7 +163,7 @@ def figure(num=None, figsize=None, force_add=False, *args, **kwargs):
     # if number is not defined
     if force_add or num not in _pylab_helpers.Gcf.figs.keys():
         # create a new window and store it
-        canvas = PlotWindow(num, figsize, *args, **kwargs).canvas
+        canvas = PlotWindow(num, figsize, output_file, *args, **kwargs).canvas
         canvas.figure.number = num
         canvas.figure.clf()
         canvas.manager.num = num
@@ -640,13 +640,15 @@ class Align(QtWidgets.QWidget):
 class PlotWindow(QtWidgets.QWidget):
     fitted_to_view = False
 
-    def __init__(self, number: int, size: tuple):
+    def __init__(self, number: int, size: tuple, output_file: str):
         """ The main window of pylustrator
 
         Args:
             number: the id of the figure
             size: the size of the figure
+            output_file: destination for generated code. Defaults to the source file.
         """
+        self.output_file = output_file
         QtWidgets.QWidget.__init__(self)
 
         self.canvas_canvas = QtWidgets.QWidget()
@@ -797,7 +799,7 @@ class PlotWindow(QtWidgets.QWidget):
 
     def actionSave(self):
         """ save the code for the figure """
-        self.fig.change_tracker.save()
+        self.fig.change_tracker.save(self.output_file)
         for _last_saved_figure, args, kwargs in getattr(self.fig, "_last_saved_figure", []):
             self.fig.savefig(_last_saved_figure, *args, **kwargs)
 

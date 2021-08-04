@@ -22,6 +22,7 @@
 import re
 import sys
 import traceback
+import os
 from typing import IO
 
 import matplotlib
@@ -380,7 +381,7 @@ class ChangeTracker:
 
         return output
 
-    def save(self):
+    def save(self, output_file):
         """ save the changes to the .py file """
         header = [getReference(self.figure) + ".ax_dict = {ax.get_label(): ax for ax in " + getReference(
             self.figure) + ".axes}", "import matplotlib as mpl"]
@@ -403,7 +404,7 @@ class ChangeTracker:
         if not block:
             block_id = getReference(self.figure, allow_using_variable_names=False)
             block = getTextFromFile(block_id, stack_position)
-        insertTextToFile(output, stack_position, block_id)
+        insertTextToFile(output, stack_position, block_id, output_file)
         self.saved = True
 
 
@@ -498,7 +499,7 @@ def lineToId(line: str):
     return line
 
 
-def insertTextToFile(new_block: str, stack_pos: traceback.FrameSummary, figure_id_line: str):
+def insertTextToFile(new_block: str, stack_pos: traceback.FrameSummary, figure_id_line: str, output_file: str):
     """ insert a text block into a file """
     figure_id_line = lineToId(figure_id_line)
     block = None
@@ -564,9 +565,39 @@ def insertTextToFile(new_block: str, stack_pos: traceback.FrameSummary, figure_i
     # update the position of the entry point, as we have inserted stuff in the new file which can change the position
     stack_pos.lineno = lineno_stack
 
-    # now copy the temporary file over the old file
-    with open(stack_pos.filename + ".tmp", 'r', encoding="utf-8") as fp2:
-        with open(stack_pos.filename, 'w', encoding="utf-8") as fp1:
-            for line in fp2:
-                fp1.write(line)
-    print("save", figure_id_line, "to", stack_pos.filename, "line %d-%d" % (written, written_end))
+    if output_file == "source":
+        # now copy the temporary file over the old file
+        with open(stack_pos.filename + ".tmp", 'r', encoding="utf-8") as fp2:
+            with open(stack_pos.filename, 'w', encoding="utf-8") as fp1:
+                for line in fp2:
+                    fp1.write(line)
+        msg = "saved {} to {} (lines {}-{})".format(
+            figure_id_line, stack_pos.filename, written, written_end
+        )
+    else:
+        # now copy the temporary file over the new file
+        with open(stack_pos.filename + ".tmp", 'r', encoding="utf-8") as fp2:
+            with open(output_file, 'w', encoding="utf-8") as fp1:
+                # write the import and plotting
+                fp1.write("import matplotlib.pyplot as plt\nplt.figure(1)\n")
+                # write the plotted data into the file
+                line = plt.gca().get_lines()[0]
+                xd = line.get_xdata()
+                yd = line.get_ydata()
+                fp1.write("plt.plot({},{})\n".format(str(xd).replace(" ",","), str(yd).replace(" ",",")))
+                # write only the changes made by pylustrator into the plot
+                start_writing = False
+                for line in fp2:
+                    if "start: automatic generated code from pylustrator" in line:
+                        start_writing = True
+                    if start_writing:
+                        fp1.write(line) 
+                    if "end: automatic generated code from pylustrator" in line:
+                        break
+                fp1.write("mpl.pyplot.show()")
+        msg = "saved {} to {} (lines {}-{})".format(
+            figure_id_line, output_file, written, written_end
+        )
+    print(msg)
+    # remove the temporary file
+    os.remove(stack_pos.filename + ".tmp")
