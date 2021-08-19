@@ -23,7 +23,12 @@ import re
 import sys
 import traceback
 import os
+import inspect
+import warnings
+import types
 from typing import IO
+
+import numpy as np
 
 import matplotlib
 import matplotlib as mpl
@@ -43,12 +48,17 @@ from .jupyter_cells import open
 
 
 """ External overload """
+
+
 class CustomStackPosition:
     filename = None
     lineno = None
+
     def __init__(self, filename, lineno):
         self.filename = filename
         self.lineno = lineno
+
+
 custom_stack_position = None
 custom_prepend = ""
 custom_append = ""
@@ -57,20 +67,24 @@ escape_pairs = [
     ("\\", "\\\\"),
     ("\n", "\\n"),
     ("\r", "\\r"),
-    ("\"", "\\\""),
+    ('"', '\\"'),
 ]
+
+
 def escape_string(str):
     for pair in escape_pairs:
         str = str.replace(pair[0], pair[1])
     return str
+
 
 def unescape_string(str):
     for pair in escape_pairs:
         str = str.replace(pair[1], pair[0])
     return str
 
+
 def getReference(element: Artist, allow_using_variable_names=True):
-    """ get the code string that represents the given Artist. """
+    """get the code string that represents the given Artist."""
     if element is None:
         return ""
     if isinstance(element, Figure):
@@ -81,7 +95,7 @@ def getReference(element: Artist, allow_using_variable_names=True):
         if isinstance(element.number, (float, int)):
             return "plt.figure(%s)" % element.number
         else:
-            return "plt.figure(\"%s\")" % element.number
+            return 'plt.figure("%s")' % element.number
     if isinstance(element, matplotlib.lines.Line2D):
         index = element.axes.lines.index(element)
         return getReference(element.axes) + ".lines[%d]" % index
@@ -119,30 +133,56 @@ def getReference(element: Artist, allow_using_variable_names=True):
 
             for index, label in enumerate(axes.get_xaxis().get_major_ticks()):
                 if element == label.label1:
-                    return getReference(axes) + ".get_xaxis().get_major_ticks()[%d].label1" % index
+                    return (
+                        getReference(axes)
+                        + ".get_xaxis().get_major_ticks()[%d].label1" % index
+                    )
                 if element == label.label2:
-                    return getReference(axes) + ".get_xaxis().get_major_ticks()[%d].label2" % index
+                    return (
+                        getReference(axes)
+                        + ".get_xaxis().get_major_ticks()[%d].label2" % index
+                    )
             for index, label in enumerate(axes.get_xaxis().get_minor_ticks()):
                 if element == label.label1:
-                    return getReference(axes) + ".get_xaxis().get_minor_ticks()[%d].label1" % index
+                    return (
+                        getReference(axes)
+                        + ".get_xaxis().get_minor_ticks()[%d].label1" % index
+                    )
                 if element == label.label2:
-                    return getReference(axes) + ".get_xaxis().get_minor_ticks()[%d].label2" % index
+                    return (
+                        getReference(axes)
+                        + ".get_xaxis().get_minor_ticks()[%d].label2" % index
+                    )
 
             for axes in element.figure.axes:
                 for index, label in enumerate(axes.get_yaxis().get_major_ticks()):
                     if element == label.label1:
-                        return getReference(axes) + ".get_yaxis().get_major_ticks()[%d].label1" % index
+                        return (
+                            getReference(axes)
+                            + ".get_yaxis().get_major_ticks()[%d].label1" % index
+                        )
                     if element == label.label2:
-                        return getReference(axes) + ".get_yaxis().get_major_ticks()[%d].label2" % index
+                        return (
+                            getReference(axes)
+                            + ".get_yaxis().get_major_ticks()[%d].label2" % index
+                        )
                 for index, label in enumerate(axes.get_yaxis().get_minor_ticks()):
                     if element == label.label1:
-                        return getReference(axes) + ".get_yaxis().get_minor_ticks()[%d].label1" % index
+                        return (
+                            getReference(axes)
+                            + ".get_yaxis().get_minor_ticks()[%d].label1" % index
+                        )
                     if element == label.label2:
-                        return getReference(axes) + ".get_yaxis().get_minor_ticks()[%d].label2" % index
+                        return (
+                            getReference(axes)
+                            + ".get_yaxis().get_minor_ticks()[%d].label2" % index
+                        )
 
     if isinstance(element, matplotlib.axes._axes.Axes):
         if element.get_label():
-            return getReference(element.figure) + ".ax_dict[\"%s\"]" % escape_string(element.get_label())
+            return getReference(element.figure) + '.ax_dict["%s"]' % escape_string(
+                element.get_label()
+            )
         return getReference(element.figure) + ".axes[%d]" % element.number
 
     if isinstance(element, matplotlib.legend.Legend):
@@ -151,8 +191,9 @@ def getReference(element: Artist, allow_using_variable_names=True):
 
 
 def setFigureVariableNames(figure: Figure):
-    """ get the global variable names that refer to the given figure """
+    """get the global variable names that refer to the given figure"""
     import inspect
+
     mpl_figure = _pylab_helpers.Gcf.figs[figure].canvas.figure
     calling_globals = inspect.stack()[2][0].f_globals
     fig_names = [
@@ -167,7 +208,8 @@ def setFigureVariableNames(figure: Figure):
 
 
 class ChangeTracker:
-    """ a class that records a list of the change to the figure """
+    """a class that records a list of the change to the figure"""
+
     changes = None
     saved = True
 
@@ -193,18 +235,24 @@ class ChangeTracker:
 
         self.load()
 
-    def addChange(self, command_obj: Artist, command: str, reference_obj: Artist = None, reference_command: str = None):
-        """ add a change """
+    def addChange(
+        self,
+        command_obj: Artist,
+        command: str,
+        reference_obj: Artist = None,
+        reference_command: str = None,
+    ):
+        """add a change"""
         command = command.replace("\n", "\\n")
         if reference_obj is None:
             reference_obj = command_obj
         if reference_command is None:
-            reference_command, = re.match(r"(\.[^(=]*)", command).groups()
+            (reference_command,) = re.match(r"(\.[^(=]*)", command).groups()
         self.changes[reference_obj, reference_command] = (command_obj, command)
         self.saved = False
 
     def removeElement(self, element: Artist):
-        """ remove an Artis from the figure """
+        """remove an Artis from the figure"""
         # create_key = key+".new"
         created_by_pylustrator = (element, ".new") in self.changes
         # delete changes related to this element
@@ -220,14 +268,14 @@ class ChangeTracker:
         self.figure.selection.remove_target(element)
 
     def addEdit(self, edit: list):
-        """ add an edit to the stored list of edits """
+        """add an edit to the stored list of edits"""
         if self.last_edit < len(self.edits) - 1:
-            self.edits = self.edits[:self.last_edit + 1]
+            self.edits = self.edits[: self.last_edit + 1]
         self.edits.append(edit)
         self.last_edit = len(self.edits) - 1
 
     def backEdit(self):
-        """ undo an edit in the list """
+        """undo an edit in the list"""
         if self.last_edit < 0:
             return
         edit = self.edits[self.last_edit]
@@ -236,7 +284,7 @@ class ChangeTracker:
         self.figure.canvas.draw()
 
     def forwardEdit(self):
-        """ redo an edit """
+        """redo an edit"""
         if self.last_edit >= len(self.edits) - 1:
             return
         edit = self.edits[self.last_edit + 1]
@@ -245,22 +293,23 @@ class ChangeTracker:
         self.figure.canvas.draw()
 
     def load(self):
-        """ load a set of changes from a script file. The changes are the code that pylustrator generated """
+        """load a set of changes from a script file. The changes are the code that pylustrator generated"""
         regex = re.compile(r"(\.[^\(= ]*)(.*)")
-        command_obj_regexes = [getReference(self.figure),
-                               r"plt\.figure\([^)]*\)",
-                               r"fig",
-                               r"\.ax_dict\[\"[^\"]*\"\]",
-                               r"\.axes\[\d*\]",
-                               r"\.texts\[\d*\]",
-                               r"\.{title|_left_title|_right_title}",
-                               r"\.lines\[\d*\]",
-                               r"\.collections\[\d*\]",
-                               r"\.patches\[\d*\]",
-                               r"\.get_[xy]axis\(\)\.get_(major|minor)_ticks\(\)\[\d*\]",
-                               r"\.get_[xy]axis\(\)\.get_label\(\)",
-                               r"\.get_legend\(\)",
-                               ]
+        command_obj_regexes = [
+            getReference(self.figure),
+            r"plt\.figure\([^)]*\)",
+            r"fig",
+            r"\.ax_dict\[\"[^\"]*\"\]",
+            r"\.axes\[\d*\]",
+            r"\.texts\[\d*\]",
+            r"\.{title|_left_title|_right_title}",
+            r"\.lines\[\d*\]",
+            r"\.collections\[\d*\]",
+            r"\.patches\[\d*\]",
+            r"\.get_[xy]axis\(\)\.get_(major|minor)_ticks\(\)\[\d*\]",
+            r"\.get_[xy]axis\(\)\.get_label\(\)",
+            r"\.get_legend\(\)",
+        ]
         command_obj_regexes = [re.compile(r) for r in command_obj_regexes]
 
         fig = self.figure
@@ -272,7 +321,10 @@ class ChangeTracker:
 
         block = getTextFromFile(getReference(self.figure), stack_position)
         if not block:
-            block = getTextFromFile(getReference(self.figure, allow_using_variable_names=False), stack_position)
+            block = getTextFromFile(
+                getReference(self.figure, allow_using_variable_names=False),
+                stack_position,
+            )
         for line in block:
             line = line.strip()
             if line == "" or line in header or line.startswith("#"):
@@ -287,7 +339,7 @@ class ChangeTracker:
             for r in command_obj_regexes:
                 try:
                     found = r.match(line).group()
-                    line = line[len(found):]
+                    line = line[len(found) :]
                     command_obj += found
                 except AttributeError:
                     pass
@@ -307,7 +359,12 @@ class ChangeTracker:
             reference_obj = command_obj
             reference_command = command
 
-            if command == ".set_xticks" or command == ".set_yticks" or command == ".set_xlabels" or command == ".set_ylabels":
+            if (
+                command == ".set_xticks"
+                or command == ".set_yticks"
+                or command == ".set_xlabels"
+                or command == ".set_ylabels"
+            ):
                 if line.find("minor=True") != -1:
                     reference_command = command + "_minor"
 
@@ -322,17 +379,25 @@ class ChangeTracker:
 
             # if the reference object is just a dummy, we ignore it
             if isinstance(reference_obj, Dummy):
-                print("WARNING: line references a missing object, will remove line on save:", raw_line, file=sys.stderr)
+                print(
+                    "WARNING: line references a missing object, will remove line on save:",
+                    raw_line,
+                    file=sys.stderr,
+                )
                 continue
 
             self.get_reference_cached[reference_obj] = reference_obj_str
 
-            #print("---", [reference_obj, reference_command], (command_obj, command + parameter))
-            self.changes[reference_obj, reference_command] = (command_obj, command + parameter)
+            # print("---", [reference_obj, reference_command], (command_obj, command + parameter))
+            self.changes[reference_obj, reference_command] = (
+                command_obj,
+                command + parameter,
+            )
         self.sorted_changes()
 
     def sorted_changes(self):
-        """ sort the changes by their priority. For example setting to logscale needs to be executed before xlim. """
+        """sort the changes by their priority. For example setting to logscale needs to be executed before xlim."""
+
         def getRef(obj):
             try:
                 return getReference(obj)
@@ -352,21 +417,43 @@ class ChangeTracker:
                     if getattr(reference_obj, "axes", None) is not None:
                         if reference_command == ".new":
                             index = "0"
-                        elif reference_command == ".set_xscale" or reference_command == ".set_yscale":
+                        elif (
+                            reference_command == ".set_xscale"
+                            or reference_command == ".set_yscale"
+                        ):
                             index = "1"
-                        elif reference_command == ".set_xlim" or reference_command == ".set_ylim":
+                        elif (
+                            reference_command == ".set_xlim"
+                            or reference_command == ".set_ylim"
+                        ):
                             index = "2"
-                        elif reference_command == ".set_xticks" or reference_command == ".set_yticks":
+                        elif (
+                            reference_command == ".set_xticks"
+                            or reference_command == ".set_yticks"
+                        ):
                             index = "3"
-                        elif reference_command == ".set_xticklabels" or reference_command == ".set_yticklabels":
+                        elif (
+                            reference_command == ".set_xticklabels"
+                            or reference_command == ".set_yticklabels"
+                        ):
                             index = "4"
                         else:
                             index = "5"
-                        obj_indices = (getRef(reference_obj.axes), getRef(reference_obj), index, reference_command)
+                        obj_indices = (
+                            getRef(reference_obj.axes),
+                            getRef(reference_obj),
+                            index,
+                            reference_command,
+                        )
                     else:
                         obj_indices = (getRef(reference_obj), "", "", reference_command)
                 indices.append(
-                    [(reference_obj, reference_command), self.changes[reference_obj, reference_command], obj_indices])
+                    [
+                        (reference_obj, reference_command),
+                        self.changes[reference_obj, reference_command],
+                        obj_indices,
+                    ]
+                )
             except (ValueError, TypeError) as err:
                 print(err, file=sys.stderr)
 
@@ -381,13 +468,20 @@ class ChangeTracker:
 
         return output
 
-    def save(self, output_file, placeholder):
-        """ save the changes to the .py file """
-        header = [getReference(self.figure) + ".ax_dict = {ax.get_label(): ax for ax in " + getReference(
-            self.figure) + ".axes}", "import matplotlib as mpl"]
+    def save(self, output_file, reqd_code):
+        """save the changes to the .py file"""
+        header = [
+            getReference(self.figure)
+            + ".ax_dict = {ax.get_label(): ax for ax in "
+            + getReference(self.figure)
+            + ".axes}",
+            "import matplotlib as mpl",
+        ]
 
         # block = getTextFromFile(header[0], self.stack_position)
-        output = [custom_prepend + "#% start: automatic generated code from pylustrator"]
+        output = [
+            custom_prepend + "#% start: automatic generated code from pylustrator"
+        ]
         # add the lines from the header
         for line in header:
             output.append(line)
@@ -396,7 +490,9 @@ class ChangeTracker:
             output.append(line)
             if line.startswith("fig.add_axes"):
                 output.append(header[1])
-        output.append("#% end: automatic generated code from pylustrator" + custom_append)
+        output.append(
+            "#% end: automatic generated code from pylustrator" + custom_append
+        )
         # print("\n".join(output))
 
         block_id = getReference(self.figure)
@@ -404,27 +500,33 @@ class ChangeTracker:
         if not block:
             block_id = getReference(self.figure, allow_using_variable_names=False)
             block = getTextFromFile(block_id, stack_position)
-        insertTextToFile(output, stack_position, block_id, output_file, placeholder)
+        insertTextToFile(output, stack_position, block_id, output_file, reqd_code)
         self.saved = True
 
 
 def getTextFromFile(block_id: str, stack_pos: traceback.FrameSummary):
-    """ get the text which corresponds to the block_id (e.g. which figure) at the given position sepcified by stack_pos. """
+    """get the text which corresponds to the block_id (e.g. which figure) at the given position sepcified by stack_pos."""
     block_id = lineToId(block_id)
     block = None
 
     if not custom_stack_position:
-        if not stack_pos.filename.endswith('.py') and not stack_pos.filename.startswith("<ipython-input-"):
-            raise RuntimeError("pylustrator must used in a python file (*.py) or a jupyter notebook; not a shell session.")
+        if not stack_pos.filename.endswith(".py") and not stack_pos.filename.startswith(
+            "<ipython-input-"
+        ):
+            raise RuntimeError(
+                "pylustrator must used in a python file (*.py) or a jupyter notebook; not a shell session."
+            )
 
-    with open(stack_pos.filename, 'r', encoding="utf-8") as fp1:
+    with open(stack_pos.filename, "r", encoding="utf-8") as fp1:
         for lineno, line in enumerate(fp1, start=1):
             # if we are currently reading a pylustrator block
             if block is not None:
                 # add the line to the block
                 block.add(line)
                 # and see if we have found the end
-                if line.strip().startswith("#% end:") and line.strip().endswith(custom_append):
+                if line.strip().startswith("#% end:") and line.strip().endswith(
+                    custom_append
+                ):
                     block.end()
             # if there is a new pylustrator block
             elif line.strip().startswith(custom_prepend + "#% start:"):
@@ -442,34 +544,35 @@ def getTextFromFile(block_id: str, stack_pos: traceback.FrameSummary):
 
 
 class Block:
-    """ an object to represent the code block generated by a pylustrator save """
+    """an object to represent the code block generated by a pylustrator save"""
+
     id = None
     finished = False
 
     def __init__(self, line: str):
-        """ initialize the block with its first line """
+        """initialize the block with its first line"""
         self.text = line
         self.size = 1
         self.indent = getIndent(line)
 
     def add(self, line: str):
-        """ add a line to the block """
+        """add a line to the block"""
         if self.id is None:
             self.id = lineToId(line)
         self.text += line
         self.size += 1
 
     def end(self):
-        """ end the block """
+        """end the block"""
         self.finished = True
 
     def __iter__(self):
-        """ iterate over all the lines of the block """
+        """iterate over all the lines of the block"""
         return iter(self.text.split("\n"))
 
 
 def getIndent(line: str):
-    """ get the indent part of a line of code """
+    """get the indent part of a line of code"""
     i = 0
     for i in range(len(line)):
         if line[i] != " " and line[i] != "\t":
@@ -479,7 +582,7 @@ def getIndent(line: str):
 
 
 def addLineCounter(fp: IO):
-    """ wrap a file pointer to store th line numbers """
+    """wrap a file pointer to store th line numbers"""
     fp.lineno = 0
     write = fp.write
 
@@ -491,26 +594,32 @@ def addLineCounter(fp: IO):
 
 
 def lineToId(line: str):
-    """ get the id of a line, e.g. part which specifies which figure it refers to """
+    """get the id of a line, e.g. part which specifies which figure it refers to"""
     line = line.strip()
     line = line.split(".ax_dict")[0]
     if line.startswith("fig = "):
-        line = line[len("fig = "):]
+        line = line[len("fig = ") :]
     return line
 
 
-def insertTextToFile(new_block: str, stack_pos: traceback.FrameSummary, figure_id_line: str, output_file: str, placeholder: str):
-    """ insert a text block into a file """
+def insertTextToFile(
+    new_block: str,
+    stack_pos: traceback.FrameSummary,
+    figure_id_line: str,
+    output_file: str,
+    reqd_code: list,
+):
+    """insert a text block into a file"""
     figure_id_line = lineToId(figure_id_line)
     block = None
     written = False
     written_end = False
     lineno_stack = None
     # open a temporary file with the same name for writing
-    with open(stack_pos.filename + ".tmp", 'w', encoding="utf-8") as fp2:
+    with open(stack_pos.filename + ".tmp", "w", encoding="utf-8") as fp2:
         addLineCounter(fp2)
         # open the current python file for reading
-        with open(stack_pos.filename, 'r', encoding="utf-8") as fp1:
+        with open(stack_pos.filename, "r", encoding="utf-8") as fp1:
             # iterate over all lines and line numbers
             for fp1.lineno, line in enumerate(fp1, start=1):
                 # if we are currently reading a pylustrator block
@@ -518,7 +627,9 @@ def insertTextToFile(new_block: str, stack_pos: traceback.FrameSummary, figure_i
                     # add the line to the block
                     block.add(line)
                     # and see if we have found the end
-                    if line.strip().startswith("#% end:") and line.strip().endswith(custom_append):
+                    if line.strip().startswith("#% end:") and line.strip().endswith(
+                        custom_append
+                    ):
                         block.end()
                         line = ""
                 # if there is a new pylustrator block
@@ -567,39 +678,85 @@ def insertTextToFile(new_block: str, stack_pos: traceback.FrameSummary, figure_i
 
     if output_file == "source":
         # now copy the temporary file over the old file
-        with open(stack_pos.filename + ".tmp", 'r', encoding="utf-8") as fp2:
-            with open(stack_pos.filename, 'w', encoding="utf-8") as fp1:
+        with open(stack_pos.filename + ".tmp", "r", encoding="utf-8") as fp2:
+            with open(stack_pos.filename, "w", encoding="utf-8") as fp1:
                 for line in fp2:
                     fp1.write(line)
         msg = "saved {} to {} (lines {}-{})".format(
             figure_id_line, stack_pos.filename, written, written_end
         )
-    else:
-        # now copy the temporary file over the new file
-        with open(stack_pos.filename + ".tmp", 'r', encoding="utf-8") as fp2:
-            with open(output_file, 'w', encoding="utf-8") as fp1:
-                if not placeholder:
-                    # write the import and plotting
-                    fp1.write("import matplotlib.pyplot as plt\nplt.figure(1)\n")
-                    # write the plotted data into the file
-                    line = plt.gca().get_lines()[0]
-                    xd = line.get_xdata()
-                    yd = line.get_ydata()
-                    fp1.write("plt.plot({},{})\n".format(str(xd).replace(" ", ","), str(yd).replace(" ", ",")))
-                else:
-                    fp1.write(placeholder)
+    else:  # write code to a standalone file
+        with open(stack_pos.filename + ".tmp", "r", encoding="utf-8") as fp2:
+            with open(output_file, "w", encoding="utf-8") as fp1:
+                fp1.write(
+                    """
+\"\"\"
+This file has been automatically generated by pylustrator
+(https://github.com/rgerum/pylustrator) which is released
+under the GNU General Public License v3.0, though this
+code here is independent from that source code and is
+therefore not under any license. However, code reproduced
+below from other plotting functions may be under a
+different license which must be followed by the user.
+
+If you use this output in published work, please cite the
+software following below:
+pylustrator: code generation for reproducible figures for
+publication https://doi.org/10.21105/joss.01989
+\"\"\"
+import matplotlib.pyplot as plt
+from numpy import array
+
+"""
+                )
+                # include any code and variables which the user provides
+                in_count = 1
+                call_args = ""
+                for elt in reqd_code:
+                    if type(elt) == types.FunctionType:
+                        fp1.write("# Plot code provided by user\n")
+                        fp1.write(inspect.getsource(elt) + "\n")
+                        func = elt
+                    elif type(elt) in (np.ndarray, list, str, dict):
+                        if type(elt) in (np.ndarray, list):
+                            fp1.write(
+                                f"pylustrator_input_{in_count} = " + repr(elt) + "\n\n"
+                            )
+                        elif type(elt) == str:
+                            fp1.write(
+                                f"pylustrator_input_{in_count} = '" + elt + "'\n\n"
+                            )
+                        elif type(elt) == dict:
+                            fp1.write(
+                                f"pylustrator_input_{in_count} = " + str(elt) + "\n\n"
+                            )
+                        call_args += f"\tpylustrator_input_{in_count},\n"
+                        in_count += 1
+                    else:
+                        warnings.warn(
+                            "Unable to include {} in output file because it is of type {}, which is not a numpy array, list, string, or dictionary.".format(
+                                elt, type(elt)
+                            ),
+                            RuntimeWarning,
+                        )
+                # write the call to the function
+                if func:
+                    fp1.write(func.__name__ + "(\n" + call_args + ")\n")
+                fp1.write("\n")
                 # write only the changes made by pylustrator into the plot
                 start_writing = False
                 for line in fp2:
-                    if "start: automatic generated code from pylustrator" in line:
-                        start_writing = True
-                    if start_writing:
-                        fp1.write(line) 
                     if "end: automatic generated code from pylustrator" in line:
                         break
-                fp1.write("mpl.pyplot.show()")
-        msg = "saved {} to {} (lines {}-{})".format(
-            figure_id_line, output_file, written, written_end
+                    if "start: automatic generated code from pylustrator" in line:
+                        start_writing = True
+                        line = "# Plot customization code from pylustrator window\n"
+                    if start_writing:
+                        fp1.write(line)
+                fp1.write("mpl.pyplot.show()\n")
+        msg = "Saved {} to {}".format(
+            figure_id_line,
+            os.path.abspath(output_file),
         )
     print(msg)
     # remove the temporary file
