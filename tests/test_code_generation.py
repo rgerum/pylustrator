@@ -84,7 +84,9 @@ plt.show(hide_window=True)
             tmp_file.unlink()
 
     def test_fitCamParametersFromObjects(self):
-        exec(compile(open(self.filename, "rb").read(), self.filename, 'exec'), globals())
+        with open(self.filename, "rb") as fp:
+            text = fp.read()
+        exec(compile(text, self.filename, 'exec'), globals())
 
         for figure in _pylab_helpers.Gcf.figs:
             figure = _pylab_helpers.Gcf.figs[figure].canvas.figure
@@ -102,7 +104,7 @@ plt.show(hide_window=True)
             for line in fp:
                 if in_block is True:
                     block += line
-                    if line == "plt.figure(1).axes[0].set_position([0.123438, 0.110000, 0.227941, 0.770000])\n":
+                    if line == "plt.figure(1).axes[0].set_position([0.121875, 0.110000, 0.227941, 0.770000])\n":
                         found = True
                 if line.startswith("#% start: automatic generated code from pylustrator"):
                     in_block = True

@@ -1,7 +1,7 @@
 # Pylustrator
 
 [![DOC](https://readthedocs.org/projects/pylustrator/badge/)](https://pylustrator.readthedocs.io)
-[![Build Status](https://travis-ci.com/rgerum/pylustrator.svg?branch=master)](https://travis-ci.com/rgerum/pylustrator)
+[![Build Status](https://app.travis-ci.com/rgerum/pylustrator.svg?branch=master)](https://app.travis-ci.com/github/rgerum/pylustrator)
 [![License](https://img.shields.io/badge/License-GPLv3-blue.svg)](http://www.gnu.org/licenses/gpl-3.0.html)
 [![DOI](https://img.shields.io/badge/DOI-10.21105/joss.01989-blue.svg)](https://doi.org/10.21105/joss.01989)
 
