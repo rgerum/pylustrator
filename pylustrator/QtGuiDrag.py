@@ -739,7 +739,7 @@ class PlotWindow(QtWidgets.QWidget):
         self.button_derasterize.setDisabled(True)
 
         self.treeView = MyTreeView(self, self.layout_tools, self.fig)
-        self.treeView.item_selected = self.elementSelected
+        self.treeView.item_selected = lambda x: [self.elementSelected(x), self.fig.figure_dragger.select_element(x)][0]
 
         self.input_properties = QItemProperties(self.layout_tools, self.fig, self.treeView, self)
         self.input_align = Align(self.layout_tools, self.fig)
