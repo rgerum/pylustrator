@@ -1346,7 +1346,11 @@ class ToolBar(QtWidgets.QToolBar):
         """ get an icon with the given filename """
         pm = QtGui.QPixmap(os.path.join(os.path.dirname(__file__), "icons", name))
         if hasattr(pm, 'setDevicePixelRatio'):
-            pm.setDevicePixelRatio(self.canvas._dpi_ratio)
+            try:  # older mpl < 3.5.0
+                pm.setDevicePixelRatio(self.canvas._dpi_ratio)
+            except AttributeError:
+                pm.setDevicePixelRatio(self.canvas.device_pixel_ratio)
+
         return QtGui.QIcon(pm)
 
     def setSelect(self):
