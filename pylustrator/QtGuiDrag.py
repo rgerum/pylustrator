@@ -739,7 +739,13 @@ class PlotWindow(QtWidgets.QWidget):
         self.button_derasterize.setDisabled(True)
 
         self.treeView = MyTreeView(self, self.layout_tools, self.fig)
-        self.treeView.item_selected = lambda x: [self.elementSelected(x), self.fig.figure_dragger.select_element(x)][0]
+
+        self.no_figure_dragger_selection_update = False
+        def item_selected(x):
+            self.elementSelected(x)
+            if not self.no_figure_dragger_selection_update:
+                self.fig.figure_dragger.select_element(x)
+        self.treeView.item_selected = item_selected
 
         self.input_properties = QItemProperties(self.layout_tools, self.fig, self.treeView, self)
         self.input_align = Align(self.layout_tools, self.fig)
@@ -1072,8 +1078,11 @@ class PlotWindow(QtWidgets.QWidget):
 
         def wrap(func):
             def newfunc(element, event=None):
+                self.no_figure_dragger_selection_update = True
                 self.select_element(element)
-                return func(element, event)
+                ret = func(element, event)
+                self.no_figure_dragger_selection_update = False
+                return ret
 
             return newfunc
 
