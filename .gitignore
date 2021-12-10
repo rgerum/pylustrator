@@ -1,4 +1,5 @@
 .idea/
+.vscode/*
 docs/_build_html/
 */__pycache__/
 *.pyc

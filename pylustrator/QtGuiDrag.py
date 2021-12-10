@@ -75,8 +75,8 @@ def initialize(use_global_variable_names=False):
     plt.figure = figure
     patchColormapsWithMetaInfo()
 
-    #stack_call_position = traceback.extract_stack()[-2]
-    #stack_call_position.filename
+    # stack_call_position = traceback.extract_stack()[-2]
+    # stack_call_position.filename
 
     plt.keys_for_lines = keys_for_lines
 
@@ -84,7 +84,9 @@ def initialize(use_global_variable_names=False):
     sf = Figure.savefig
 
     def savefig(self, filename, *args, **kwargs):
-        self._last_saved_figure = getattr(self, "_last_saved_figure", []) + [(filename, args, kwargs)]
+        self._last_saved_figure = getattr(self, "_last_saved_figure", []) + [
+            (filename, args, kwargs)
+        ]
         sf(self, filename, *args, **kwargs)
 
     Figure.savefig = savefig
@@ -98,14 +100,15 @@ def initialize(use_global_variable_names=False):
 
 
 def show(hide_window: bool = False):
-    """ the function overloads the matplotlib show function.
+    """the function overloads the matplotlib show function.
     It opens a DragManager window instead of the default matplotlib window.
     """
     global figures
     # set an application id, so that windows properly stacks them in the task bar
-    if sys.platform[:3] == 'win':
+    if sys.platform[:3] == "win":
         import ctypes
-        myappid = 'rgerum.pylustrator'  # arbitrary string
+
+        myappid = "rgerum.pylustrator"  # arbitrary string
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
     # iterate over figures
     for figure in _pylab_helpers.Gcf.figs.copy():
@@ -131,7 +134,7 @@ def show(hide_window: bool = False):
 
 
 class CmapColor(list):
-    """ a color like object that has the colormap as metadata """
+    """a color like object that has the colormap as metadata"""
 
     def setMeta(self, value, cmap):
         self.value = value
@@ -139,7 +142,7 @@ class CmapColor(list):
 
 
 def patchColormapsWithMetaInfo():
-    """ all colormaps now return color with metadata from which colormap the color came from """
+    """all colormaps now return color with metadata from which colormap the color came from"""
     from matplotlib.colors import Colormap
 
     cm_call = Colormap.__call__
@@ -154,8 +157,16 @@ def patchColormapsWithMetaInfo():
     Colormap.__call__ = new_call
 
 
-def figure(num=None, figsize=None, force_add=False, *args, **kwargs):
-    """ overloads the matplotlib figure call and wrapps the Figure in a PlotWindow """
+def figure(
+    num=None,
+    figsize=None,
+    force_add=False,
+    output_file: str = "source",
+    reqd_code: list = [],
+    *args,
+    **kwargs
+):
+    """overloads the matplotlib figure call and wrapps the Figure in a PlotWindow"""
     global figures
     # if num is not defined create a new number
     if num is None:
@@ -163,7 +174,9 @@ def figure(num=None, figsize=None, force_add=False, *args, **kwargs):
     # if number is not defined
     if force_add or num not in _pylab_helpers.Gcf.figs.keys():
         # create a new window and store it
-        canvas = PlotWindow(num, figsize, *args, **kwargs).canvas
+        canvas = PlotWindow(
+            num, figsize, output_file, reqd_code, *args, **kwargs
+        ).canvas
         canvas.figure.number = num
         canvas.figure.clf()
         canvas.manager.num = num
@@ -172,7 +185,9 @@ def figure(num=None, figsize=None, force_add=False, *args, **kwargs):
     manager = _pylab_helpers.Gcf.figs[num]
     # set the size if it is defined
     if figsize is not None:
-        _pylab_helpers.Gcf.figs[num].window.setGeometry(100, 100, figsize[0] * 80, figsize[1] * 80)
+        _pylab_helpers.Gcf.figs[num].window.setGeometry(
+            100, 100, figsize[0] * 80, figsize[1] * 80
+        )
     # set the figure as the active figure
     _pylab_helpers.Gcf.set_active(manager)
     # return the figure
@@ -180,8 +195,9 @@ def figure(num=None, figsize=None, force_add=False, *args, **kwargs):
 
 
 def warnAboutTicks(fig):
-    """ warn if the tick labels and tick values do not match, to prevent users from accidently setting wrong tick values """
+    """warn if the tick labels and tick values do not match, to prevent users from accidently setting wrong tick values"""
     import sys
+
     for index, ax in enumerate(fig.axes):
         ticks = ax.get_yticks()
         labels = [t.get_text() for t in ax.get_yticklabels()]
@@ -198,7 +214,14 @@ def warnAboutTicks(fig):
                     ax_name = "#%d" % index
                 else:
                     ax_name = '"' + ax_name + '"'
-                print("Warning tick and label differ", t, l, "for axes", ax_name, file=sys.stderr)
+                print(
+                    "Warning tick and label differ",
+                    t,
+                    l,
+                    "for axes",
+                    ax_name,
+                    file=sys.stderr,
+                )
 
 
 """ Window """
@@ -206,11 +229,11 @@ def warnAboutTicks(fig):
 
 class myTreeWidgetItem(QtGui.QStandardItem):
     def __init__(self, parent: QtWidgets.QWidget = None):
-        """ a tree view item to display the contents of the figure """
+        """a tree view item to display the contents of the figure"""
         QtGui.QStandardItem.__init__(self, parent)
 
     def __lt__(self, otherItem: QtGui.QStandardItem):
-        """ how to sort the items """
+        """how to sort the items"""
         if self.sort is None:
             return 0
         return self.sort < otherItem.sort
@@ -226,8 +249,10 @@ class MyTreeView(QtWidgets.QTreeView):
     last_selection = None
     last_hover = None
 
-    def __init__(self, parent: QtWidgets.QWidget, layout: QtWidgets.QLayout, fig: Figure):
-        """ A tree view to display the contents of a figure
+    def __init__(
+        self, parent: QtWidgets.QWidget, layout: QtWidgets.QLayout, fig: Figure
+    ):
+        """A tree view to display the contents of a figure
 
         Args:
             parent: the parent widget
@@ -268,10 +293,17 @@ class MyTreeView(QtWidgets.QTreeView):
 
         self.expand(None)
 
-    def selectionChanged(self, selection: QtCore.QItemSelection, y: QtCore.QItemSelection):
-        """ when the selection in the tree view changes """
+    def selectionChanged(
+        self, selection: QtCore.QItemSelection, y: QtCore.QItemSelection
+    ):
+        """when the selection in the tree view changes"""
         try:
-            entry = selection.indexes()[0].model().itemFromIndex(selection.indexes()[0]).entry
+            entry = (
+                selection.indexes()[0]
+                .model()
+                .itemFromIndex(selection.indexes()[0])
+                .entry
+            )
         except IndexError:
             entry = None
         if self.last_selection != entry:
@@ -279,7 +311,7 @@ class MyTreeView(QtWidgets.QTreeView):
             self.item_selected(entry)
 
     def setCurrentIndex(self, entry: Artist):
-        """ set the currently selected entry """
+        """set the currently selected entry"""
         while entry:
             item = self.getItemFromEntry(entry)
             if item is not None:
@@ -291,17 +323,17 @@ class MyTreeView(QtWidgets.QTreeView):
                 return
 
     def treeClicked(self, index: QtCore.QModelIndex):
-        """ upon selecting one of the tree elements """
+        """upon selecting one of the tree elements"""
         data = index.model().itemFromIndex(index).entry
         return self.item_clicked(data)
 
     def treeActivated(self, index: QtCore.QModelIndex):
-        """ upon selecting one of the tree elements """
+        """upon selecting one of the tree elements"""
         data = index.model().itemFromIndex(index).entry
         return self.item_activated(data)
 
     def eventFilter(self, object: QtWidgets.QWidget, event: QtCore.QEvent):
-        """ event filter for tree view port to handle mouse over events and marker highlighting"""
+        """event filter for tree view port to handle mouse over events and marker highlighting"""
         if event.type() == QtCore.QEvent.HoverMove:
             index = self.indexAt(event.pos())
             try:
@@ -328,24 +360,24 @@ class MyTreeView(QtWidgets.QTreeView):
         return False
 
     def queryToExpandEntry(self, entry: Artist) -> list:
-        """ when expanding a tree item """
+        """when expanding a tree item"""
         if entry is None:
             return [self.fig]
         return entry.get_children()
 
     def getParentEntry(self, entry: Artist) -> Artist:
-        """ get the parent of an item """
+        """get the parent of an item"""
         return entry.tree_parent
 
     def getNameOfEntry(self, entry: Artist) -> str:
-        """ convert an entry to a string """
+        """convert an entry to a string"""
         try:
             return str(entry)
         except AttributeError:
             return "unknown"
 
     def getIconOfEntry(self, entry: Artist) -> QtGui.QIcon:
-        """ get the icon of an entry """
+        """get the icon of an entry"""
         if getattr(entry, "_draggable", None):
             if entry._draggable.connected:
                 return qta.icon("fa.hand-paper-o")
@@ -355,11 +387,11 @@ class MyTreeView(QtWidgets.QTreeView):
         return None
 
     def getKey(self, entry: Artist) -> Artist:
-        """ get the key of an entry, which is the entry itself """
+        """get the key of an entry, which is the entry itself"""
         return entry
 
     def getItemFromEntry(self, entry: Artist) -> Optional[QtWidgets.QTreeWidgetItem]:
-        """ get the tree view item for the given artist """
+        """get the tree view item for the given artist"""
         if entry is None:
             return None
         key = self.getKey(entry)
@@ -369,12 +401,12 @@ class MyTreeView(QtWidgets.QTreeView):
             return None
 
     def setItemForEntry(self, entry: Artist, item: QtWidgets.QTreeWidgetItem):
-        """ store a new artist and tree view widget pair """
+        """store a new artist and tree view widget pair"""
         key = self.getKey(entry)
         self.item_lookup[key] = item
 
     def expand(self, entry: Artist, force_reload: bool = True):
-        """ expand the children of a tree view item """
+        """expand the children of a tree view item"""
         query = self.queryToExpandEntry(entry)
         parent_item = self.getItemFromEntry(entry)
         parent_entry = entry
@@ -396,9 +428,11 @@ class MyTreeView(QtWidgets.QTreeView):
         for row, entry in enumerate(query):
             entry.tree_parent = parent_entry
             if 1:
-                if (isinstance(entry, mpl.spines.Spine) or
-                        isinstance(entry, mpl.axis.XAxis) or
-                        isinstance(entry, mpl.axis.YAxis)):
+                if (
+                    isinstance(entry, mpl.spines.Spine)
+                    or isinstance(entry, mpl.axis.XAxis)
+                    or isinstance(entry, mpl.axis.YAxis)
+                ):
                     continue
                 if isinstance(entry, mpl.text.Text) and entry.get_text() == "":
                     continue
@@ -416,7 +450,7 @@ class MyTreeView(QtWidgets.QTreeView):
             self.addChild(parent_item, entry)
 
     def addChild(self, parent_item: QtWidgets.QWidget, entry: Artist, row=None):
-        """ add a child to a tree view node """
+        """add a child to a tree view node"""
         if parent_item is None:
             parent_item = self.model
 
@@ -442,7 +476,9 @@ class MyTreeView(QtWidgets.QTreeView):
         self.setItemForEntry(entry, item)
 
         # add dummy child
-        if self.queryToExpandEntry(entry) is not None and len(self.queryToExpandEntry(entry)):
+        if self.queryToExpandEntry(entry) is not None and len(
+            self.queryToExpandEntry(entry)
+        ):
             child = QtGui.QStandardItem("loading")
             child.entry = None
             child.setEditable(False)
@@ -452,7 +488,7 @@ class MyTreeView(QtWidgets.QTreeView):
         return item
 
     def TreeExpand(self, index):
-        """ expand a tree view node """
+        """expand a tree view node"""
         # Get item and entry
         item = index.model().itemFromIndex(index)
         entry = item.entry
@@ -468,8 +504,14 @@ class MyTreeView(QtWidgets.QTreeView):
             thread.setDaemon(True)
             thread.start()
 
-    def updateEntry(self, entry: Artist, update_children: bool = False, insert_before: Artist = None, insert_after: Artist = None):
-        """ update a tree view node """
+    def updateEntry(
+        self,
+        entry: Artist,
+        update_children: bool = False,
+        insert_before: Artist = None,
+        insert_after: Artist = None,
+    ):
+        """update a tree view node"""
         # get the tree view item for the database entry
         item = self.getItemFromEntry(entry)
         # if we haven't one yet, we have to create it
@@ -537,7 +579,7 @@ class MyTreeView(QtWidgets.QTreeView):
                 self.expand(entry, force_reload=True)
 
     def deleteEntry(self, entry: Artist):
-        """ delete an entry from the tree """
+        """delete an entry from the tree"""
         item = self.getItemFromEntry(entry)
         if item is None:
             return
@@ -562,24 +604,29 @@ class MyTreeView(QtWidgets.QTreeView):
 
 class InfoDialog(QtWidgets.QWidget):
     def __init__(self, parent):
-        """ A dialog displaying the version number of pylustrator.
+        """A dialog displaying the version number of pylustrator.
 
         Args:
             parent: the parent widget
         """
         QtWidgets.QWidget.__init__(self)
         self.setWindowTitle("Pylustrator - Info")
-        self.setWindowIcon(QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", "logo.ico")))
+        self.setWindowIcon(
+            QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", "logo.ico"))
+        )
         self.layout = QtWidgets.QVBoxLayout(self)
 
         self.label = QtWidgets.QLabel("")
 
-        pixmap = QtGui.QPixmap(os.path.join(os.path.dirname(__file__), "icons", "logo.png"))
+        pixmap = QtGui.QPixmap(
+            os.path.join(os.path.dirname(__file__), "icons", "logo.png")
+        )
         self.label.setPixmap(pixmap)
         self.label.setMask(pixmap.mask())
         self.layout.addWidget(self.label)
 
         import pylustrator
+
         self.label = QtWidgets.QLabel("<b>Version " + pylustrator.__version__ + "</b>")
         font = self.label.font()
         font.setPointSize(16)
@@ -591,7 +638,9 @@ class InfoDialog(QtWidgets.QWidget):
         self.label.setAlignment(QtCore.Qt.AlignCenter)
         self.layout.addWidget(self.label)
 
-        self.label = QtWidgets.QLabel("<a href=https://pylustrator.readthedocs.io>Documentation</a>")
+        self.label = QtWidgets.QLabel(
+            "<a href=https://pylustrator.readthedocs.io>Documentation</a>"
+        )
         self.label.setAlignment(QtCore.Qt.AlignCenter)
         self.label.setTextInteractionFlags(QtCore.Qt.TextBrowserInteraction)
         self.label.setOpenExternalLinks(True)
@@ -600,7 +649,7 @@ class InfoDialog(QtWidgets.QWidget):
 
 class Align(QtWidgets.QWidget):
     def __init__(self, layout: QtWidgets.QLayout, fig: Figure):
-        """ A widget that allows to align the elements of a multi selection.
+        """A widget that allows to align the elements of a multi selection.
 
         Args:
             layout: the layout to which to add the widget
@@ -613,13 +662,36 @@ class Align(QtWidgets.QWidget):
         self.layout = QtWidgets.QHBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
 
-        actions = ["left_x", "center_x", "right_x", "distribute_x", "top_y", "center_y", "bottom_y", "distribute_y", "group"]
-        icons = ["left_x.png", "center_x.png", "right_x.png", "distribute_x.png", "top_y.png", "center_y.png",
-                 "bottom_y.png", "distribute_y.png", "group.png"]
+        actions = [
+            "left_x",
+            "center_x",
+            "right_x",
+            "distribute_x",
+            "top_y",
+            "center_y",
+            "bottom_y",
+            "distribute_y",
+            "group",
+        ]
+        icons = [
+            "left_x.png",
+            "center_x.png",
+            "right_x.png",
+            "distribute_x.png",
+            "top_y.png",
+            "center_y.png",
+            "bottom_y.png",
+            "distribute_y.png",
+            "group.png",
+        ]
         self.buttons = []
         for index, act in enumerate(actions):
-            button = QtWidgets.QPushButton(QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", icons[index])),
-                                           "")
+            button = QtWidgets.QPushButton(
+                QtGui.QIcon(
+                    os.path.join(os.path.dirname(__file__), "icons", icons[index])
+                ),
+                "",
+            )
             self.layout.addWidget(button)
             button.clicked.connect(lambda x, act=act: self.execute_action(act))
             self.buttons.append(button)
@@ -631,7 +703,7 @@ class Align(QtWidgets.QWidget):
         self.layout.addStretch()
 
     def execute_action(self, act: str):
-        """ execute an alignment action """
+        """execute an alignment action"""
         self.fig.selection.align_points(act)
         self.fig.selection.update_selection_rectangles()
         self.fig.canvas.draw()
@@ -640,19 +712,24 @@ class Align(QtWidgets.QWidget):
 class PlotWindow(QtWidgets.QWidget):
     fitted_to_view = False
 
-    def __init__(self, number: int, size: tuple):
-        """ The main window of pylustrator
+    def __init__(self, number: int, size: tuple, output_file: str, reqd_code: list):
+        """The main window of pylustrator
 
         Args:
             number: the id of the figure
             size: the size of the figure
+            output_file: destination for generated code. Defaults to the source file.
         """
+        self.output_file = output_file
+        self.reqd_code = reqd_code
         QtWidgets.QWidget.__init__(self)
 
         self.canvas_canvas = QtWidgets.QWidget()
         self.canvas_canvas.setMinimumHeight(400)
         self.canvas_canvas.setMinimumWidth(400)
-        self.canvas_canvas.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        self.canvas_canvas.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
+        )
         self.canvas_canvas.setStyleSheet("background:white")
         self.canvas_canvas.setFocusPolicy(QtCore.Qt.StrongFocus)
 
@@ -686,7 +763,9 @@ class PlotWindow(QtWidgets.QWidget):
 
         # widget layout and elements
         self.setWindowTitle("Figure %s - Pylustrator" % number)
-        self.setWindowIcon(QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", "logo.ico")))
+        self.setWindowIcon(
+            QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", "logo.ico"))
+        )
         layout_parent = QtWidgets.QVBoxLayout(self)
 
         self.menuBar = QtWidgets.QMenuBar()
@@ -747,7 +826,9 @@ class PlotWindow(QtWidgets.QWidget):
                 self.fig.figure_dragger.select_element(x)
         self.treeView.item_selected = item_selected
 
-        self.input_properties = QItemProperties(self.layout_tools, self.fig, self.treeView, self)
+        self.input_properties = QItemProperties(
+            self.layout_tools, self.fig, self.treeView, self
+        )
         self.input_align = Align(self.layout_tools, self.fig)
 
         # add plot layout
@@ -763,14 +844,14 @@ class PlotWindow(QtWidgets.QWidget):
 
         self.fig.canvas.mpl_disconnect(self.fig.canvas.manager.key_press_handler_id)
 
-        self.fig.canvas.mpl_connect('scroll_event', self.scroll_event)
-        self.fig.canvas.mpl_connect('key_press_event', self.canvas_key_press)
-        self.fig.canvas.mpl_connect('key_release_event', self.canvas_key_release)
+        self.fig.canvas.mpl_connect("scroll_event", self.scroll_event)
+        self.fig.canvas.mpl_connect("key_press_event", self.canvas_key_press)
+        self.fig.canvas.mpl_connect("key_release_event", self.canvas_key_release)
         self.control_modifier = False
 
-        self.fig.canvas.mpl_connect('button_press_event', self.button_press_event)
-        self.fig.canvas.mpl_connect('motion_notify_event', self.mouse_move_event)
-        self.fig.canvas.mpl_connect('button_release_event', self.button_release_event)
+        self.fig.canvas.mpl_connect("button_press_event", self.button_press_event)
+        self.fig.canvas.mpl_connect("motion_notify_event", self.mouse_move_event)
+        self.fig.canvas.mpl_connect("button_release_event", self.button_release_event)
         self.drag = None
 
         self.footer_layout = QtWidgets.QHBoxLayout()
@@ -785,12 +866,13 @@ class PlotWindow(QtWidgets.QWidget):
         self.footer_layout.addWidget(self.footer_label2)
 
         from .QtGui import ColorChooserWidget
+
         self.colorWidget = ColorChooserWidget(self, self.canvas)
         self.colorWidget.setMaximumWidth(150)
         self.layout_main.addWidget(self.colorWidget)
 
     def rasterize(self, rasterize: bool):
-        """ convert the figur elements to an image """
+        """convert the figur elements to an image"""
         if len(self.fig.selection.targets):
             self.fig.figure_dragger.select_element(None)
         if rasterize:
@@ -802,15 +884,21 @@ class PlotWindow(QtWidgets.QWidget):
         self.fig.canvas.draw()
 
     def actionSave(self):
-        """ save the code for the figure """
-        self.fig.change_tracker.save()
-        for _last_saved_figure, args, kwargs in getattr(self.fig, "_last_saved_figure", []):
+        """save the code for the figure"""
+        self.fig.change_tracker.save(self.output_file, self.reqd_code)
+        for _last_saved_figure, args, kwargs in getattr(
+            self.fig, "_last_saved_figure", []
+        ):
             self.fig.savefig(_last_saved_figure, *args, **kwargs)
 
     def actionSaveImage(self):
-        """ save figure as an image """
-        path = QtWidgets.QFileDialog.getSaveFileName(self, "Save Image", getattr(self.fig, "_last_saved_figure", [(None,)])[0][0],
-                                                     "Images (*.png *.jpg *.pdf)")
+        """save figure as an image"""
+        path = QtWidgets.QFileDialog.getSaveFileName(
+            self,
+            "Save Image",
+            getattr(self.fig, "_last_saved_figure", [(None,)])[0][0],
+            "Images (*.png *.jpg *.pdf)",
+        )
         if isinstance(path, tuple):
             path = str(path[0])
         else:
@@ -824,13 +912,16 @@ class PlotWindow(QtWidgets.QWidget):
         print("Saved plot image as", path)
 
     def showInfo(self):
-        """ show the info dialog """
+        """show the info dialog"""
         self.info_dialog = InfoDialog(self)
         self.info_dialog.show()
 
     def updateRuler(self):
-        """ update the ruler around the figure to show the dimensions """
-        trans = transforms.Affine2D().scale(1. / 2.54, 1. / 2.54) + self.fig.dpi_scale_trans
+        """update the ruler around the figure to show the dimensions"""
+        trans = (
+            transforms.Affine2D().scale(1.0 / 2.54, 1.0 / 2.54)
+            + self.fig.dpi_scale_trans
+        )
         l = 17
         l1 = 13
         l2 = 6
@@ -856,14 +947,19 @@ class PlotWindow(QtWidgets.QWidget):
         end_x = np.ceil(trans.inverted().transform((-offset + w, 0))[0])
         dx = 0.1
         for i, pos_cm in enumerate(np.arange(start_x, end_x, dx)):
-            x = (trans.transform((pos_cm, 0))[0] + offset)
+            x = trans.transform((pos_cm, 0))[0] + offset
             if i % 10 == 0:
                 painterX.drawLine(x, l - l1 - 1, x, l - 1)
                 text = str("%d" % np.round(pos_cm))
                 o = 0
-                painterX.drawText(x + 3, o, self.fontMetrics().width(text), o + self.fontMetrics().height(),
-                                  QtCore.Qt.AlignLeft,
-                                  text)
+                painterX.drawText(
+                    x + 3,
+                    o,
+                    self.fontMetrics().width(text),
+                    o + self.fontMetrics().height(),
+                    QtCore.Qt.AlignLeft,
+                    text,
+                )
             elif i % 2 == 0:
                 painterX.drawLine(x, l - l2 - 1, x, l - 1)
             else:
@@ -880,14 +976,19 @@ class PlotWindow(QtWidgets.QWidget):
         end_y = np.ceil(trans.inverted().transform((0, +offset))[1])
         dy = 0.1
         for i, pos_cm in enumerate(np.arange(start_y, end_y, dy)):
-            y = (-trans.transform((0, pos_cm))[1] + offset)
+            y = -trans.transform((0, pos_cm))[1] + offset
             if i % 10 == 0:
                 painterY.drawLine(l - l1 - 1, y, l - 1, y)
                 text = str("%d" % np.round(pos_cm))
                 o = 0
-                painterY.drawText(o, y + 3, o + self.fontMetrics().width(text), self.fontMetrics().height(),
-                                  QtCore.Qt.AlignRight,
-                                  text)
+                painterY.drawText(
+                    o,
+                    y + 3,
+                    o + self.fontMetrics().width(text),
+                    self.fontMetrics().height(),
+                    QtCore.Qt.AlignRight,
+                    text,
+                )
             elif i % 2 == 0:
                 painterY.drawLine(l - l2 - 1, y, l - 1, y)
             else:
@@ -922,33 +1023,38 @@ class PlotWindow(QtWidgets.QWidget):
         self.shadow.setMaximumSize(w + 100, h + 10)
 
     def showEvent(self, event: QtCore.QEvent):
-        """ when the window is shown """
+        """when the window is shown"""
         self.fitToView()
         self.updateRuler()
         self.colorWidget.updateColors()
 
     def resizeEvent(self, event: QtCore.QEvent):
-        """ when the window is resized """
+        """when the window is resized"""
         if self.fitted_to_view:
             self.fitToView(True)
         else:
             self.updateRuler()
 
     def button_press_event(self, event: QtCore.QEvent):
-        """ when a mouse button is pressed """
+        """when a mouse button is pressed"""
         if event.button == 2:
             self.drag = np.array([event.x, event.y])
 
     def mouse_move_event(self, event: QtCore.QEvent):
-        """ when the mouse is moved """
+        """when the mouse is moved"""
         if self.drag is not None:
             pos = np.array([event.x, event.y])
             offset = pos - self.drag
             offset[1] = -offset[1]
             self.moveCanvasCanvas(*offset)
-        trans = transforms.Affine2D().scale(2.54, 2.54) + self.fig.dpi_scale_trans.inverted()
+        trans = (
+            transforms.Affine2D().scale(2.54, 2.54)
+            + self.fig.dpi_scale_trans.inverted()
+        )
         pos = trans.transform((event.x, event.y))
-        self.footer_label.setText("%.2f, %.2f (cm) [%d, %d]" % (pos[0], pos[1], event.x, event.y))
+        self.footer_label.setText(
+            "%.2f, %.2f (cm) [%d, %d]" % (pos[0], pos[1], event.x, event.y)
+        )
 
         if event.ydata is not None:
             self.footer_label2.setText("%.2f, %.2f" % (event.xdata, event.ydata))
@@ -956,29 +1062,29 @@ class PlotWindow(QtWidgets.QWidget):
             self.footer_label2.setText("")
 
     def button_release_event(self, event: QtCore.QEvent):
-        """ when the mouse button is released """
+        """when the mouse button is released"""
         if event.button == 2:
             self.drag = None
 
     def canvas_key_press(self, event: QtCore.QEvent):
-        """ when a key in the canvas widget is pressed """
+        """when a key in the canvas widget is pressed"""
         if event.key == "control":
             self.control_modifier = True
 
     def canvas_key_release(self, event: QtCore.QEvent):
-        """ when a key in the canvas widget is released """
+        """when a key in the canvas widget is released"""
         if event.key == "control":
             self.control_modifier = False
 
     def moveCanvasCanvas(self, offset_x: float, offset_y: float):
-        """ when the canvas is panned """
+        """when the canvas is panned"""
         p = self.canvas_container.pos()
         self.canvas_container.move(p.x() + offset_x, p.y() + offset_y)
 
         self.updateRuler()
 
     def keyPressEvent(self, event: QtCore.QEvent):
-        """ when a key is pressed """
+        """when a key is pressed"""
         if event.key() == QtCore.Qt.Key_Control:
             self.control_modifier = True
         if event.key() == QtCore.Qt.Key_Left:
@@ -994,11 +1100,14 @@ class PlotWindow(QtWidgets.QWidget):
             self.fitToView(True)
 
     def fitToView(self, change_dpi: bool = False):
-        """ fit the figure to the view """
+        """fit the figure to the view"""
         self.fitted_to_view = True
         if change_dpi:
             w, h = self.canvas.get_width_height()
-            factor = min((self.canvas_canvas.width() - 30) / w, (self.canvas_canvas.height() - 30) / h)
+            factor = min(
+                (self.canvas_canvas.width() - 30) / w,
+                (self.canvas_canvas.height() - 30) / h,
+            )
             self.fig.set_dpi(self.fig.get_dpi() * factor)
             self.fig.canvas.draw()
 
@@ -1007,8 +1116,10 @@ class PlotWindow(QtWidgets.QWidget):
             self.canvas_container.setMinimumSize(w, h)
             self.canvas_container.setMaximumSize(w, h)
 
-            self.canvas_container.move((self.canvas_canvas.width() - w) / 2 + 5,
-                                       (self.canvas_canvas.height() - h) / 2 + 5)
+            self.canvas_container.move(
+                (self.canvas_canvas.width() - w) / 2 + 5,
+                (self.canvas_canvas.height() - h) / 2 + 5,
+            )
 
             self.updateRuler()
             self.fig.canvas.draw()
@@ -1018,17 +1129,19 @@ class PlotWindow(QtWidgets.QWidget):
             self.canvas_canvas.setMinimumWidth(w + 30)
             self.canvas_canvas.setMinimumHeight(h + 30)
 
-            self.canvas_container.move((self.canvas_canvas.width() - w) / 2 + 5,
-                                       (self.canvas_canvas.height() - h) / 2 + 5)
+            self.canvas_container.move(
+                (self.canvas_canvas.width() - w) / 2 + 5,
+                (self.canvas_canvas.height() - h) / 2 + 5,
+            )
             self.updateRuler()
 
     def keyReleaseEvent(self, event: QtCore.QEvent):
-        """ when a key is released """
+        """when a key is released"""
         if event.key() == QtCore.Qt.Key_Control:
             self.control_modifier = False
 
     def scroll_event(self, event: QtCore.QEvent):
-        """ when the mouse wheel is used to zoom the figure """
+        """when the mouse wheel is used to zoom the figure"""
         if self.control_modifier:
             new_dpi = self.fig.get_dpi() + 10 * event.step
 
@@ -1055,22 +1168,22 @@ class PlotWindow(QtWidgets.QWidget):
             bb = self.fig.axes[0].get_position()
 
     def updateFigureSize(self):
-        """ update the size of the figure """
+        """update the size of the figure"""
         w, h = self.canvas.get_width_height()
         self.canvas_container.setMinimumSize(w, h)
         self.canvas_container.setMaximumSize(w, h)
 
     def changedFigureSize(self, size: tuple):
-        """ change the size of the figure """
+        """change the size of the figure"""
         self.fig.set_size_inches(np.array(size) / 2.54)
         self.fig.canvas.draw()
 
     def elementSelected(self, element: Artist):
-        """ when an element is selected """
+        """when an element is selected"""
         self.input_properties.setElement(element)
 
     def update(self):
-        """ update the tree view """
+        """update the tree view"""
         # self.input_size.setValue(np.array(self.fig.get_size_inches())*2.54)
         self.treeView.deleteEntry(self.fig)
         self.treeView.expand(None)
@@ -1102,14 +1215,14 @@ class PlotWindow(QtWidgets.QWidget):
         self.treeView.setCurrentIndex(self.fig)
 
     def updateTitle(self):
-        """ update the title of the window to display if it is saved or not """
+        """update the title of the window to display if it is saved or not"""
         if self.fig.change_tracker.saved:
             self.setWindowTitle("Figure %s - Pylustrator" % self.fig.number)
         else:
             self.setWindowTitle("Figure %s* - Pylustrator" % self.fig.number)
 
     def select_element(self, element: Artist):
-        """ select an element """
+        """select an element"""
         if element is None:
             self.treeView.setCurrentIndex(self.fig)
             self.input_properties.setElement(self.fig)
@@ -1118,12 +1231,18 @@ class PlotWindow(QtWidgets.QWidget):
             self.input_properties.setElement(element)
 
     def closeEvent(self, event: QtCore.QEvent):
-        """ when the window is closed, ask the user to save """
+        """when the window is closed, ask the user to save"""
         if not self.fig.change_tracker.saved:
-            reply = QtWidgets.QMessageBox.question(self, 'Warning - Pylustrator', 'The figure has not been saved. '
-                                                                                  'All data will be lost.\nDo you want to save it?',
-                                                   QtWidgets.QMessageBox.Cancel | QtWidgets.QMessageBox.No | QtWidgets.QMessageBox.Yes,
-                                                   QtWidgets.QMessageBox.Yes)
+            reply = QtWidgets.QMessageBox.question(
+                self,
+                "Warning - Pylustrator",
+                "The figure has not been saved. "
+                "All data will be lost.\nDo you want to save it?",
+                QtWidgets.QMessageBox.Cancel
+                | QtWidgets.QMessageBox.No
+                | QtWidgets.QMessageBox.Yes,
+                QtWidgets.QMessageBox.Yes,
+            )
 
             if reply == QtWidgets.QMessageBox.Cancel:
                 event.ignore()
