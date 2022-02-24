@@ -47,7 +47,7 @@ app = None
 keys_for_lines = {}
 
 
-def initialize(use_global_variable_names=False):
+def initialize(use_global_variable_names=False, use_exception_silencer=True):
     """
     This will overload the commands ``plt.figure()`` and ``plt.show()``.
     If a figure is created after this command was called (directly or indirectly), a GUI window will be initialized
@@ -65,7 +65,8 @@ def initialize(use_global_variable_names=False):
 
     setting_use_global_variable_names = use_global_variable_names
 
-    swallow_get_exceptions()
+    if use_exception_silencer:
+        swallow_get_exceptions()
 
     if app is None:
         app = QtWidgets.QApplication(sys.argv)
