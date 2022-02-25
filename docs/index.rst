@@ -81,6 +81,12 @@ python script (before your ``plt.show()``) that defines these changes:
    code, it cannot be used from a shell. To use pylustrator, call it directly from a
    python file and use the command line to execute.
 
+.. note::
+    In case you import matplotlib.pyplot to the global namespace (e.g. `from matplotlib.pyplot import *`), pylustrator has
+    to be started before this import to be able to overload the `show` command.
+
+    Also using the `show` from the `pylab` import does not work. And is anyways discouraged, see https://matplotlib.org/stable/api/index.html?highlight=pylab#module-pylab
+
 The good thing is that this generated code is plain matplotlib code, so it will still work when you remove pylustrator
 from your code! This is especially useful if you want to distribute your code and do not want to require pylustrator as
 a dependency.
