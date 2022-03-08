@@ -396,14 +396,19 @@ class ChangeTracker:
             if line.startswith("fig.add_axes"):
                 output.append(header[1])
         output.append("#% end: automatic generated code from pylustrator" + custom_append)
-        # print("\n".join(output))
+        print("\n"+"\n".join(output)+"\n")
 
         block_id = getReference(self.figure)
         block = getTextFromFile(block_id, stack_position)
         if not block:
             block_id = getReference(self.figure, allow_using_variable_names=False)
             block = getTextFromFile(block_id, stack_position)
-        insertTextToFile(output, stack_position, block_id)
+        try:
+            insertTextToFile(output, stack_position, block_id)
+        except FileNotFoundError:
+            print(
+                "WARNING: no file to save the above changes was found, you are probably using pylustrator from a shell session.",
+                file=sys.stderr)
         self.saved = True
 
 
@@ -414,7 +419,7 @@ def getTextFromFile(block_id: str, stack_pos: traceback.FrameSummary):
 
     if not custom_stack_position:
         if not stack_pos.filename.endswith('.py') and not stack_pos.filename.startswith("<ipython-input-"):
-            raise RuntimeError("pylustrator must used in a python file (*.py) or a jupyter notebook; not a shell session.")
+            return []
 
     with open(stack_pos.filename, 'r', encoding="utf-8") as fp1:
         for lineno, line in enumerate(fp1, start=1):

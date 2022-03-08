@@ -63,6 +63,11 @@ def initialize(use_global_variable_names=False, use_exception_silencer=True):
     """
     global app, keys_for_lines, old_pltshow, old_pltfigure, setting_use_global_variable_names
 
+    # warning for shell session
+    stack_pos = traceback.extract_stack()[-2]
+    if not stack_pos.filename.endswith('.py') and not stack_pos.filename.startswith("<ipython-input-"):
+        print("WARNING: you are using pylustartor in a shell session. Changes cannot be saved to a file. They will just be printed.", file=sys.stderr)
+
     setting_use_global_variable_names = use_global_variable_names
 
     if use_exception_silencer:
