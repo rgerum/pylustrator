@@ -21,11 +21,10 @@
 
 from setuptools import setup
 
-long_description = ""
-try:
-    long_description = open('README.md').read()
-except FileNotFoundError:
-    pass
+# read the contents of your README file
+from pathlib import Path
+this_directory = Path(__file__).parent
+long_description = (this_directory / "README.md").read_text()
 
 setup(name='pylustrator',
       version="1.1.1",
