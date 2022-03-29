@@ -25,4 +25,4 @@ from .QtGui import initialize as StartColorChooser
 from .lab_colormap import LabColormap
 from .helper_functions import loadFigureFromFile as load
 
-__version__ = '1.1.1'
+__version__ = '1.1.2'
