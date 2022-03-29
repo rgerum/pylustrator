@@ -23,7 +23,7 @@ from setuptools import setup
 
 long_description = ""
 try:
-    long_description = open('readme.rst').read()
+    long_description = open('README.md').read()
 except FileNotFoundError:
     pass
 
@@ -31,7 +31,7 @@ setup(name='pylustrator',
       version="1.1.1",
       description='Adds interactivity to arrange panels in matplotlib',
       long_description=long_description,
-      url='https://bitbucket.org/fabry_biophysics/pylustrator',
+      url='https://github.com/rgerum/pylustrator',
       license="GPLv3",
       author='Richard Gerum',
       author_email='richard.gerum@fau.de',
