@@ -353,7 +353,7 @@ class ChangeTracker:
                 if isinstance(reference_obj, Figure):
                     obj_indices = ("", "", "", "")
                 else:
-                    if getattr(reference_obj, "axes", None) is not None:
+                    if getattr(reference_obj, "axes", None) is not None and not isinstance(getattr(reference_obj, "axes", None), list):
                         if reference_command == ".new":
                             index = "0"
                         elif reference_command == ".set_xscale" or reference_command == ".set_yscale":
