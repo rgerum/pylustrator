@@ -646,7 +646,7 @@ class Align(QtWidgets.QWidget):
 class PlotWindow(QtWidgets.QWidget):
     fitted_to_view = False
 
-    def __init__(self, number: int, size: tuple):
+    def __init__(self, number: int, size: tuple, *args, **kwargs):
         """ The main window of pylustrator
 
         Args:
@@ -674,7 +674,7 @@ class PlotWindow(QtWidgets.QWidget):
         self.x_scale = QtWidgets.QLabel(self.canvas_canvas)
         self.y_scale = QtWidgets.QLabel(self.canvas_canvas)
 
-        self.canvas = MatplotlibWidget(self, number, size=size)
+        self.canvas = MatplotlibWidget(self, number, size=size, *args, **kwargs)
         self.canvas.window_pylustrator = self
         self.canvas_wrapper_layout.addWidget(self.canvas)
         self.fig = self.canvas.figure
