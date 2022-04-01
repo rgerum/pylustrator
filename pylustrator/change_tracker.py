@@ -31,7 +31,7 @@ from matplotlib import _pylab_helpers
 from matplotlib.artist import Artist
 from matplotlib.axes._subplots import Axes
 from matplotlib.collections import Collection
-from matplotlib.figure import Figure
+from matplotlib.figure import Figure, SubFigure
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
 from matplotlib.text import Text
@@ -81,6 +81,9 @@ def getReference(element: Artist, allow_using_variable_names=True):
             return "plt.figure(%s)" % element.number
         else:
             return "plt.figure(\"%s\")" % element.number
+    if isinstance(element, SubFigure):
+        index = element.figure.subfigs.index(element)
+        return getReference(element.figure) + ".subfigs[%d]" % index
     if isinstance(element, matplotlib.lines.Line2D):
         index = element.axes.lines.index(element)
         return getReference(element.axes) + ".lines[%d]" % index
@@ -142,7 +145,8 @@ def getReference(element: Artist, allow_using_variable_names=True):
     if isinstance(element, matplotlib.axes._axes.Axes):
         if element.get_label():
             return getReference(element.figure) + ".ax_dict[\"%s\"]" % escape_string(element.get_label())
-        return getReference(element.figure) + ".axes[%d]" % element.number
+        index = element.figure.axes.index(element)
+        return getReference(element.figure) + ".axes[%d]" % index
 
     if isinstance(element, matplotlib.legend.Legend):
         return getReference(element.axes) + ".get_legend()"
@@ -251,6 +255,7 @@ class ChangeTracker:
                                r"fig",
                                r"\.ax_dict\[\"[^\"]*\"\]",
                                r"\.axes\[\d*\]",
+                               r"\.subfigs\[\d*\]",
                                r"\.texts\[\d*\]",
                                r"\.{title|_left_title|_right_title}",
                                r"\.lines\[\d*\]",
