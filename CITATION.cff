@@ -6,6 +6,9 @@ authors:
   orcid: "https://orcid.org/0000-0001-5893-2650"
 title: "pylustrator: code generation for reproducible figures for publication"
 version: 1.1.0
-doi: https://doi.org/10.21105/joss.01989
+identifiers:
+  - description: This is the published paper
+    type: doi
+    value: "10.21105/joss.01989"
 date-released: 2020-07-20
 url: "https://github.com/rgerum/pylustrator/"
