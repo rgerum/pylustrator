@@ -104,7 +104,7 @@ plt.show(hide_window=True)
             for line in fp:
                 if in_block is True:
                     block += line
-                    if line == "plt.figure(1).axes[0].set_position([0.121875, 0.110000, 0.227941, 0.770000])\n":
+                    if line == "plt.figure(1).axes[0].set_position([0.123438, 0.110000, 0.227941, 0.770000])\n":
                         found = True
                 if line.startswith("#% start: automatic generated code from pylustrator"):
                     in_block = True
