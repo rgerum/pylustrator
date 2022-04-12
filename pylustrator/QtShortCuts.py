@@ -184,7 +184,7 @@ class ColorMapChoose(QtWidgets.QDialog):
                      'gist_rainbow', 'rainbow', 'jet', 'nipy_spectral', 'gist_ncar'])]
 
         for cmap_category, cmap_list in cmaps:
-            layout = QtWidgets.QVBoxLayout(self)
+            layout = QtWidgets.QVBoxLayout()
             label = QtWidgets.QLabel(cmap_category)
             layout.addWidget(label)
             label.setFixedWidth(150)
