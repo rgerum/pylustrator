@@ -48,14 +48,14 @@ def getIpythonCurrentCell() -> str:
     import inspect
     # get the first stack which has a filename starting with "<ipython-input" (e.g. an ipython cell) and from
     # this stack get the globals, there get the executed cells history and the last element from it
-    return [stack for stack in inspect.stack() if stack.filename.startswith("<ipython-input") or "tmp/ipykernel" in stack.filename][0][0].f_globals["_ih"][-1]
+    return [stack for stack in inspect.stack() if stack.filename.startswith("<ipython-input") or "ipykernel" in stack.filename][0][0].f_globals["_ih"][-1]
 
 
 global_files = {}
 build_in_open = open
 def open(filename: str, *args, **kwargs):
     """ open a file and if its a jupyter cell then mock a filepointer to that cell """
-    if filename.startswith("<ipython") or "tmp/ipykernel" in filename:
+    if filename.startswith("<ipython") or "ipykernel" in filename:
         class IPythonCell:
             text = None
             write_text = None
@@ -65,7 +65,7 @@ def open(filename: str, *args, **kwargs):
                 self.filename = filename.strip()
 
                 if mode == "r":
-                    if (self.filename[0] == "<" and self.filename[-1] == ">") or ("tmp/ipykernel" in filename and not filename.endswith(".tmp")):
+                    if (self.filename[0] == "<" and self.filename[-1] == ">") or ("ipykernel" in filename and not filename.endswith(".tmp")):
                         self.is_cell = True
                         self.text = getIpythonCurrentCell()
                     else:
@@ -93,7 +93,7 @@ def open(filename: str, *args, **kwargs):
 
             def __exit__(self, exc_type, exc_val, exc_tb):
                 if self.write_text is not None:
-                    if self.filename[0] == "<" and self.filename[-1] == ">" or ("tmp/ipykernel" in filename and not filename.endswith(".tmp")):
+                    if self.filename[0] == "<" and self.filename[-1] == ">" or ("ipykernel" in filename and not filename.endswith(".tmp")):
                         setJupyterCellText(self.write_text)
                     else:
                         global_files[self.filename] = self.write_text
