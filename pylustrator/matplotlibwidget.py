@@ -50,54 +50,8 @@ from matplotlib.figure import Figure
 
 
 class MatplotlibWidget(Canvas):
-    """
-    MatplotlibWidget inherits PyQt4.QtGui.QWidget
-    and matplotlib.backend_bases.FigureCanvasBase
-    
-    Options: option_name (default_value)
-    -------    
-    parent (None): parent widget
-    title (''): figure title
-    xlabel (''): X-axis label
-    ylabel (''): Y-axis label
-    xlim (None): X-axis limits ([min, max])
-    ylim (None): Y-axis limits ([min, max])
-    xscale ('linear'): X-axis scale
-    yscale ('linear'): Y-axis scale
-    width (4): width in inches
-    height (3): height in inches
-    dpi (100): resolution in dpi
-    hold (False): if False, figure will be cleared each time plot is called
-    
-    Widget attributes:
-    -----------------
-    figure: instance of matplotlib.figure.Figure
-    axes: figure axes
-    
-    Example:
-    -------
-    self.widget = MatplotlibWidget(self, yscale='log', hold=True)
-    from numpy import linspace
-    x = linspace(-10, 10)
-    self.widget.axes.plot(x, x**2)
-    self.wdiget.axes.plot(x, x**3)
-    """
-    def __init__(self, parent=None, num=1, title='', xlabel='', ylabel='',
-                 xlim=None, ylim=None, xscale='linear', yscale='linear',
-                 size=None, dpi=100, *args, **kwargs):
+    def __init__(self, parent=None, num=1, size=None, dpi=100, *args, **kwargs):
         self.figure = Figure(figsize=size, dpi=dpi, *args, **kwargs)
-        self.axes = self.figure.add_subplot(111)
-        self.axes.set_title(title)
-        self.axes.set_xlabel(xlabel)
-        self.axes.set_ylabel(ylabel)
-        if xscale is not None:
-            self.axes.set_xscale(xscale)
-        if yscale is not None:
-            self.axes.set_yscale(yscale)
-        if xlim is not None:
-            self.axes.set_xlim(*xlim)
-        if ylim is not None:
-            self.axes.set_ylim(*ylim)
 
         Canvas.__init__(self, self.figure)
         self.setParent(parent)
