@@ -355,8 +355,12 @@ def convertFromPyplot(old, new):
 
     str(new)  # important! (for some reason I don't know)
     for ax in old.axes:
-        old.delaxes(ax)
-        new._axstack.add(new._make_key(ax), ax)
+        #old.delaxes(ax)
+        ax.remove()
+        ax.figure = new
+        new.axes.append(ax)
+        new.add_axes(ax)
+        #new._axstack.add(new._make_key(ax), ax)
         new.bbox._parents.update(old.bbox._parents)
         new.dpi_scale_trans._parents.update(old.dpi_scale_trans._parents)
         replace_all_refs(old.bbox, new.bbox)
