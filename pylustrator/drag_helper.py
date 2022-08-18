@@ -655,8 +655,16 @@ class DragManager:
             self.figure.change_tracker.save()
         if event.key == "ctrl+z":
             self.figure.change_tracker.backEdit()
+            self.selection.clear_targets()
+            self.selected_element = None
+            self.on_select(None, None)
+            self.figure.canvas.draw()
         if event.key == "ctrl+y":
             self.figure.change_tracker.forwardEdit()
+            self.selection.clear_targets()
+            self.selected_element = None
+            self.on_select(None, None)
+            self.figure.canvas.draw()
         if event.key == "escape":
             self.selection.clear_targets()
             self.selected_element = None
