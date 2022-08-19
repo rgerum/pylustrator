@@ -93,6 +93,7 @@ class Linkable:
 
             self.setLinkedProperty = set  # lambda text: getattr(self.element, "set_"+property_name)(text)
             self.getLinkedProperty = lambda: getattr(self.element, "get_" + property_name)()
+            self.getLinkedPropertyAll = lambda: [self.getLinkedProperty()]+[getattr(self.element, "get_" + property_name)() for el in self.element.figure.selection.targets if el != self.element]
             self.serializeLinkedProperty = lambda x: ".set_" + property_name + "(%s)" % x
 
         if condition is None:
@@ -116,6 +117,30 @@ class Linkable:
 
     def updateLink(self):
         """ update the linked property """
+        old_value = self.getLinkedPropertyAll()
+        new_value = self.get()
+
+        set = self.setLinkedProperty
+        element = self.element
+        targets = self.element.figure.selection.targets
+        def undo():
+            old_element = self.element
+            self.element = element
+            old_targets = self.element.figure.selection.targets
+            self.element.figure.selection.targets = [el for el in targets if el.target != element]
+            set(old_value[0])
+            self.element = old_element
+            if old_element is not None:
+                self.element.figure.selection.targets = old_targets
+        def redo():
+            old_element = self.element
+            self.element = element
+            old_targets = self.element.figure.selection.targets
+            self.element.figure.selection.targets = targets
+            set(new_value)
+            self.element = old_element
+            if old_element is not None:
+                self.element.figure.selection.targets = old_targets
         try:
             elements = self.setLinkedProperty(self.get())
         except AttributeError:
@@ -125,6 +150,8 @@ class Linkable:
                 fig = element
             else:
                 fig = element.figure
+
+            fig.change_tracker.addEdit([undo, redo])
             fig.change_tracker.addChange(element, self.serializeLinkedProperty(self.getSerialized()))
         fig.canvas.draw()
 
