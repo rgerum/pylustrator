@@ -593,7 +593,7 @@ class InfoDialog(QtWidgets.QWidget):
         self.label.setAlignment(QtCore.Qt.AlignCenter)
         self.layout.addWidget(self.label)
 
-        self.label = QtWidgets.QLabel("Copyright © 2016-2019, Richard Gerum")
+        self.label = QtWidgets.QLabel("Copyright © 2016-2022, Richard Gerum")
         self.label.setAlignment(QtCore.Qt.AlignCenter)
         self.layout.addWidget(self.label)
 
