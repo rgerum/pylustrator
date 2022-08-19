@@ -1187,14 +1187,22 @@ class QItemProperties(QtWidgets.QWidget):
         """ toggle the grid of the target """
         elements = [element.target for element in self.element.figure.selection.targets
                     if isinstance(element.target, Axes)]
-        for element in elements:
-            # _gridOnMajor for older matplotlib version (<=3.3.2) or _major_tick_kw["gridOn"] for newer matplotlib version (>=3.3.4)
-            if getattr(self.element.xaxis, "_gridOnMajor", False) or getattr(self.element.xaxis, "_major_tick_kw", {"gridOn": False})['gridOn']:
+
+        def set_false():
+            for element in elements:
                 element.grid(False)
                 self.fig.change_tracker.addChange(element, ".grid(False)")
-            else:
+        def set_true():
+            for element in elements:
                 element.grid(True)
                 self.fig.change_tracker.addChange(element, ".grid(True)")
+
+        if getattr(self.element.xaxis, "_gridOnMajor", False) or getattr(self.element.xaxis, "_major_tick_kw", {"gridOn": False})['gridOn']:
+            set_false()
+            self.fig.change_tracker.addEdit([set_true, set_false])
+        else:
+            set_true()
+            self.fig.change_tracker.addEdit([set_false, set_true])
         self.fig.canvas.draw()
 
     def buttonLegendClicked(self):
