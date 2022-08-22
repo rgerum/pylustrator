@@ -656,8 +656,6 @@ class PlotWindow(QtWidgets.QWidget):
         QtWidgets.QWidget.__init__(self)
 
         self.canvas_canvas = QtWidgets.QWidget()
-        self.canvas_canvas.setMinimumHeight(600)
-        self.canvas_canvas.setMinimumWidth(600)
         self.canvas_canvas.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.canvas_canvas.setStyleSheet("background:white")
         self.canvas_canvas.setFocusPolicy(QtCore.Qt.StrongFocus)
@@ -720,19 +718,19 @@ class PlotWindow(QtWidgets.QWidget):
         layout_parent.addWidget(self.menuBar)
         layout_parent.setContentsMargins(0, 0, 0, 0)
 
-        self.layout_main = QtWidgets.QHBoxLayout()
-        layout_parent.addLayout(self.layout_main)
-
+        if 0:
+            self.layout_main = QtWidgets.QHBoxLayout()
+            self.layout_main.setContentsMargins(0, 0, 0, 0)
+            layout_parent.addLayout(self.layout_main)
+        else:
+            self.layout_main = QtWidgets.QSplitter()
+            self.layout_main.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+            layout_parent.addWidget(self.layout_main)
         #
-        self.layout_tools = QtWidgets.QVBoxLayout()
-        self.layout_tools.setContentsMargins(0, 0, 0, 0)
-        self.layout_main.addLayout(self.layout_tools)
-        self.layout_main.setContentsMargins(0, 0, 0, 0)
         widget = QtWidgets.QWidget()
-        self.layout_tools.addWidget(widget)
         self.layout_tools = QtWidgets.QVBoxLayout(widget)
-        widget.setMaximumWidth(350)
-        widget.setMinimumWidth(350)
+        widget.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+        self.layout_main.addWidget(widget)
 
         layout_rasterize_buttons = QtWidgets.QHBoxLayout()
         self.layout_tools.addLayout(layout_rasterize_buttons)
@@ -757,8 +755,10 @@ class PlotWindow(QtWidgets.QWidget):
         self.input_align = Align(self.layout_tools, self.fig)
 
         # add plot layout
-        self.layout_plot = QtWidgets.QVBoxLayout()
-        self.layout_main.addLayout(self.layout_plot)
+        widget = QtWidgets.QWidget()
+        self.layout_plot = QtWidgets.QVBoxLayout(widget)
+        widget.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)
+        self.layout_main.addWidget(widget)
 
         # add plot canvas
         self.layout_plot.addWidget(self.canvas_canvas)
