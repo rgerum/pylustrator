@@ -656,8 +656,8 @@ class PlotWindow(QtWidgets.QWidget):
         QtWidgets.QWidget.__init__(self)
 
         self.canvas_canvas = QtWidgets.QWidget()
-        self.canvas_canvas.setMinimumHeight(400)
-        self.canvas_canvas.setMinimumWidth(400)
+        self.canvas_canvas.setMinimumHeight(600)
+        self.canvas_canvas.setMinimumWidth(600)
         self.canvas_canvas.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.canvas_canvas.setStyleSheet("background:white")
         self.canvas_canvas.setFocusPolicy(QtCore.Qt.StrongFocus)
@@ -1106,6 +1106,7 @@ class PlotWindow(QtWidgets.QWidget):
         self.fig.change_tracker.save = wrap(self.fig.change_tracker.save)
 
         self.treeView.setCurrentIndex(self.fig)
+        self.fitToView(True)
 
     def updateTitle(self):
         """ update the title of the window to display if it is saved or not """
