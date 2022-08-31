@@ -39,6 +39,7 @@ class Linkable:
     def link(self, property_name: str, signal: QtCore.Signal = None, condition: callable = None, direct: bool = False):
         self.element = None
         self.direct = direct
+        self.property_name = property_name
         if direct:
             parts = property_name.split(".")
             s = self
@@ -61,7 +62,12 @@ class Linkable:
             self.getLinkedProperty = get
             self.serializeLinkedProperty = lambda x: "." + property_name + " = %s" % x
         else:
-            def set(v):
+            def set(v, v_list=None):
+                if v_list is None:
+                    v = [v]*len(self.element.figure.selection.targets)
+                else:
+                    v = v_list
+
                 # special treatment for the xylabels, as they are not directly the target objects
                 label_object = None
                 if isinstance(self.element, Text) and isinstance(self.element.figure.selection.targets[0].target, Axes):
@@ -75,8 +81,9 @@ class Linkable:
                             break
 
                 elements = []
-                getattr(self.element, "set_" + property_name)(v)
+                getattr(self.element, "set_" + property_name)(v[0])
                 elements.append(self.element)
+                index = 0
                 for elm in self.element.figure.selection.targets:
                     elm = elm.target
                     # special treatment for the xylabels, as they are not directly the target objects
@@ -84,16 +91,42 @@ class Linkable:
                         elm = getattr(getattr(elm, f"get_{label_object}axis")(), "get_label")()
                     if elm != self.element:
                         try:
-                            getattr(elm, "set_" + property_name, None)(v)
+                            index += 1
+                            getattr(elm, "set_" + property_name, None)(v[index])
                         except TypeError as err:
                             pass
                         else:
                             elements.append(elm)
                 return elements
 
+            def getAll():
+                label_object = None
+                if isinstance(self.element, Text) and isinstance(self.element.figure.selection.targets[0].target, Axes):
+                    for elm in self.element.figure.selection.targets:
+                        elm = elm.target
+                        if self.element == getattr(getattr(elm, f"get_xaxis")(), "get_label")():
+                            label_object = "x"
+                            break
+                        if self.element == getattr(getattr(elm, f"get_yaxis")(), "get_label")():
+                            label_object = "y"
+                            break
+
+                values = [(self.element, property_name, getattr(self.element, "get_" + property_name)())]
+                for index, elm in enumerate(self.element.figure.selection.targets):
+                    elm = elm.target
+                    # special treatment for the xylabels, as they are not directly the target objects
+                    if label_object is not None:
+                        elm = getattr(getattr(elm, f"get_{label_object}axis")(), "get_label")()
+                    if elm != self.element:
+                        try:
+                            values.append([elm, property_name, getattr(elm, "get_" + property_name, None)()])
+                        except TypeError as err:
+                            pass
+                return values
+
             self.setLinkedProperty = set  # lambda text: getattr(self.element, "set_"+property_name)(text)
             self.getLinkedProperty = lambda: getattr(self.element, "get_" + property_name)()
-            self.getLinkedPropertyAll = lambda: [self.getLinkedProperty()]+[getattr(self.element, "get_" + property_name)() for el in self.element.figure.selection.targets if el != self.element]
+            self.getLinkedPropertyAll = getAll
             self.serializeLinkedProperty = lambda x: ".set_" + property_name + "(%s)" % x
 
         if condition is None:
@@ -118,29 +151,12 @@ class Linkable:
     def updateLink(self):
         """ update the linked property """
         old_value = self.getLinkedPropertyAll()
-        new_value = self.get()
-
-        set = self.setLinkedProperty
-        element = self.element
-        targets = self.element.figure.selection.targets
         def undo():
-            old_element = self.element
-            self.element = element
-            old_targets = self.element.figure.selection.targets
-            self.element.figure.selection.targets = [el for el in targets if el.target != element]
-            set(old_value[0])
-            self.element = old_element
-            if old_element is not None:
-                self.element.figure.selection.targets = old_targets
+            for elem, property_name, value in old_value:
+                getattr(elem, "set_" + property_name, None)(value)
         def redo():
-            old_element = self.element
-            self.element = element
-            old_targets = self.element.figure.selection.targets
-            self.element.figure.selection.targets = targets
-            set(new_value)
-            self.element = old_element
-            if old_element is not None:
-                self.element.figure.selection.targets = old_targets
+            for elem, property_name, value in new_value:
+                getattr(elem, "set_" + property_name, None)(value)
         try:
             elements = self.setLinkedProperty(self.get())
         except AttributeError:
@@ -151,8 +167,10 @@ class Linkable:
             else:
                 fig = element.figure
 
-            fig.change_tracker.addEdit([undo, redo])
             fig.change_tracker.addChange(element, self.serializeLinkedProperty(self.getSerialized()))
+
+        new_value = self.getLinkedPropertyAll()
+        fig.change_tracker.addEdit([undo, redo, "Change property"])
         fig.canvas.draw()
 
     def set(self, value):
@@ -182,6 +200,7 @@ class FreeNumberInput(QtWidgets.QLineEdit):
             valueChanged : a signal that is emitted when the value is changed by the user
         """
         QtWidgets.QLineEdit.__init__(self)
+        #self.setMaximumWidth(50)
         self.textChanged.connect(self.emitValueChanged)
 
     def emitValueChanged(self):
@@ -245,6 +264,7 @@ class DimensionsWidget(QtWidgets.QWidget, Linkable):
             self.input1.setSingleStep(0.1)
             self.input1.setMaximum(99999)
             self.input1.setMinimum(-99999)
+            self.input1.setMaximumWidth(100)
         self.input1.valueChanged.connect(self.onValueChanged)
         self.layout.addWidget(self.input1)
 
@@ -260,6 +280,7 @@ class DimensionsWidget(QtWidgets.QWidget, Linkable):
             self.input2.setSingleStep(0.1)
             self.input2.setMaximum(99999)
             self.input2.setMinimum(-99999)
+            self.input2.setMaximumWidth(100)
         self.input2.valueChanged.connect(self.onValueChanged)
         self.layout.addWidget(self.input2)
 

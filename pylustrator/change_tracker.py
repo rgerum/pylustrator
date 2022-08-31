@@ -174,6 +174,8 @@ class ChangeTracker:
     changes = None
     saved = True
 
+    update_changes_signal = None
+
     def __init__(self, figure: Figure):
         global stack_position
         self.figure = figure
@@ -205,6 +207,17 @@ class ChangeTracker:
             reference_command, = re.match(r"(\.[^(=]*)", command).groups()
         self.changes[reference_obj, reference_command] = (command_obj, command)
         self.saved = False
+        self.changeCountChanged()
+
+    def changeCountChanged(self):
+        if self.update_changes_signal is not None:
+            name_undo = ""
+            if self.last_edit >= 0 and len(self.edits[self.last_edit]) > 2:
+                name_undo = self.edits[self.last_edit][2]
+            name_redo = ""
+            if self.last_edit < len(self.edits) - 1 and len(self.edits[self.last_edit+1]) > 2:
+                name_redo = self.edits[self.last_edit+1][2]
+            self.update_changes_signal.emit(self.last_edit < 0, self.last_edit >= len(self.edits) - 1, name_undo, name_redo)
 
     def removeElement(self, element: Artist):
         """ remove an Artis from the figure """
@@ -228,24 +241,33 @@ class ChangeTracker:
             self.edits = self.edits[:self.last_edit + 1]
         self.edits.append(edit)
         self.last_edit = len(self.edits) - 1
+        self.last_edit = len(self.edits) - 1
+        print("addEdit", len(self.edits), self.last_edit)
+        self.changeCountChanged()
 
     def backEdit(self):
         """ undo an edit in the list """
         if self.last_edit < 0:
+            print("no backEdit", len(self.edits), self.last_edit)
             return
         edit = self.edits[self.last_edit]
         edit[0]()
         self.last_edit -= 1
         self.figure.canvas.draw()
+        print("backEdit", len(self.edits), self.last_edit)
+        self.changeCountChanged()
 
     def forwardEdit(self):
         """ redo an edit """
         if self.last_edit >= len(self.edits) - 1:
+            print("no forwardEdit", len(self.edits), self.last_edit)
             return
         edit = self.edits[self.last_edit + 1]
         edit[1]()
         self.last_edit += 1
         self.figure.canvas.draw()
+        print("forwardEdit", len(self.edits), self.last_edit)
+        self.changeCountChanged()
 
     def load(self):
         """ load a set of changes from a script file. The changes are the code that pylustrator generated """

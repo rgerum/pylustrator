@@ -646,6 +646,8 @@ class Align(QtWidgets.QWidget):
 class PlotWindow(QtWidgets.QWidget):
     fitted_to_view = False
 
+    update_changes_signal = QtCore.Signal(bool, bool, str, str)
+
     def __init__(self, number: int, size: tuple, *args, **kwargs):
         """ The main window of pylustrator
 
@@ -711,12 +713,63 @@ class PlotWindow(QtWidgets.QWidget):
         openAct.setShortcut("Ctrl+Q")
         fileMenu.addAction(openAct)
 
+        fileMenu = self.menuBar.addMenu("&Edit")
+
         infoAct = QtWidgets.QAction("&Info", self)
         infoAct.triggered.connect(self.showInfo)
+
+        undoAct = QtWidgets.QAction("Undo", self)
+        def undo():
+            self.fig.figure_dragger.undo()
+        undoAct.triggered.connect(undo)
+        undoAct.setShortcut("Ctrl+Z")
+        fileMenu.addAction(undoAct)
+
+        redoAct = QtWidgets.QAction("Redo", self)
+        def redo():
+            self.fig.figure_dragger.redo()
+        redoAct.triggered.connect(redo)
+        redoAct.setShortcut("Ctrl+Y")
+        fileMenu.addAction(redoAct)
 
         self.menuBar.addAction(infoAct)
         layout_parent.addWidget(self.menuBar)
         layout_parent.setContentsMargins(0, 0, 0, 0)
+
+        layout_top_bar = QtWidgets.QHBoxLayout()
+        layout_parent.addLayout(layout_top_bar)
+        layout_top_bar.setContentsMargins(10, 0, 10, 0)
+
+        button_undo = QtWidgets.QPushButton(qta.icon("fa.undo"), "")
+        button_undo.setToolTip("undo")
+        button_undo.clicked.connect(undo)
+        layout_top_bar.addWidget(button_undo)
+
+        button_redo = QtWidgets.QPushButton(qta.icon("fa.repeat"), "")
+        button_redo.setToolTip("redo")
+        button_redo.clicked.connect(redo)
+        layout_top_bar.addWidget(button_redo)
+
+        def updateChangesSignal(undo, redo, undo_text, redo_text):
+            button_undo.setDisabled(undo)
+            undoAct.setDisabled(undo)
+            if undo_text is not "":
+                undoAct.setText(f"Undo: {undo_text}")
+                button_undo.setToolTip(f"Undo: {undo_text}")
+            else:
+                undoAct.setText(f"Undo")
+                button_undo.setToolTip(f"Undo")
+            button_redo.setDisabled(redo)
+            redoAct.setDisabled(redo)
+            if redo_text is not "":
+                redoAct.setText(f"Redo: {redo_text}")
+                button_redo.setToolTip(f"Redo: {redo_text}")
+            else:
+                redoAct.setText(f"Redo")
+                button_redo.setToolTip(f"Redo")
+        self.update_changes_signal.connect(updateChangesSignal)
+
+        self.input_size = QPosAndSize(layout_top_bar, self.fig, self)
 
         if 0:
             self.layout_main = QtWidgets.QHBoxLayout()
@@ -730,6 +783,8 @@ class PlotWindow(QtWidgets.QWidget):
         widget = QtWidgets.QWidget()
         self.layout_tools = QtWidgets.QVBoxLayout(widget)
         widget.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+        widget.setMaximumWidth(350)
+        widget.setMinimumWidth(350)
         self.layout_main.addWidget(widget)
 
         layout_rasterize_buttons = QtWidgets.QHBoxLayout()
@@ -794,6 +849,10 @@ class PlotWindow(QtWidgets.QWidget):
         self.colorWidget = ColorChooserWidget(self, self.canvas)
         self.colorWidget.setMaximumWidth(150)
         self.layout_main.addWidget(self.colorWidget)
+
+        #self.layout_main.setStretchFactor(0, 0)
+        #self.layout_main.setStretchFactor(1, 1)
+        #self.layout_main.setStretchFactor(2, 1)
 
     def rasterize(self, rasterize: bool):
         """ convert the figur elements to an image """
@@ -1074,6 +1133,7 @@ class PlotWindow(QtWidgets.QWidget):
     def elementSelected(self, element: Artist):
         """ when an element is selected """
         self.input_properties.setElement(element)
+        self.input_size.setElement(element)
 
     def update(self):
         """ update the tree view """
@@ -1093,6 +1153,8 @@ class PlotWindow(QtWidgets.QWidget):
             return newfunc
 
         self.fig.figure_dragger.on_select = wrap(self.fig.figure_dragger.on_select)
+        self.fig.change_tracker.update_changes_signal = self.update_changes_signal
+        self.update_changes_signal.emit(True, True, "", "")
 
         def wrap(func):
             def newfunc(*args):

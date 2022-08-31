@@ -370,6 +370,7 @@ class GrabbableRectangleSelection(GrabFunctions):
         self.start_p1 = self.p1.copy()
         self.start_p2 = self.p2.copy()
         self.hide_grabber()
+        self.has_moved = False
 
         self.store_start = self.get_save_point()
 
@@ -379,7 +380,8 @@ class GrabbableRectangleSelection(GrabFunctions):
         self.figure.canvas.draw()
 
         self.store_end = self.get_save_point()
-        self.figure.change_tracker.addEdit([self.store_start, self.store_end])
+        if self.has_moved is True:
+            self.figure.change_tracker.addEdit([self.store_start, self.store_end, "Move"])
 
     def addOffset(self, pos: Sequence, dir: int, keep_aspect_ratio: bool = True):
         """ move the whole selection (e.g. for the use of the arrow keys) """
@@ -437,6 +439,7 @@ class GrabbableRectangleSelection(GrabFunctions):
     def move(self, pos: Sequence[float], dir: int, snaps: Sequence[SnapBase], keep_aspect_ratio: bool = False, ignore_snaps: bool = False):
         """ called from a grabber to move the selection. """
         self.addOffset(pos, dir, keep_aspect_ratio)
+        self.has_moved = True
 
         if not ignore_snaps:
             offx, offy = checkSnaps(snaps)
@@ -648,23 +651,31 @@ class DragManager:
         if element is not None:
             self.selection.add_target(element)
 
+    def undo(self):
+        print("back edit")
+        self.figure.change_tracker.backEdit()
+        self.selection.clear_targets()
+        self.selected_element = None
+        self.on_select(None, None)
+        self.figure.canvas.draw()
+
+    def redo(self):
+        print("forward edit")
+        self.figure.change_tracker.forwardEdit()
+        self.selection.clear_targets()
+        self.selected_element = None
+        self.on_select(None, None)
+        self.figure.canvas.draw()
+
     def key_press_event(self, event: KeyEvent):
         """ when a key is pressed """
         # space: print code to restore current configuration
         if event.key == 'ctrl+s':
             self.figure.change_tracker.save()
         if event.key == "ctrl+z":
-            self.figure.change_tracker.backEdit()
-            self.selection.clear_targets()
-            self.selected_element = None
-            self.on_select(None, None)
-            self.figure.canvas.draw()
+            self.undo()
         if event.key == "ctrl+y":
-            self.figure.change_tracker.forwardEdit()
-            self.selection.clear_targets()
-            self.selected_element = None
-            self.on_select(None, None)
-            self.figure.canvas.draw()
+            self.redo()
         if event.key == "escape":
             self.selection.clear_targets()
             self.selected_element = None
