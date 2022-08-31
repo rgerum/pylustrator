@@ -64,7 +64,7 @@ class Linkable:
         else:
             def set(v, v_list=None):
                 if v_list is None:
-                    v = [v]*len(self.element.figure.selection.targets)
+                    v = [v]+[v]*len(self.element.figure.selection.targets)
                 else:
                     v = v_list
 

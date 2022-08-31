@@ -844,13 +844,209 @@ class QAxesProperties(QtWidgets.QWidget):
             self.hide()
 
 
-class QItemProperties(QtWidgets.QWidget):
-    targetChanged = QtCore.Signal(object)
-    valueChanged = QtCore.Signal(tuple)
+class QPosAndSize(QtWidgets.QWidget):
     element = None
     transform = None
     transform_index = 0
     scale_type = 0
+
+    def __init__(self, layout: QtWidgets.QLayout, fig: Figure, parent: QtWidgets.QWidget):
+        """ a widget that holds all the properties to set and the tree view
+
+        Args:
+            layout: the layout to which to add the widget
+            fig: the figure
+            tree: the tree view of the elements of the figure
+            parent: the parent widget
+        """
+        QtWidgets.QWidget.__init__(self)
+        layout.addWidget(self)
+        self.layout = QtWidgets.QHBoxLayout(self)
+        self.layout.setContentsMargins(10, 0, 10, 0)
+        #self.tree = tree
+        self.parent = parent
+
+        #self.label = QtWidgets.QLabel()
+        #self.layout.addWidget(self.label)
+
+        self.input_position = DimensionsWidget(self.layout, "X:", "Y:", "cm")
+        self.input_position.valueChanged.connect(self.changePos)
+
+        self.input_shape = DimensionsWidget(self.layout, "W:", "H:", "cm")
+        self.input_shape.valueChanged.connect(self.changeSize)
+
+        self.input_transform = ComboWidget(self.layout, "", ["cm", "in", "px", "none"])
+        self.input_transform.editingFinished.connect(self.changeTransform)
+
+        self.input_shape_transform = ComboWidget(self.layout, "", ["scale", "bottom right", "top left"])
+        self.input_shape_transform.editingFinished.connect(self.changeTransform2)
+
+        self.fig = fig
+
+        self.layout.addStretch()
+
+    def changeTransform(self):#, transform_index: int, name: str):
+        """ change the tranform and the units of the position and size widgets """
+        name = self.input_transform.text()
+        self.transform_index = ["cm", "in", "px", "none"].index(name)#transform_index
+        if name == "none":
+            name = ""
+        self.input_shape.setUnit(name)
+        self.input_position.setUnit(name)
+        self.setElement(self.element)
+
+    def changeTransform2(self):#, state: int, name: str):
+        """ when the dimension change type is changed from 'scale' to 'bottom right' or 'bottom left' """
+        name = self.input_shape_transform.text()
+        self.scale_type = ["scale", "bottom right", "top left"].index(name)
+        #self.scale_type = state
+
+    def changePos(self, value: list):
+        """ change the position of an axes """
+        pos = self.element.get_position()
+        try:
+            w, h = pos.width, pos.height
+            pos.x0 = value[0]
+            pos.y0 = value[1]
+            pos.x1 = value[0] + w
+            pos.y1 = value[1] + h
+
+            self.fig.change_tracker.addChange(self.element, ".set_position([%f, %f, %f, %f])" % (
+            pos.x0, pos.y0, pos.width, pos.height))
+        except AttributeError:
+            pos = value
+
+            self.fig.change_tracker.addChange(self.element, ".set_position([%f, %f])" % (pos[0], pos[1]))
+        self.element.set_position(pos)
+        self.fig.canvas.draw()
+
+    def changeSize(self, value: list):
+        """ change the size of an axes or figure """
+        if isinstance(self.element, Figure):
+
+            if self.scale_type == 0:
+                self.fig.set_size_inches(value)
+                self.fig.change_tracker.addChange(self.element, ".set_size_inches(%f/2.54, %f/2.54, forward=True)" % (
+                value[0] * 2.54, value[1] * 2.54))
+            else:
+                if self.scale_type == 1:
+                    changeFigureSize(value[0], value[1], fig=self.fig)
+                elif self.scale_type == 2:
+                    changeFigureSize(value[0], value[1], cut_from_top=True, cut_from_left=True, fig=self.fig)
+                self.fig.change_tracker.addChange(self.element, ".set_size_inches(%f/2.54, %f/2.54, forward=True)" % (
+                value[0] * 2.54, value[1] * 2.54))
+                for axes in self.fig.axes:
+                    pos = axes.get_position()
+                    self.fig.change_tracker.addChange(axes, ".set_position([%f, %f, %f, %f])" % (
+                    pos.x0, pos.y0, pos.width, pos.height))
+                for text in self.fig.texts:
+                    pos = text.get_position()
+                    self.fig.change_tracker.addChange(text, ".set_position([%f, %f])" % (pos[0], pos[1]))
+
+            self.fig.selection.update_selection_rectangles()
+            self.fig.canvas.draw()
+            self.fig.widget.updateGeometry()
+            self.parent.updateFigureSize()
+            self.parent.updateRuler()
+        else:
+            elements = [self.element]
+            elements += [element.target for element in self.element.figure.selection.targets if
+                         element.target != self.element and isinstance(element.target, Axes)]
+            print("elements", elements)
+            old_positions = []
+            new_positions = []
+            for element in elements:
+                pos = element.get_position()
+                old_positions.append(pos)
+                pos = [pos.x0, pos.y0, pos.width, pos.height]
+                pos[2] = value[0]
+                pos[3] = value[1]
+                new_positions.append(pos)
+
+            fig = self.fig
+
+            def redo():
+                for element, pos in zip(elements, new_positions):
+                    element.set_position(pos)
+                    fig.change_tracker.addChange(element, ".set_position([%f, %f, %f, %f])" % tuple(pos))
+
+            def undo():
+                for element, pos in zip(elements, new_positions):
+                    element.set_position(pos)
+                    fig.change_tracker.addChange(element, ".set_position([%f, %f, %f, %f])" % tuple(pos))
+
+            redo()
+            self.fig.change_tracker.addEdit([undo, redo, "Change size"])
+            self.fig.selection.update_selection_rectangles()
+            self.fig.canvas.draw()
+
+
+    def getTransform(self, element: Artist) -> Optional[mpl.transforms.Transform]:
+        """ get the transform of an Artist """
+        if isinstance(element, Figure):
+            if self.transform_index == 0:
+                return transforms.Affine2D().scale(2.54, 2.54)
+            return None
+        if isinstance(element, Axes):
+            if self.transform_index == 0:
+                return transforms.Affine2D().scale(2.54,
+                                                   2.54) + element.figure.dpi_scale_trans.inverted() + element.figure.transFigure
+            if self.transform_index == 1:
+                return element.figure.dpi_scale_trans.inverted() + element.figure.transFigure
+            if self.transform_index == 2:
+                return element.figure.transFigure
+            return None
+        if self.transform_index == 0:
+            return transforms.Affine2D().scale(2.54,
+                                               2.54) + element.figure.dpi_scale_trans.inverted() + element.get_transform()
+        if self.transform_index == 1:
+            return element.figure.dpi_scale_trans.inverted() + element.get_transform()
+        if self.transform_index == 2:
+            return element.get_transform()
+        return None
+
+    def setElement(self, element: Artist):
+        """ set the target Artist of this widget """
+        #self.label.setText(str(element))
+        self.element = element
+
+        self.input_shape_transform.setDisabled(True)
+        self.input_transform.setDisabled(True)
+
+        if isinstance(element, Figure):
+            pos = element.get_size_inches()
+            self.input_shape.setTransform(self.getTransform(element))
+            self.input_shape.setValue((pos[0], pos[1]))
+            self.input_shape.setEnabled(True)
+            self.input_transform.setEnabled(True)
+            self.input_shape_transform.setEnabled(True)
+        elif isinstance(element, Axes):
+            pos = element.get_position()
+            self.input_shape.setTransform(self.getTransform(element))
+            self.input_shape.setValue((pos.width, pos.height))
+            self.input_transform.setEnabled(True)
+            self.input_shape.setEnabled(True)
+
+        else:
+            self.input_shape.setDisabled(True)
+
+        try:
+            pos = element.get_position()
+            self.input_position.setTransform(self.getTransform(element))
+            try:
+                self.input_position.setValue(pos)
+            except Exception as err:
+                self.input_position.setValue((pos.x0, pos.y0))
+            self.input_transform.setEnabled(True)
+            self.input_position.setEnabled(True)
+        except:
+            self.input_position.setDisabled(True)
+
+
+class QItemProperties(QtWidgets.QWidget):
+    targetChanged = QtCore.Signal(object)
+    valueChanged = QtCore.Signal(tuple)
+    element = None
 
     def __init__(self, layout: QtWidgets.QLayout, fig: Figure, tree: QtWidgets.QTreeView, parent: QtWidgets.QWidget):
         """ a widget that holds all the properties to set and the tree view
@@ -870,21 +1066,6 @@ class QItemProperties(QtWidgets.QWidget):
 
         self.label = QtWidgets.QLabel()
         self.layout.addWidget(self.label)
-
-        self.input_transform = RadioWidget(self.layout, ["cm", "in", "px", "none"])
-        self.input_transform.stateChanged.connect(self.changeTransform)
-
-        self.input_picker = CheckWidget(self.layout, "Pickable:")
-        self.input_picker.stateChanged.connect(self.changePickable)
-
-        self.input_position = DimensionsWidget(self.layout, "Position:", "x", "cm")
-        self.input_position.valueChanged.connect(self.changePos)
-
-        self.input_shape = DimensionsWidget(self.layout, "Size:", "x", "cm")
-        self.input_shape.valueChanged.connect(self.changeSize)
-
-        self.input_shape_transform = RadioWidget(self.layout, ["scale", "bottom right", "top left"])
-        self.input_shape_transform.stateChanged.connect(self.changeTransform2)
 
         self.input_text = TextWidget(self.layout, "Text:")
         self.input_text.link("text", self.targetChanged)
@@ -953,6 +1134,8 @@ class QItemProperties(QtWidgets.QWidget):
         self.button_add_annotation = QtWidgets.QPushButton("add annotation")
         self.layout_buttons.addWidget(self.button_add_annotation)
         self.button_add_annotation.clicked.connect(self.buttonAddAnnotationClicked)
+        self.layout_buttons = QtWidgets.QHBoxLayout()
+        self.layout.addLayout(self.layout_buttons)
 
         self.button_add_rectangle = QtWidgets.QPushButton("add rectangle")
         self.layout_buttons.addWidget(self.button_add_rectangle)
@@ -961,6 +1144,9 @@ class QItemProperties(QtWidgets.QWidget):
         self.button_add_arrow = QtWidgets.QPushButton("add arrow")
         self.layout_buttons.addWidget(self.button_add_arrow)
         self.button_add_arrow.clicked.connect(self.buttonAddArrowClicked)
+
+        self.layout_buttons = QtWidgets.QHBoxLayout()
+        self.layout.addLayout(self.layout_buttons)
 
         self.button_despine = QtWidgets.QPushButton("despine")
         self.layout_buttons.addWidget(self.button_despine)
@@ -1096,82 +1282,6 @@ class QItemProperties(QtWidgets.QWidget):
         self.input_text.input1.selectAll()
         self.input_text.input1.setFocus()
 
-    def changeTransform(self, transform_index: int, name: str):
-        """ change the tranform and the units of the position and size widgets """
-        self.transform_index = transform_index
-        if name == "none":
-            name = ""
-        self.input_shape.setUnit(name)
-        self.input_position.setUnit(name)
-        self.setElement(self.element)
-
-    def changeTransform2(self, state: int, name: str):
-        """ when the dimension change type is changed from 'scale' to 'bottom right' or 'bottom left' """
-        self.scale_type = state
-
-    def changePos(self, value: list):
-        """ change the position of an axes """
-        pos = self.element.get_position()
-        try:
-            w, h = pos.width, pos.height
-            pos.x0 = value[0]
-            pos.y0 = value[1]
-            pos.x1 = value[0] + w
-            pos.y1 = value[1] + h
-
-            self.fig.change_tracker.addChange(self.element, ".set_position([%f, %f, %f, %f])" % (
-            pos.x0, pos.y0, pos.width, pos.height))
-        except AttributeError:
-            pos = value
-
-            self.fig.change_tracker.addChange(self.element, ".set_position([%f, %f])" % (pos[0], pos[1]))
-        self.element.set_position(pos)
-        self.fig.canvas.draw()
-
-    def changeSize(self, value: list):
-        """ change the size of an axes or figure """
-        if isinstance(self.element, Figure):
-
-            if self.scale_type == 0:
-                self.fig.set_size_inches(value)
-                self.fig.change_tracker.addChange(self.element, ".set_size_inches(%f/2.54, %f/2.54, forward=True)" % (
-                value[0] * 2.54, value[1] * 2.54))
-            else:
-                if self.scale_type == 1:
-                    changeFigureSize(value[0], value[1], fig=self.fig)
-                elif self.scale_type == 2:
-                    changeFigureSize(value[0], value[1], cut_from_top=True, cut_from_left=True, fig=self.fig)
-                self.fig.change_tracker.addChange(self.element, ".set_size_inches(%f/2.54, %f/2.54, forward=True)" % (
-                value[0] * 2.54, value[1] * 2.54))
-                for axes in self.fig.axes:
-                    pos = axes.get_position()
-                    self.fig.change_tracker.addChange(axes, ".set_position([%f, %f, %f, %f])" % (
-                    pos.x0, pos.y0, pos.width, pos.height))
-                for text in self.fig.texts:
-                    pos = text.get_position()
-                    self.fig.change_tracker.addChange(text, ".set_position([%f, %f])" % (pos[0], pos[1]))
-
-            self.fig.selection.update_selection_rectangles()
-            self.fig.canvas.draw()
-            self.fig.widget.updateGeometry()
-            self.parent.updateFigureSize()
-            self.parent.updateRuler()
-        else:
-            elements = [self.element]
-            elements += [element.target for element in self.element.figure.selection.targets if
-                         element.target != self.element and isinstance(element.target, Axes)]
-            for element in elements:
-                pos = element.get_position()
-                pos.x1 = pos.x0 + value[0]
-                pos.y1 = pos.y0 + value[1]
-                element.set_position(pos)
-
-                self.fig.change_tracker.addChange(element, ".set_position([%f, %f, %f, %f])" % (
-                pos.x0, pos.y0, pos.width, pos.height))
-
-            self.fig.selection.update_selection_rectangles()
-            self.fig.canvas.draw()
-
     def buttonDespineClicked(self):
         """ despine the target """
         commands = [".spines['right'].set_visible(False)", ".spines['top'].set_visible(False)"]
@@ -1199,10 +1309,10 @@ class QItemProperties(QtWidgets.QWidget):
 
         if getattr(self.element.xaxis, "_gridOnMajor", False) or getattr(self.element.xaxis, "_major_tick_kw", {"gridOn": False})['gridOn']:
             set_false()
-            self.fig.change_tracker.addEdit([set_true, set_false])
+            self.fig.change_tracker.addEdit([set_true, set_false, "Grid off"])
         else:
             set_true()
-            self.fig.change_tracker.addEdit([set_false, set_true])
+            self.fig.change_tracker.addEdit([set_false, set_true, "Grid on"])
         self.fig.canvas.draw()
 
     def buttonLegendClicked(self):
@@ -1220,43 +1330,15 @@ class QItemProperties(QtWidgets.QWidget):
             self.element._draggable.disconnect()
         self.tree.updateEntry(self.element)
 
-    def getTransform(self, element: Artist) -> Optional[mpl.transforms.Transform]:
-        """ get the transform of an Artist """
-        if isinstance(element, Figure):
-            if self.transform_index == 0:
-                return transforms.Affine2D().scale(2.54, 2.54)
-            return None
-        if isinstance(element, Axes):
-            if self.transform_index == 0:
-                return transforms.Affine2D().scale(2.54,
-                                                   2.54) + element.figure.dpi_scale_trans.inverted() + element.figure.transFigure
-            if self.transform_index == 1:
-                return element.figure.dpi_scale_trans.inverted() + element.figure.transFigure
-            if self.transform_index == 2:
-                return element.figure.transFigure
-            return None
-        if self.transform_index == 0:
-            return transforms.Affine2D().scale(2.54,
-                                               2.54) + element.figure.dpi_scale_trans.inverted() + element.get_transform()
-        if self.transform_index == 1:
-            return element.figure.dpi_scale_trans.inverted() + element.get_transform()
-        if self.transform_index == 2:
-            return element.get_transform()
-        return None
-
     def setElement(self, element: Artist):
         """ set the target Artist of this widget """
         self.label.setText(str(element))
         self.element = element
         try:
             element._draggable
-            self.input_picker.setChecked(element._draggable.connected)
-            self.input_picker.show()
         except AttributeError:
-            self.input_picker.hide()
+            pass
 
-        self.input_shape_transform.hide()
-        self.input_transform.hide()
         self.button_add_annotation.hide()
         self.button_add_rectangle.hide()
         self.button_despine.hide()
@@ -1265,20 +1347,9 @@ class QItemProperties(QtWidgets.QWidget):
         self.button_add_arrow.hide()
         self.button_legend.hide()
         if isinstance(element, Figure):
-            pos = element.get_size_inches()
-            self.input_shape.setTransform(self.getTransform(element))
-            self.input_shape.setValue((pos[0], pos[1]))
-            self.input_shape.show()
-            self.input_transform.show()
-            self.input_shape_transform.show()
             self.button_add_text.show()
             self.button_add_image.show()
         elif isinstance(element, Axes):
-            pos = element.get_position()
-            self.input_shape.setTransform(self.getTransform(element))
-            self.input_shape.setValue((pos.width, pos.height))
-            self.input_transform.show()
-            self.input_shape.show()
             self.button_add_text.show()
             self.button_add_annotation.show()
             self.button_despine.show()
@@ -1287,20 +1358,7 @@ class QItemProperties(QtWidgets.QWidget):
             self.button_add_rectangle.show()
             self.button_legend.show()
         else:
-            self.input_shape.hide()
             self.button_add_text.hide()
-
-        try:
-            pos = element.get_position()
-            self.input_position.setTransform(self.getTransform(element))
-            try:
-                self.input_position.setValue(pos)
-            except Exception as err:
-                self.input_position.setValue((pos.x0, pos.y0))
-            self.input_transform.show()
-            self.input_position.show()
-        except:
-            self.input_position.hide()
 
         if isinstance(element, mpl.legend.Legend):
             self.input_legend_properties.show()
