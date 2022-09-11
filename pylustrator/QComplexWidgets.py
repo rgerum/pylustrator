@@ -535,7 +535,7 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
                 value = getattr(element, name2)
 
             try:
-                self.widgets[name].setValue(int(value))
+                self.widgets[name].setValue(value)
             except AttributeError:
                 self.widgets[name].set(value)
             self.properties[name] = value
