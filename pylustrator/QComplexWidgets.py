@@ -79,12 +79,15 @@ class TextPropertiesWidget(QtWidgets.QWidget):
 
         self.buttons_align = []
         self.align_names = ["left", "center", "right"]
+        align_group = QtWidgets.QButtonGroup(self)
         for align in self.align_names:
             button = QtWidgets.QPushButton(qta.icon("fa.align-" + align), "")
+            button.setToolTip("align "+align)
             button.setCheckable(True)
             button.clicked.connect(lambda x, name=align: self.changeAlign(name))
             self.layout.addWidget(button)
             self.buttons_align.append(button)
+            align_group.addButton(button)
 
         self.button_bold = QtWidgets.QPushButton(qta.icon("fa.bold"), "")
         self.button_bold.setCheckable(True)
@@ -111,6 +114,7 @@ class TextPropertiesWidget(QtWidgets.QWidget):
 
         self.button_delete = QtWidgets.QPushButton(qta.icon("fa.trash"), "")
         self.button_delete.clicked.connect(self.delete)
+        self.button_delete.setToolTip("delete")
         self.layout.addWidget(self.button_delete)
 
     def convertMplWeightToQtWeight(self, weight: str) -> int:
@@ -135,7 +139,7 @@ class TextPropertiesWidget(QtWidgets.QWidget):
         font0.setFamily(self.target.get_fontname())
         font0.setWeight(self.convertMplWeightToQtWeight(self.target.get_weight()))
         font0.setItalic(self.target.get_style() == "italic")
-        font0.setPointSizeF(self.target.get_fontsize())
+        font0.setPointSizeF(int(self.target.get_fontsize()))
         font, x = QtWidgets.QFontDialog.getFont(font0, self)
 
         for element in self.target_list:
@@ -170,7 +174,7 @@ class TextPropertiesWidget(QtWidgets.QWidget):
             else:
                 self.target_list = [element]
         self.target = None
-        self.font_size.setValue(element.get_fontsize())
+        self.font_size.setValue(int(element.get_fontsize()))
 
         index_selected = self.align_names.index(element.get_ha())
         for index, button in enumerate(self.buttons_align):
@@ -275,10 +279,12 @@ class TextPropertiesWidget2(QtWidgets.QWidget):
 
         self.buttons_align = []
         self.align_names = ["left", "center", "right"]
+        align_group = QtWidgets.QButtonGroup(self)
         for align in self.align_names:
             button = QtWidgets.QPushButton(qta.icon("fa.align-" + align), "")
             button.setCheckable(True)
             button.clicked.connect(lambda x, name=align: self.changeAlign(name))
+            align_group.addButton(button)
             self.layout.addWidget(button)
             self.buttons_align.append(button)
 
@@ -338,7 +344,7 @@ class TextPropertiesWidget2(QtWidgets.QWidget):
         font0.setFamily(self.target.get_fontname())
         font0.setWeight(self.convertMplWeightToQtWeight(self.target.get_weight()))
         font0.setItalic(self.target.get_style() == "italic")
-        font0.setPointSizeF(self.target.get_fontsize())
+        font0.setPointSizeF(int(self.target.get_fontsize()))
         font, x = QtWidgets.QFontDialog.getFont(font0, self)
 
         self.properties["fontname"] = font.family()
@@ -367,7 +373,7 @@ class TextPropertiesWidget2(QtWidgets.QWidget):
             else:
                 self.target_list = [element]
         self.target = None
-        self.font_size.setValue(element.get_fontsize())
+        self.font_size.setValue(int(element.get_fontsize()))
 
         index_selected = self.align_names.index(element.get_ha())
         for index, button in enumerate(self.buttons_align):
@@ -521,12 +527,15 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
             elif name2 == "title":
                 value = element.get_title().get_text()
             elif name2 == "title_fontsize":
-                value = element.get_title().get_fontsize()
+                value = int(element.get_title().get_fontsize())
+            elif name2 == "_fontsize":
+                # matplotlib fontsizes are float, but Qt requires int
+                value = int(getattr(element, name2))
             else:
                 value = getattr(element, name2)
 
             try:
-                self.widgets[name].setValue(value)
+                self.widgets[name].setValue(int(value))
             except AttributeError:
                 self.widgets[name].set(value)
             self.properties[name] = value
@@ -1321,6 +1330,7 @@ class QItemProperties(QtWidgets.QWidget):
         self.fig.change_tracker.addChange(self.element, ".legend()")
         self.fig.figure_dragger.make_dragable(self.element.get_legend())
         self.fig.canvas.draw()
+        self.tree.updateEntry(self.element, update_children=True)
 
     def changePickable(self):
         """ make the target pickable """

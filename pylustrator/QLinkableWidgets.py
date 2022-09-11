@@ -673,7 +673,7 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
     def OpenDialog(self):
         """ open a color chooser dialog """
         # get new color from color picker
-        self.current_color = QtGui.QColor(*tuple(mpl.colors.to_rgba_array(self.getColor())[0] * 255))
+        self.current_color = QtGui.QColor(*tuple(int(x) for x in mpl.colors.to_rgba_array(self.getColor())[0] * 255))
         self.dialog = QtWidgets.QColorDialog(self.current_color, self.parent())
         self.dialog.setOptions(QtWidgets.QColorDialog.ShowAlphaChannel)
         for index, color in enumerate(plt.rcParams['axes.prop_cycle'].by_key()['color']):

@@ -49,7 +49,7 @@ def my_excepthook(type, value, tback):
 
 sys.excepthook = my_excepthook
 
-""" Matplotlib overlaod """
+""" Matplotlib overload """
 figures = {}
 app = None
 
