@@ -482,7 +482,6 @@ class MyTreeView(QtWidgets.QTreeView):
         if item is None:
             # get the parent entry
             parent_entry = self.getParentEntry(entry)
-            parent_item = None
             # if we have a parent and are not at the top level try to get the corresponding item
             if parent_entry:
                 parent_item = self.getItemFromEntry(parent_entry)
@@ -491,6 +490,8 @@ class MyTreeView(QtWidgets.QTreeView):
                     if parent_item:
                         parent_item.setText(self.getNameOfEntry(parent_entry))
                     return
+            else:
+                parent_item = None
 
             # define the row where the new item should be
             row = None
@@ -544,6 +545,7 @@ class MyTreeView(QtWidgets.QTreeView):
 
     def deleteEntry(self, entry: Artist):
         """ delete an entry from the tree """
+        # get the tree view item for the database entry
         item = self.getItemFromEntry(entry)
         if item is None:
             return
@@ -555,11 +557,13 @@ class MyTreeView(QtWidgets.QTreeView):
         key = self.getKey(entry)
         del self.item_lookup[key]
 
+        # delete row from the treeview
         if parent_item is None:
             self.model.removeRow(item.row())
         else:
-            item.parent().removeRow(item.row())
+            item.parent().removeRow(item.row(), item.parent())
 
+        # update the label of parent item
         if parent_item:
             name = self.getNameOfEntry(parent_entry)
             if name is not None:
@@ -623,12 +627,15 @@ class Align(QtWidgets.QWidget):
         icons = ["left_x.png", "center_x.png", "right_x.png", "distribute_x.png", "top_y.png", "center_y.png",
                  "bottom_y.png", "distribute_y.png", "group.png"]
         self.buttons = []
+        align_group = QtWidgets.QButtonGroup(self)
         for index, act in enumerate(actions):
             button = QtWidgets.QPushButton(QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", icons[index])),
                                            "")
+            button.setToolTip(act.replace('_', ' '))
             self.layout.addWidget(button)
             button.clicked.connect(lambda x, act=act: self.execute_action(act))
             self.buttons.append(button)
+            align_group.addButton(button)
             if index == 3:
                 line = QtWidgets.QFrame()
                 line.setFrameShape(QtWidgets.QFrame.VLine)
@@ -753,7 +760,7 @@ class PlotWindow(QtWidgets.QWidget):
         def updateChangesSignal(undo, redo, undo_text, redo_text):
             button_undo.setDisabled(undo)
             undoAct.setDisabled(undo)
-            if undo_text is not "":
+            if undo_text != "":
                 undoAct.setText(f"Undo: {undo_text}")
                 button_undo.setToolTip(f"Undo: {undo_text}")
             else:
@@ -761,7 +768,7 @@ class PlotWindow(QtWidgets.QWidget):
                 button_undo.setToolTip(f"Undo")
             button_redo.setDisabled(redo)
             redoAct.setDisabled(redo)
-            if redo_text is not "":
+            if redo_text != "":
                 redoAct.setText(f"Redo: {redo_text}")
                 button_redo.setToolTip(f"Redo: {redo_text}")
             else:
@@ -923,16 +930,16 @@ class PlotWindow(QtWidgets.QWidget):
         for i, pos_cm in enumerate(np.arange(start_x, end_x, dx)):
             x = (trans.transform((pos_cm, 0))[0] + offset)
             if i % 10 == 0:
-                painterX.drawLine(x, l - l1 - 1, x, l - 1)
+                painterX.drawLine(int(x), int(l - l1 - 1), int(x), int(l - 1))
                 text = str("%d" % np.round(pos_cm))
                 o = 0
-                painterX.drawText(x + 3, o, self.fontMetrics().width(text), o + self.fontMetrics().height(),
+                painterX.drawText(int(x + 3), int(o), int(self.fontMetrics().width(text)), int(o + self.fontMetrics().height()),
                                   QtCore.Qt.AlignLeft,
                                   text)
             elif i % 2 == 0:
-                painterX.drawLine(x, l - l2 - 1, x, l - 1)
+                painterX.drawLine(int(x), int(l - l2 - 1), int(x), int(l - 1))
             else:
-                painterX.drawLine(x, l - l3 - 1, x, l - 1)
+                painterX.drawLine(int(x), int(l - l3 - 1), int(x), int(l - 1))
         painterX.drawLine(0, l - 2, w, l - 2)
         painterX.setPen(QtGui.QPen(QtGui.QColor("white"), 1))
         painterX.drawLine(0, l - 1, w, l - 1)
@@ -947,22 +954,22 @@ class PlotWindow(QtWidgets.QWidget):
         for i, pos_cm in enumerate(np.arange(start_y, end_y, dy)):
             y = (-trans.transform((0, pos_cm))[1] + offset)
             if i % 10 == 0:
-                painterY.drawLine(l - l1 - 1, y, l - 1, y)
+                painterY.drawLine(int(l - l1 - 1), int(y), int(l - 1), int(y))
                 text = str("%d" % np.round(pos_cm))
                 o = 0
-                painterY.drawText(o, y + 3, o + self.fontMetrics().width(text), self.fontMetrics().height(),
+                painterY.drawText(int(o), int(y + 3), int(o + self.fontMetrics().width(text)), int(self.fontMetrics().height()),
                                   QtCore.Qt.AlignRight,
                                   text)
             elif i % 2 == 0:
-                painterY.drawLine(l - l2 - 1, y, l - 1, y)
+                painterY.drawLine(int(l - l2 - 1), int(y), int(l - 1), int(y))
             else:
-                painterY.drawLine(l - l3 - 1, y, l - 1, y)
-        painterY.drawLine(l - 2, 0, l - 2, h)
+                painterY.drawLine(int(l - l3 - 1), int(y), int(l - 1), int(y))
+        painterY.drawLine(int(l - 2), 0, int(l - 2), int(h))
         painterY.setPen(QtGui.QPen(QtGui.QColor("white"), 1))
-        painterY.drawLine(l - 1, 0, l - 1, h)
+        painterY.drawLine(int(l - 1), 0, int(l - 1), int(h))
         painterY.setPen(QtGui.QPen(QtGui.QColor("#f0f0f0"), 0))
         painterY.setBrush(QtGui.QBrush(QtGui.QColor("#f0f0f0")))
-        painterY.drawRect(0, 0, l, l)
+        painterY.drawRect(0, 0, int(l), int(l))
         self.y_scale.setPixmap(self.pixmapY)
         self.y_scale.setMinimumSize(l, h)
         self.y_scale.setMaximumSize(l, h)
@@ -1038,7 +1045,7 @@ class PlotWindow(QtWidgets.QWidget):
     def moveCanvasCanvas(self, offset_x: float, offset_y: float):
         """ when the canvas is panned """
         p = self.canvas_container.pos()
-        self.canvas_container.move(p.x() + offset_x, p.y() + offset_y)
+        self.canvas_container.move(int(p.x() + offset_x), int(p.y() + offset_y))
 
         self.updateRuler()
 
@@ -1072,8 +1079,8 @@ class PlotWindow(QtWidgets.QWidget):
             self.canvas_container.setMinimumSize(w, h)
             self.canvas_container.setMaximumSize(w, h)
 
-            self.canvas_container.move((self.canvas_canvas.width() - w) / 2 + 5,
-                                       (self.canvas_canvas.height() - h) / 2 + 5)
+            self.canvas_container.move(int((self.canvas_canvas.width() - w) / 2 + 5),
+                                       int((self.canvas_canvas.height() - h) / 2 + 5))
 
             self.updateRuler()
             self.fig.canvas.draw()
@@ -1083,8 +1090,8 @@ class PlotWindow(QtWidgets.QWidget):
             self.canvas_canvas.setMinimumWidth(w + 30)
             self.canvas_canvas.setMinimumHeight(h + 30)
 
-            self.canvas_container.move((self.canvas_canvas.width() - w) / 2 + 5,
-                                       (self.canvas_canvas.height() - h) / 2 + 5)
+            self.canvas_container.move(int((self.canvas_canvas.width() - w) / 2 + 5),
+                                       int((self.canvas_canvas.height() - h) / 2 + 5))
             self.updateRuler()
 
     def keyReleaseEvent(self, event: QtCore.QEvent):
