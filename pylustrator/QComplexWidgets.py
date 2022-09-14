@@ -81,7 +81,7 @@ class TextPropertiesWidget(QtWidgets.QWidget):
         self.align_names = ["left", "center", "right"]
         align_group = QtWidgets.QButtonGroup(self)
         for align in self.align_names:
-            button = QtWidgets.QPushButton(qta.icon("fa.align-" + align), "")
+            button = QtWidgets.QPushButton(qta.icon("fa5s.align-" + align), "")
             button.setToolTip("align "+align)
             button.setCheckable(True)
             button.clicked.connect(lambda x, name=align: self.changeAlign(name))
@@ -89,12 +89,12 @@ class TextPropertiesWidget(QtWidgets.QWidget):
             self.buttons_align.append(button)
             align_group.addButton(button)
 
-        self.button_bold = QtWidgets.QPushButton(qta.icon("fa.bold"), "")
+        self.button_bold = QtWidgets.QPushButton(qta.icon("fa5s.bold"), "")
         self.button_bold.setCheckable(True)
         self.button_bold.clicked.connect(self.changeWeight)
         self.layout.addWidget(self.button_bold)
 
-        self.button_italic = QtWidgets.QPushButton(qta.icon("fa.italic"), "")
+        self.button_italic = QtWidgets.QPushButton(qta.icon("fa5s.italic"), "")
         self.button_italic.setCheckable(True)
         self.button_italic.clicked.connect(self.changeStyle)
         self.layout.addWidget(self.button_italic)
@@ -108,11 +108,11 @@ class TextPropertiesWidget(QtWidgets.QWidget):
         self.layout.addWidget(self.font_size)
         self.font_size.valueChanged.connect(self.changeFontSize)
 
-        self.label = QtWidgets.QPushButton(qta.icon("fa.font"), "")  # .pixmap(16))
+        self.label = QtWidgets.QPushButton(qta.icon("fa5s.font"), "")  # .pixmap(16))
         self.layout.addWidget(self.label)
         self.label.clicked.connect(self.selectFont)
 
-        self.button_delete = QtWidgets.QPushButton(qta.icon("fa.trash"), "")
+        self.button_delete = QtWidgets.QPushButton(qta.icon("fa5s.trash"), "")
         self.button_delete.clicked.connect(self.delete)
         self.button_delete.setToolTip("delete")
         self.layout.addWidget(self.button_delete)
@@ -281,19 +281,19 @@ class TextPropertiesWidget2(QtWidgets.QWidget):
         self.align_names = ["left", "center", "right"]
         align_group = QtWidgets.QButtonGroup(self)
         for align in self.align_names:
-            button = QtWidgets.QPushButton(qta.icon("fa.align-" + align), "")
+            button = QtWidgets.QPushButton(qta.icon("fa5s.align-" + align), "")
             button.setCheckable(True)
             button.clicked.connect(lambda x, name=align: self.changeAlign(name))
             align_group.addButton(button)
             self.layout.addWidget(button)
             self.buttons_align.append(button)
 
-        self.button_bold = QtWidgets.QPushButton(qta.icon("fa.bold"), "")
+        self.button_bold = QtWidgets.QPushButton(qta.icon("fa5s.bold"), "")
         self.button_bold.setCheckable(True)
         self.button_bold.clicked.connect(self.changeWeight)
         self.layout.addWidget(self.button_bold)
 
-        self.button_italic = QtWidgets.QPushButton(qta.icon("fa.italic"), "")
+        self.button_italic = QtWidgets.QPushButton(qta.icon("fa5s.italic"), "")
         self.button_italic.setCheckable(True)
         self.button_italic.clicked.connect(self.changeStyle)
         self.layout.addWidget(self.button_italic)
@@ -307,7 +307,7 @@ class TextPropertiesWidget2(QtWidgets.QWidget):
         self.layout.addWidget(self.font_size)
         self.font_size.valueChanged.connect(self.changeFontSize)
 
-        self.label = QtWidgets.QPushButton(qta.icon("fa.font"), "")  # .pixmap(16))
+        self.label = QtWidgets.QPushButton(qta.icon("fa5s.font"), "")  # .pixmap(16))
         self.layout.addWidget(self.label)
         self.label.clicked.connect(self.selectFont)
 

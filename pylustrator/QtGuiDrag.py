@@ -354,7 +354,7 @@ class MyTreeView(QtWidgets.QTreeView):
         """ get the icon of an entry """
         if getattr(entry, "_draggable", None):
             if entry._draggable.connected:
-                return qta.icon("fa.hand-paper-o")
+                return qta.icon("fa5.hand-paper-o")
         return QtGui.QIcon()
 
     def getEntrySortRole(self, entry: Artist):
@@ -452,7 +452,7 @@ class MyTreeView(QtWidgets.QTreeView):
             child = QtGui.QStandardItem("loading")
             child.entry = None
             child.setEditable(False)
-            child.setIcon(qta.icon("fa.hourglass-half"))
+            child.setIcon(qta.icon("fa5s.hourglass-half"))
             item.appendRow(child)
             item.expanded = False
         return item
@@ -747,12 +747,12 @@ class PlotWindow(QtWidgets.QWidget):
         layout_parent.addLayout(layout_top_bar)
         layout_top_bar.setContentsMargins(10, 0, 10, 0)
 
-        button_undo = QtWidgets.QPushButton(qta.icon("fa.undo"), "")
+        button_undo = QtWidgets.QPushButton(qta.icon("fa5s.undo"), "")
         button_undo.setToolTip("undo")
         button_undo.clicked.connect(undo)
         layout_top_bar.addWidget(button_undo)
 
-        button_redo = QtWidgets.QPushButton(qta.icon("fa.repeat"), "")
+        button_redo = QtWidgets.QPushButton(qta.icon("fa5s.redo"), "")
         button_redo.setToolTip("redo")
         button_redo.clicked.connect(redo)
         layout_top_bar.addWidget(button_redo)

@@ -241,7 +241,7 @@ class ColorChooserWidget(QtWidgets.QWidget):
         self.swap_counter = 0
 
         # add update push button
-        self.button_update = QtWidgets.QPushButton(qta.icon("fa.refresh"), "update")
+        self.button_update = QtWidgets.QPushButton(qta.icon("ei.refresh"), "update")
         self.button_update.clicked.connect(self.updateColors)
 
         # add color chooser layout
@@ -397,7 +397,7 @@ class PlotWindow(QtWidgets.QWidget):
 
         # widget layout and elements
         self.setWindowTitle("Figure %s" % number)
-        self.setWindowIcon(qta.icon("fa.bar-chart"))
+        self.setWindowIcon(qta.icon("fa5.bar-chart"))
         self.layout_main = QtWidgets.QHBoxLayout(self)
 
         # add plot layout
