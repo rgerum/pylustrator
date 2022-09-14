@@ -39,12 +39,16 @@ sys._excepthook = sys.excepthook
 # Set the exception hook to our wrapping function
 sys.excepthook = lambda *args: sys._excepthook(*args)
 
+print("start test")
+
 
 class TestFits(unittest.TestCase):
 
     def setUp(self):
+        print("setup")
         self.filename = Path(self.id().split(".")[-1]+".py")
         with self.filename.open("w") as fp:
+            print("write tmp file")
             fp.write("""
 import matplotlib.pyplot as plt
 import numpy as np
@@ -84,19 +88,27 @@ plt.show(hide_window=True)
             tmp_file.unlink()
 
     def test_fitCamParametersFromObjects(self):
+        print("read file")
         with open(self.filename, "rb") as fp:
             text = fp.read()
+        print("exec file")
         exec(compile(text, self.filename, 'exec'), globals())
 
+        print("get figure")
         for figure in _pylab_helpers.Gcf.figs:
             figure = _pylab_helpers.Gcf.figs[figure].canvas.figure
+            print("select element")
             figure.figure_dragger.select_element(figure.axes[0])
 
+            print("start move")
             figure.selection.start_move()
             figure.selection.addOffset((-1, 0), figure.selection.dir)
+            print("end move")
             figure.selection.end_move()
+            print("save")
             figure.change_tracker.save()
 
+        print("open saved file")
         with self.filename.open("r") as fp:
             in_block = False
             found = False
@@ -104,7 +116,7 @@ plt.show(hide_window=True)
             for line in fp:
                 if in_block is True:
                     block += line
-                    if line == "plt.figure(1).axes[0].set_position([0.123438, 0.110000, 0.227941, 0.770000])\n":
+                    if line.startswith("plt.figure(1).axes[0].set_position([0.123333, 0.110000, 0.227941, 0.770000])"):
                         found = True
                 if line.startswith("#% start: automatic generated code from pylustrator"):
                     in_block = True
