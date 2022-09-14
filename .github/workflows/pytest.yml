@@ -17,16 +17,14 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.7", "3.8", "3.9", "3.10"]
 
     steps:
       - uses: actions/checkout@v3
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: '3.9'
+          cache: 'pip'
       - name: Setup apt-get
         run: sudo apt-get -qq install libxcb-xinerama0 pyqt5-dev-tools
       - name: Install dependencies
