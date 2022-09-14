@@ -37,7 +37,8 @@ jobs:
           pip install natsort numpy matplotlib
           pip install qtpy qtawesome
           pip install scikit-image
-          pip install -e . --no-deps
+      - name: Install Pylustrator
+          run: pip install -e . --no-deps
       - name: Test with pytest
         run: |
           pytest
