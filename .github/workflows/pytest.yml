@@ -30,7 +30,7 @@ jobs:
         pip install -r .github/workflows/requirements.txt
     - name: Install package
       run: |
-        pip install pylustrator --no-deps
+        pip install . --no-deps
     - name: Test
       env:
         QT_QPA_PLATFORM: "offscreen"
