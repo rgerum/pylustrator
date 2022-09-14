@@ -27,12 +27,13 @@ import matplotlib as mpl
 
 """ Color Chooser """
 
-class QDragableColor(QtWidgets.QLineEdit):
+class QDragableColor(QtWidgets.QLabel):
     """ a color widget that can be dragged onto another QDragableColor widget to exchange the two colors.
     alternatively it can be right-clicked to select a color.
     """
 
     color_changed = QtCore.Signal(str)
+    color_changed_by_color_picker = QtCore.Signal(bool)
 
     def __init__(self, value: str):
         """ initialize with a color """
@@ -54,7 +55,7 @@ class QDragableColor(QtWidgets.QLineEdit):
         N = 10
         for i in range(N):
             i = i / (N - 1)
-            text += "stop: %.2f %s, " % (i, mpl.colors.to_hex(cmap(i)))
+            text += f"stop: {i:.2f} {mpl.colors.to_hex(cmap(i))}, "
         text = text[:-2] + ");"
         return text
 
@@ -65,9 +66,9 @@ class QDragableColor(QtWidgets.QLineEdit):
         self.setText(value)
         self.color_changed.emit(value)
         if value in self.maps:
-            self.setStyleSheet("text-align: center; border: 2px solid black; "+self.getBackground())
+            self.setStyleSheet("text-align: center; border: 2px solid black; padding: 0.1em; "+self.getBackground())
         else:
-            self.setStyleSheet("text-align: center; background-color: %s; border: 2px solid black" % value)
+            self.setStyleSheet(f"text-align: center; background-color: {value}; border: 2px solid black; padding: 0.1em; ")
 
     def getColor(self) -> str:
         """ get teh current color """
@@ -83,16 +84,16 @@ class QDragableColor(QtWidgets.QLineEdit):
             mime = QtCore.QMimeData()
             mime.setText(self.color)
             drag.setMimeData(mime)
-            self.setStyleSheet("background-color: lightgray; border: 2px solid gray")
+            self.setStyleSheet("background-color: lightgray; border: 2px solid gray; padding: 0.1em; ")
             self.setDisabled(True)
             self.setText("")
             drag.exec()
             self.setText(self.color)
             self.setDisabled(False)
             if self.color in self.maps:
-                self.setStyleSheet("text-align: center; border: 2px solid black; "+self.getBackground())
+                self.setStyleSheet("text-align: center; border: 2px solid black; padding: 0.1em; "+self.getBackground())
             else:
-                self.setStyleSheet("text-align: center; background-color: %s; border: 2px solid black" % self.color)
+                self.setStyleSheet(f"text-align: center; background-color: {self.color}; border: 2px solid black; padding: 0.1em; ")
         # a right mouse button opens a color choose menu
         elif event.button() == QtCore.Qt.RightButton:
             self.openDialog()
@@ -102,16 +103,16 @@ class QDragableColor(QtWidgets.QLineEdit):
         if event.mimeData().hasFormat("text/plain") and event.source() != self:
             event.acceptProposedAction()
             if self.color in self.maps:
-                self.setStyleSheet("border: 2px solid red; "+self.getBackground())
+                self.setStyleSheet("border: 2px solid red; padding: 0.1em; "+self.getBackground())
             else:
-                self.setStyleSheet("background-color: %s; border: 2px solid red" % self.color)
+                self.setStyleSheet(f"background-color: {self.color}; border: 2px solid red; padding: 0.1em; ")
 
     def dragLeaveEvent(self, event):
         """ when the color widget which is dragged leaves the area of this widget """
         if self.color in self.maps:
-            self.setStyleSheet("border: 2px solid black; "+self.getBackground())
+            self.setStyleSheet("border: 2px solid black; padding: 0.1em; "+self.getBackground())
         else:
-            self.setStyleSheet("background-color: %s; border: 2px solid black" % self.color)
+            self.setStyleSheet(f"background-color: {self.color}; border: 2px solid black; padding: 0.1em; ")
 
     def dropEvent(self, event):
         """ when a color widget is dropped here, exchange the two colors """
@@ -129,12 +130,13 @@ class QDragableColor(QtWidgets.QLineEdit):
             self.setColor(colormap)
         else:
             # get new color from color picker
-            qcolor = QtGui.QColor(*np.array(mpl.colors.to_rgb(self.getColor())) * 255)
+            qcolor = QtGui.QColor(*tuple(int(x) for x in np.array(mpl.colors.to_rgb(self.getColor())) * 255))
             color = QtWidgets.QColorDialog.getColor(qcolor, self.parent())
             # if a color is set, apply it
             if color.isValid():
                 color = "#%02x%02x%02x" % color.getRgb()[:3]
                 self.setColor(color)
+                self.color_changed_by_color_picker.emit(True)
 
 
 
@@ -219,6 +221,6 @@ class ColorMapChoose(QtWidgets.QDialog):
         N = 10
         for i in range(N):
             i = i / (N - 1)
-            text += "stop: %.2f %s, " % (i, mpl.colors.to_hex(cmap(i)))
+            text += f"stop: {i:.2f} {mpl.colors.to_hex(cmap(i))}, "
         text = text[:-2] + ");"
         return text

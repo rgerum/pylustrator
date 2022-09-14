@@ -232,8 +232,13 @@ class ColorChooserWidget(QtWidgets.QWidget):
             canvas: the figure's canvas element
         """
         QtWidgets.QWidget.__init__(self)
+
         # initialize color artist dict
         self.color_artists = {}
+        # tracks how many colors have changed to make sure
+        # that updateColors is only called after a
+        # full swap this means 2 colors change
+        self.swap_counter = 0
 
         # add update push button
         self.button_update = QtWidgets.QPushButton(qta.icon("fa.refresh"), "update")
@@ -242,8 +247,10 @@ class ColorChooserWidget(QtWidgets.QWidget):
         # add color chooser layout
         self.layout_right = QtWidgets.QVBoxLayout(self)
         self.layout_right.addWidget(self.button_update)
+
         self.layout_colors = QtWidgets.QVBoxLayout()
         self.layout_right.addLayout(self.layout_colors)
+
         self.layout_colors2 = QtWidgets.QVBoxLayout()
         self.layout_right.addLayout(self.layout_colors2)
 
@@ -299,13 +306,31 @@ class ColorChooserWidget(QtWidgets.QWidget):
         except ValueError:
             button = QDragableColor(color)
         self.layout_colors.addWidget(button)
-        button.color_changed.connect(lambda c, color_base=basecolor: self.color_selected(c, color_base))
+        button.color_changed.connect(lambda c: self.colorChanged(c, color_base=basecolor))
+        button.color_changed_by_color_picker.connect(lambda e: self.resetSwapcounter(e))
         if basecolor:
             self.color_buttons[basecolor] = button
         self.color_buttons_list.append(button)
 
+    def colorChanged(self, c, color_base):
+        """ update a color when it is changed
+        if colors are swapped then first change both colors  and then update the text list of colors
+        """
+        self.color_selected(c, color_base)
+
+        # call updateColors after 2 colors have swapped
+        self.swap_counter += 1
+        if self.swap_counter == 2:
+            self.swap_counter = 0
+            self.updateColors()
+
+    def resetSwapcounter(self, _):
+        """ when a color changed using the color picker the swap counter is reset """
+        self.swap_counter = 0
+        self.updateColors()
+
     def updateColors(self):
-        """ update the list of colors """
+        """ update the text list of colors """
         # add recursively all artists of the figure
         figureListColors(self.canvas.figure)
         self.color_artists = list(self.canvas.figure.color_artists)
