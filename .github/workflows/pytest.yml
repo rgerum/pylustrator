@@ -38,7 +38,7 @@ jobs:
           pip install qtpy qtawesome
           pip install scikit-image
       - name: Install Pylustrator
-          run: pip install -e . --no-deps
+        run: pip install -e . --no-deps
       - name: Test with pytest
         run: |
           pytest
