@@ -15,7 +15,7 @@ representing your data and alongside a generated code file that can exactly repr
 publication, without the need to readjust things in external programs.
 
 Pylustrator offers an interactive interface to find the best way to present your data in a figure for publication.
-Added formatting an styling can be saved by automatically generated code. To compose multiple figures to panels,
+Added formatting and styling can be saved by automatically generated code. To compose multiple figures to panels,
 pylustrator can compose different subfigures to a single figure.
 
 Please also refer to the [Documentation](https://pylustrator.readthedocs.io) for more information.
