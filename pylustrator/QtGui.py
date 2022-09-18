@@ -236,13 +236,13 @@ class ColorChooserWidget(QtWidgets.QWidget):
         # initialize color artist dict
         self.color_artists = {}
         # tracks how many colors have changed to make sure
-        # that updateColors is only called after a
+        # that updateColorsText is only called after a
         # full swap this means 2 colors change
         self.swap_counter = 0
 
         # add update push button
         self.button_update = QtWidgets.QPushButton(qta.icon("ei.refresh"), "update")
-        self.button_update.clicked.connect(self.updateColors)
+        self.button_update.clicked.connect(self.updateColorsText)
 
         # add color chooser layout
         self.layout_right = QtWidgets.QVBoxLayout(self)
@@ -326,7 +326,7 @@ class ColorChooserWidget(QtWidgets.QWidget):
         """
         self.color_selected(c, color_base)
 
-        # call updateColors after 2 colors have swapped
+        # call updateColorsText after 2 colors have swapped
         self.swap_counter += 1
         if self.swap_counter == 2:
             self.swap_counter = 0
