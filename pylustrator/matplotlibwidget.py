@@ -97,7 +97,7 @@ class CanvasWindow(QtWidgets.QWidget):
     def __init__(self, num="", *args, **kwargs):
         QtWidgets.QWidget.__init__(self)
         self.setWindowTitle("Figure %s" % num)
-        self.setWindowIcon(qta.icon("fa.bar-chart"))
+        self.setWindowIcon(qta.icon("fa5s.bar-chart"))
         self.layout = QtWidgets.QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)

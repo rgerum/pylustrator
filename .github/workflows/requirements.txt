@@ -1,0 +1,9 @@
+pytest
+coverage
+PyQt5
+natsort
+numpy
+matplotlib
+qtpy
+qtawesome
+scikit-image
