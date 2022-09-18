@@ -41,7 +41,7 @@ def my_excepthook(type, value, tback):
 
 sys.excepthook = my_excepthook
 
-""" Matplotlib overlaod """
+""" Matplotlib overload """
 figures = {}
 app = None
 keys_for_lines = {}
@@ -161,7 +161,7 @@ def patchColormapsWithMetaInfo():
 
 
 def figure(num=None, figsize=None, force_add=False, *args, **kwargs):
-    """ overloads the matplotlib figure call and wrapps the Figure in a PlotWindow """
+    """ overloads the matplotlib figure call and wraps the Figure in a PlotWindow """
     global figures
     # if num is not defined create a new number
     if num is None:
@@ -186,7 +186,7 @@ def figure(num=None, figsize=None, force_add=False, *args, **kwargs):
 
 
 def warnAboutTicks(fig):
-    """ warn if the tick labels and tick values do not match, to prevent users from accidently setting wrong tick values """
+    """ warn if the tick labels and tick values do not match, to prevent users from accidentally setting wrong tick values """
     import sys
     for index, ax in enumerate(fig.axes):
         ticks = ax.get_yticks()
@@ -997,7 +997,7 @@ class PlotWindow(QtWidgets.QWidget):
         """ when the window is shown """
         self.fitToView()
         self.updateRuler()
-        self.colorWidget.updateColors()
+        self.colorWidget.updateColorsText()
 
     def resizeEvent(self, event: QtCore.QEvent):
         """ when the window is resized """

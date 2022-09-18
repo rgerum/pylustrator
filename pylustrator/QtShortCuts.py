@@ -20,7 +20,6 @@
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
 from qtpy import QtCore, QtGui, QtWidgets
-import numpy as np
 from matplotlib import pyplot as plt
 import matplotlib as mpl
 
@@ -29,7 +28,8 @@ import matplotlib as mpl
 
 class QDragableColor(QtWidgets.QLabel):
     """ a color widget that can be dragged onto another QDragableColor widget to exchange the two colors.
-    alternatively it can be right-clicked to select a color.
+    Alternatively it can be right-clicked to select either a color or a colormap through their respective menus.
+    The button can represent either a single color or a colormap.
     """
 
     color_changed = QtCore.Signal(str)
@@ -71,7 +71,7 @@ class QDragableColor(QtWidgets.QLabel):
             self.setStyleSheet(f"text-align: center; background-color: {value}; border: 2px solid black; padding: 0.1em; ")
 
     def getColor(self) -> str:
-        """ get teh current color """
+        """ get the current color """
         # return the color
         return self.color
 
@@ -130,7 +130,7 @@ class QDragableColor(QtWidgets.QLabel):
             self.setColor(colormap)
         else:
             # get new color from color picker
-            qcolor = QtGui.QColor(*tuple(int(x) for x in np.array(mpl.colors.to_rgb(self.getColor())) * 255))
+            qcolor = QtGui.QColor(*tuple(int(x * 255) for x in mpl.colors.to_rgb(self.getColor())))
             color = QtWidgets.QColorDialog.getColor(qcolor, self.parent())
             # if a color is set, apply it
             if color.isValid():
@@ -153,7 +153,7 @@ class ColorMapChoose(QtWidgets.QDialog):
         button_layout = QtWidgets.QHBoxLayout()
         main_layout.addLayout(button_layout)
         self.button_cancel = QtWidgets.QPushButton("Cancel")
-        self.button_cancel.clicked.connect(lambda x: self.done(0))
+        self.button_cancel.clicked.connect(lambda _: self.done(0))
         button_layout.addStretch()
         button_layout.addWidget(self.button_cancel)
 
@@ -193,7 +193,7 @@ class ColorMapChoose(QtWidgets.QDialog):
             for cmap in cmap_list:
                 button = QtWidgets.QPushButton(cmap)
                 button.setStyleSheet("text-align: center; border: 2px solid black; "+self.getBackground(cmap))
-                button.clicked.connect(lambda x, cmap=cmap: self.buttonClicked(cmap))
+                button.clicked.connect(lambda _, cmap=cmap: self.buttonClicked(cmap))
                 self.buttons.append(button)
                 layout.addWidget(button)
             layout.addStretch()
