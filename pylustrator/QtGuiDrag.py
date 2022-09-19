@@ -666,10 +666,11 @@ class PlotWindow(QtWidgets.QWidget):
 
         self.canvas_canvas = QtWidgets.QWidget()
         self.canvas_canvas.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        self.canvas_canvas.setStyleSheet("background:white")
+        self.canvas_canvas.setStyleSheet("background:#d1d1d1")
         self.canvas_canvas.setFocusPolicy(QtCore.Qt.StrongFocus)
 
         self.shadow = QtWidgets.QLabel(self.canvas_canvas)
+        self.canvas_border = QtWidgets.QLabel(self.canvas_canvas)
 
         self.canvas_container = QtWidgets.QWidget(self.canvas_canvas)
         self.canvas_wrapper_layout = QtWidgets.QHBoxLayout()
@@ -976,22 +977,25 @@ class PlotWindow(QtWidgets.QWidget):
 
         w, h = self.canvas.get_width_height()
 
-        self.pixmap = QtGui.QPixmap(w + 100, h + 10)
+        self.pixmap = QtGui.QPixmap(w, h)
 
-        self.pixmap.fill(QtGui.QColor("transparent"))
-
-        painter = QtGui.QPainter(self.pixmap)
-
-        painter.setPen(QtCore.Qt.NoPen)
-        painter.setBrush(QtGui.QBrush(QtGui.QColor("#666666")))
-        painter.drawRect(2, 2, w + 2, h + 2)
-        painter.drawRect(0, 0, w + 2, h + 2)
+        self.pixmap.fill(QtGui.QColor("#666666"))
 
         p = self.canvas_container.pos()
         self.shadow.setPixmap(self.pixmap)
-        self.shadow.move(p.x() - 1, p.y() - 1)
-        self.shadow.setMinimumSize(w + 100, h + 10)
-        self.shadow.setMaximumSize(w + 100, h + 10)
+        self.shadow.move(p.x() + 2, p.y() + 2)
+        self.shadow.setMinimumSize(w, h)
+        self.shadow.setMaximumSize(w, h)
+        self.shadow.setGraphicsEffect(QtWidgets.QGraphicsBlurEffect())
+
+        self.pixmap2 = QtGui.QPixmap(w + 2, h + 2)
+        self.pixmap2.fill(QtGui.QColor("#666666"))
+
+        p = self.canvas_container.pos()
+        self.canvas_border.setPixmap(self.pixmap2)
+        self.canvas_border.move(p.x() - 1, p.y() - 1)
+        self.canvas_border.setMinimumSize(w + 2, h + 2)
+        self.canvas_border.setMaximumSize(w + 2, h + 2)
 
     def showEvent(self, event: QtCore.QEvent):
         """ when the window is shown """
