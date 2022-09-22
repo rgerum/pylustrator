@@ -137,6 +137,11 @@ def addChildren(color_artists: list, parent: Artist):
                 except AttributeError:
                     cmap = None
 
+                try:
+                    mpl.colors.to_hex(color)
+                except ValueError:
+                    continue
+
                 # omit blacks and whites
                 if mpl.colors.to_hex(color) == "#000000" or mpl.colors.to_hex(color) == "#ffffff":
                     continue

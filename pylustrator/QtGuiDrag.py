@@ -650,21 +650,25 @@ class Align(QtWidgets.QWidget):
         self.fig.canvas.draw()
 
 
-class PlotWindow(QtWidgets.QWidget):
+class Canvas(QtWidgets.QWidget):
     fitted_to_view = False
+    footer_label = None
+    footer_label2 = None
 
-    update_changes_signal = QtCore.Signal(bool, bool, str, str)
-
-    def __init__(self, number: int, size: tuple, *args, **kwargs):
-        """ The main window of pylustrator
+    def __init__(self, number, size, *args, **kwargs):
+        """ The wrapper around the matplotlib canvas to create a more image editor like canvas with background and side rulers
 
         Args:
             number: the id of the figure
             size: the size of the figure
         """
-        QtWidgets.QWidget.__init__(self)
 
-        self.canvas_canvas = QtWidgets.QWidget()
+        super().__init__()
+        self.layout = QtWidgets.QHBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+
+        self.canvas_canvas = QtWidgets.QWidget(self)
+        self.layout.addWidget(self.canvas_canvas)
         self.canvas_canvas.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.canvas_canvas.setStyleSheet("background:#d1d1d1")
         self.canvas_canvas.setFocusPolicy(QtCore.Qt.StrongFocus)
@@ -688,147 +692,8 @@ class PlotWindow(QtWidgets.QWidget):
         self.fig = self.canvas.figure
         self.fig.widget = self.canvas
 
-        def mousePress(event):
-            self.canvas.mousePressEvent(event)
-
-        self.canvas_canvas.mousePressEvent = mousePress
-
-        def mouseRelease(event):
-            self.canvas.mouseReleaseEvent(event)
-
-        self.canvas_canvas.mouseReleaseEvent = mouseRelease
-
-        # widget layout and elements
-        self.setWindowTitle("Figure %s - Pylustrator" % number)
-        self.setWindowIcon(QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", "logo.ico")))
-        layout_parent = QtWidgets.QVBoxLayout(self)
-
-        self.menuBar = QtWidgets.QMenuBar()
-        fileMenu = self.menuBar.addMenu("&File")
-
-        openAct = QtWidgets.QAction("&Save", self)
-        openAct.setShortcut("Ctrl+S")
-        openAct.triggered.connect(self.actionSave)
-        fileMenu.addAction(openAct)
-
-        openAct = QtWidgets.QAction("Save &Image...", self)
-        openAct.setShortcut("Ctrl+I")
-        openAct.triggered.connect(self.actionSaveImage)
-        fileMenu.addAction(openAct)
-
-        openAct = QtWidgets.QAction("Exit", self)
-        openAct.triggered.connect(self.close)
-        openAct.setShortcut("Ctrl+Q")
-        fileMenu.addAction(openAct)
-
-        fileMenu = self.menuBar.addMenu("&Edit")
-
-        infoAct = QtWidgets.QAction("&Info", self)
-        infoAct.triggered.connect(self.showInfo)
-
-        undoAct = QtWidgets.QAction("Undo", self)
-        def undo():
-            self.fig.figure_dragger.undo()
-        undoAct.triggered.connect(undo)
-        undoAct.setShortcut("Ctrl+Z")
-        fileMenu.addAction(undoAct)
-
-        redoAct = QtWidgets.QAction("Redo", self)
-        def redo():
-            self.fig.figure_dragger.redo()
-        redoAct.triggered.connect(redo)
-        redoAct.setShortcut("Ctrl+Y")
-        fileMenu.addAction(redoAct)
-
-        self.menuBar.addAction(infoAct)
-        layout_parent.addWidget(self.menuBar)
-        layout_parent.setContentsMargins(0, 0, 0, 0)
-
-        layout_top_bar = QtWidgets.QHBoxLayout()
-        layout_parent.addLayout(layout_top_bar)
-        layout_top_bar.setContentsMargins(10, 0, 10, 0)
-
-        button_undo = QtWidgets.QPushButton(qta.icon("fa5s.undo"), "")
-        button_undo.setToolTip("undo")
-        button_undo.clicked.connect(undo)
-        layout_top_bar.addWidget(button_undo)
-
-        button_redo = QtWidgets.QPushButton(qta.icon("fa5s.redo"), "")
-        button_redo.setToolTip("redo")
-        button_redo.clicked.connect(redo)
-        layout_top_bar.addWidget(button_redo)
-
-        def updateChangesSignal(undo, redo, undo_text, redo_text):
-            button_undo.setDisabled(undo)
-            undoAct.setDisabled(undo)
-            if undo_text != "":
-                undoAct.setText(f"Undo: {undo_text}")
-                button_undo.setToolTip(f"Undo: {undo_text}")
-            else:
-                undoAct.setText(f"Undo")
-                button_undo.setToolTip(f"Undo")
-            button_redo.setDisabled(redo)
-            redoAct.setDisabled(redo)
-            if redo_text != "":
-                redoAct.setText(f"Redo: {redo_text}")
-                button_redo.setToolTip(f"Redo: {redo_text}")
-            else:
-                redoAct.setText(f"Redo")
-                button_redo.setToolTip(f"Redo")
-        self.update_changes_signal.connect(updateChangesSignal)
-
-        self.input_size = QPosAndSize(layout_top_bar, self.fig, self)
-
-        if 0:
-            self.layout_main = QtWidgets.QHBoxLayout()
-            self.layout_main.setContentsMargins(0, 0, 0, 0)
-            layout_parent.addLayout(self.layout_main)
-        else:
-            self.layout_main = QtWidgets.QSplitter()
-            self.layout_main.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-            layout_parent.addWidget(self.layout_main)
-        #
-        widget = QtWidgets.QWidget()
-        self.layout_tools = QtWidgets.QVBoxLayout(widget)
-        widget.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
-        widget.setMaximumWidth(350)
-        widget.setMinimumWidth(350)
-        self.layout_main.addWidget(widget)
-
-        layout_rasterize_buttons = QtWidgets.QHBoxLayout()
-        self.layout_tools.addLayout(layout_rasterize_buttons)
-        self.button_rasterize = QtWidgets.QPushButton("rasterize")
-        layout_rasterize_buttons.addWidget(self.button_rasterize)
-        self.button_rasterize.clicked.connect(lambda x: self.rasterize(True))
-        self.button_derasterize = QtWidgets.QPushButton("derasterize")
-        layout_rasterize_buttons.addWidget(self.button_derasterize)
-        self.button_derasterize.clicked.connect(lambda x: self.rasterize(False))
-        self.button_derasterize.setDisabled(True)
-
-        self.treeView = MyTreeView(self, self.layout_tools, self.fig)
-
-        self.no_figure_dragger_selection_update = False
-        def item_selected(x):
-            self.elementSelected(x)
-            if not self.no_figure_dragger_selection_update:
-                self.fig.figure_dragger.select_element(x)
-        self.treeView.item_selected = item_selected
-
-        self.input_properties = QItemProperties(self.layout_tools, self.fig, self.treeView, self)
-        self.input_align = Align(self.layout_tools, self.fig)
-
-        # add plot layout
-        widget = QtWidgets.QWidget()
-        self.layout_plot = QtWidgets.QVBoxLayout(widget)
-        widget.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)
-        self.layout_main.addWidget(widget)
-
-        # add plot canvas
-        self.layout_plot.addWidget(self.canvas_canvas)
-
-        # add toolbar
-        self.toolbar = ToolBar(self.canvas, self.fig)
-        self.layout_plot.addWidget(self.toolbar)
+        #self.canvas_canvas.mousePressEvent = lambda event: self.canvas.mousePressEvent(event)
+        #self.canvas_canvas.mouseReleaseEvent = lambda event: self.canvas.mouseReleaseEvent(event)
 
         self.fig.canvas.mpl_disconnect(self.fig.canvas.manager.key_press_handler_id)
 
@@ -842,64 +707,9 @@ class PlotWindow(QtWidgets.QWidget):
         self.fig.canvas.mpl_connect('button_release_event', self.button_release_event)
         self.drag = None
 
-        self.footer_layout = QtWidgets.QHBoxLayout()
-        self.layout_plot.addLayout(self.footer_layout)
-
-        self.footer_label = QtWidgets.QLabel("")
-        self.footer_layout.addWidget(self.footer_label)
-
-        self.footer_layout.addStretch()
-
-        self.footer_label2 = QtWidgets.QLabel("")
-        self.footer_layout.addWidget(self.footer_label2)
-
-        from .QtGui import ColorChooserWidget
-        self.colorWidget = ColorChooserWidget(self, self.canvas)
-        self.colorWidget.setMaximumWidth(150)
-        self.layout_main.addWidget(self.colorWidget)
-
-        #self.layout_main.setStretchFactor(0, 0)
-        #self.layout_main.setStretchFactor(1, 1)
-        #self.layout_main.setStretchFactor(2, 1)
-
-    def rasterize(self, rasterize: bool):
-        """ convert the figur elements to an image """
-        if len(self.fig.selection.targets):
-            self.fig.figure_dragger.select_element(None)
-        if rasterize:
-            rasterizeAxes(self.fig)
-            self.button_derasterize.setDisabled(False)
-        else:
-            restoreAxes(self.fig)
-            self.button_derasterize.setDisabled(True)
-        self.fig.canvas.draw()
-
-    def actionSave(self):
-        """ save the code for the figure """
-        self.fig.change_tracker.save()
-        for _last_saved_figure, args, kwargs in getattr(self.fig, "_last_saved_figure", []):
-            self.fig.savefig(_last_saved_figure, *args, **kwargs)
-
-    def actionSaveImage(self):
-        """ save figure as an image """
-        path = QtWidgets.QFileDialog.getSaveFileName(self, "Save Image", getattr(self.fig, "_last_saved_figure", [(None,)])[0][0],
-                                                     "Images (*.png *.jpg *.pdf)")
-        if isinstance(path, tuple):
-            path = str(path[0])
-        else:
-            path = str(path)
-        if not path:
-            return
-        if os.path.splitext(path)[1] == ".pdf":
-            self.fig.savefig(path, dpi=300)
-        else:
-            self.fig.savefig(path)
-        print("Saved plot image as", path)
-
-    def showInfo(self):
-        """ show the info dialog """
-        self.info_dialog = InfoDialog(self)
-        self.info_dialog.show()
+    def setFooters(self, footer, footer2):
+        self.footer_label = footer
+        self.footer_label2 = footer2
 
     def updateRuler(self):
         """ update the ruler around the figure to show the dimensions """
@@ -934,7 +744,7 @@ class PlotWindow(QtWidgets.QWidget):
                 painterX.drawLine(int(x), int(l - l1 - 1), int(x), int(l - 1))
                 text = str("%d" % np.round(pos_cm))
                 o = 0
-                painterX.drawText(int(x + 3), int(o), int(self.fontMetrics().width(text)), int(o + self.fontMetrics().height()),
+                painterX.drawText(int(x + 3), int(o - 5), int(self.fontMetrics().width(text)), int(o + self.fontMetrics().height()),
                                   QtCore.Qt.AlignLeft,
                                   text)
             elif i % 2 == 0:
@@ -997,11 +807,80 @@ class PlotWindow(QtWidgets.QWidget):
         self.canvas_border.setMinimumSize(w + 2, h + 2)
         self.canvas_border.setMaximumSize(w + 2, h + 2)
 
-    def showEvent(self, event: QtCore.QEvent):
-        """ when the window is shown """
-        self.fitToView()
+    def fitToView(self, change_dpi: bool = False):
+        """ fit the figure to the view """
+        self.fitted_to_view = True
+        if change_dpi:
+            w, h = self.canvas.get_width_height()
+            factor = min((self.canvas_canvas.width() - 30) / w, (self.canvas_canvas.height() - 30) / h)
+            self.fig.set_dpi(self.fig.get_dpi() * factor)
+            self.fig.canvas.draw()
+
+            self.canvas.updateGeometry()
+            w, h = self.canvas.get_width_height()
+            self.canvas_container.setMinimumSize(w, h)
+            self.canvas_container.setMaximumSize(w, h)
+
+            self.canvas_container.move(int((self.canvas_canvas.width() - w) / 2 + 5),
+                                       int((self.canvas_canvas.height() - h) / 2 + 5))
+
+            self.updateRuler()
+            self.fig.canvas.draw()
+
+        else:
+            w, h = self.canvas.get_width_height()
+            self.canvas_canvas.setMinimumWidth(w + 30)
+            self.canvas_canvas.setMinimumHeight(h + 30)
+
+            self.canvas_container.move(int((self.canvas_canvas.width() - w) / 2 + 5),
+                                       int((self.canvas_canvas.height() - h) / 2 + 5))
+            self.updateRuler()
+
+    def canvas_key_press(self, event: QtCore.QEvent):
+        """ when a key in the canvas widget is pressed """
+        if event.key == "control":
+            self.control_modifier = True
+
+    def canvas_key_release(self, event: QtCore.QEvent):
+        """ when a key in the canvas widget is released """
+        if event.key == "control":
+            self.control_modifier = False
+
+    def moveCanvasCanvas(self, offset_x: float, offset_y: float):
+        """ when the canvas is panned """
+        p = self.canvas_container.pos()
+        self.canvas_container.move(int(p.x() + offset_x), int(p.y() + offset_y))
+
         self.updateRuler()
-        self.colorWidget.updateColors()
+
+
+    def scroll_event(self, event: QtCore.QEvent):
+        """ when the mouse wheel is used to zoom the figure """
+        if self.control_modifier:
+            new_dpi = self.fig.get_dpi() + 10 * event.step
+
+            self.fig.figure_dragger.select_element(None)
+
+            pos = self.fig.transFigure.inverted().transform((event.x, event.y))
+            pos_ax = self.fig.transFigure.transform(self.fig.axes[0].get_position())[0]
+
+            self.fig.set_dpi(new_dpi)
+            self.fig.canvas.draw()
+
+            self.canvas.updateGeometry()
+            w, h = self.canvas.get_width_height()
+            self.canvas_container.setMinimumSize(w, h)
+            self.canvas_container.setMaximumSize(w, h)
+
+            pos2 = self.fig.transFigure.transform(pos)
+            diff = np.array([event.x, event.y]) - pos2
+
+            pos_ax2 = self.fig.transFigure.transform(self.fig.axes[0].get_position())[0]
+            diff += pos_ax2 - pos_ax
+            self.moveCanvasCanvas(*diff)
+
+            bb = self.fig.axes[0].get_position()
+
 
     def resizeEvent(self, event: QtCore.QEvent):
         """ when the window is resized """
@@ -1036,23 +915,6 @@ class PlotWindow(QtWidgets.QWidget):
         if event.button == 2:
             self.drag = None
 
-    def canvas_key_press(self, event: QtCore.QEvent):
-        """ when a key in the canvas widget is pressed """
-        if event.key == "control":
-            self.control_modifier = True
-
-    def canvas_key_release(self, event: QtCore.QEvent):
-        """ when a key in the canvas widget is released """
-        if event.key == "control":
-            self.control_modifier = False
-
-    def moveCanvasCanvas(self, offset_x: float, offset_y: float):
-        """ when the canvas is panned """
-        p = self.canvas_container.pos()
-        self.canvas_container.move(int(p.x() + offset_x), int(p.y() + offset_y))
-
-        self.updateRuler()
-
     def keyPressEvent(self, event: QtCore.QEvent):
         """ when a key is pressed """
         if event.key() == QtCore.Qt.Key_Control:
@@ -1069,66 +931,11 @@ class PlotWindow(QtWidgets.QWidget):
         if event.key() == QtCore.Qt.Key_F:
             self.fitToView(True)
 
-    def fitToView(self, change_dpi: bool = False):
-        """ fit the figure to the view """
-        self.fitted_to_view = True
-        if change_dpi:
-            w, h = self.canvas.get_width_height()
-            factor = min((self.canvas_canvas.width() - 30) / w, (self.canvas_canvas.height() - 30) / h)
-            self.fig.set_dpi(self.fig.get_dpi() * factor)
-            self.fig.canvas.draw()
-
-            self.canvas.updateGeometry()
-            w, h = self.canvas.get_width_height()
-            self.canvas_container.setMinimumSize(w, h)
-            self.canvas_container.setMaximumSize(w, h)
-
-            self.canvas_container.move(int((self.canvas_canvas.width() - w) / 2 + 5),
-                                       int((self.canvas_canvas.height() - h) / 2 + 5))
-
-            self.updateRuler()
-            self.fig.canvas.draw()
-
-        else:
-            w, h = self.canvas.get_width_height()
-            self.canvas_canvas.setMinimumWidth(w + 30)
-            self.canvas_canvas.setMinimumHeight(h + 30)
-
-            self.canvas_container.move(int((self.canvas_canvas.width() - w) / 2 + 5),
-                                       int((self.canvas_canvas.height() - h) / 2 + 5))
-            self.updateRuler()
 
     def keyReleaseEvent(self, event: QtCore.QEvent):
         """ when a key is released """
         if event.key() == QtCore.Qt.Key_Control:
             self.control_modifier = False
-
-    def scroll_event(self, event: QtCore.QEvent):
-        """ when the mouse wheel is used to zoom the figure """
-        if self.control_modifier:
-            new_dpi = self.fig.get_dpi() + 10 * event.step
-
-            self.fig.figure_dragger.select_element(None)
-
-            pos = self.fig.transFigure.inverted().transform((event.x, event.y))
-            pos_ax = self.fig.transFigure.transform(self.fig.axes[0].get_position())[0]
-
-            self.fig.set_dpi(new_dpi)
-            self.fig.canvas.draw()
-
-            self.canvas.updateGeometry()
-            w, h = self.canvas.get_width_height()
-            self.canvas_container.setMinimumSize(w, h)
-            self.canvas_container.setMaximumSize(w, h)
-
-            pos2 = self.fig.transFigure.transform(pos)
-            diff = np.array([event.x, event.y]) - pos2
-
-            pos_ax2 = self.fig.transFigure.transform(self.fig.axes[0].get_position())[0]
-            diff += pos_ax2 - pos_ax
-            self.moveCanvasCanvas(*diff)
-
-            bb = self.fig.axes[0].get_position()
 
     def updateFigureSize(self):
         """ update the size of the figure """
@@ -1140,6 +947,232 @@ class PlotWindow(QtWidgets.QWidget):
         """ change the size of the figure """
         self.fig.set_size_inches(np.array(size) / 2.54)
         self.fig.canvas.draw()
+
+
+class PlotWindow(QtWidgets.QWidget):
+    update_changes_signal = QtCore.Signal(bool, bool, str, str)
+
+    def __init__(self, number: int, size: tuple, *args, **kwargs):
+        """ The main window of pylustrator
+
+        Args:
+            number: the id of the figure
+            size: the size of the figure
+        """
+        QtWidgets.QWidget.__init__(self)
+
+        self.canvas_canvas = Canvas(number, size=size, *args, **kwargs)
+        self.fig = self.canvas_canvas.fig
+        self.canvas = self.canvas_canvas.canvas
+        self.canvas.window_pylustrator = self
+        self.updateFigureSize = self.canvas_canvas.updateFigureSize
+        self.updateRuler = self.canvas_canvas.updateRuler
+
+        # widget layout and elements
+        self.setWindowTitle("Figure %s - Pylustrator" % number)
+        self.setWindowIcon(QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", "logo.ico")))
+        layout_parent = QtWidgets.QVBoxLayout(self)
+
+        self.menuBar = QtWidgets.QMenuBar()
+        file_menu = self.menuBar.addMenu("&File")
+
+        open_act = QtWidgets.QAction("&Save", self)
+        open_act.setShortcut("Ctrl+S")
+        open_act.triggered.connect(self.actionSave)
+        file_menu.addAction(open_act)
+
+        open_act = QtWidgets.QAction("Save &Image...", self)
+        open_act.setShortcut("Ctrl+I")
+        open_act.triggered.connect(self.actionSaveImage)
+        file_menu.addAction(open_act)
+
+        open_act = QtWidgets.QAction("Exit", self)
+        open_act.triggered.connect(self.close)
+        open_act.setShortcut("Ctrl+Q")
+        file_menu.addAction(open_act)
+
+        file_menu = self.menuBar.addMenu("&Edit")
+
+        info_act = QtWidgets.QAction("&Info", self)
+        info_act.triggered.connect(self.showInfo)
+
+        undo_act = QtWidgets.QAction("Undo", self)
+
+        def undo():
+            self.fig.figure_dragger.undo()
+        undo_act.triggered.connect(undo)
+        undo_act.setShortcut("Ctrl+Z")
+        file_menu.addAction(undo_act)
+
+        redo_act = QtWidgets.QAction("Redo", self)
+
+        def redo():
+            self.fig.figure_dragger.redo()
+        redo_act.triggered.connect(redo)
+        redo_act.setShortcut("Ctrl+Y")
+        file_menu.addAction(redo_act)
+
+        self.menuBar.addAction(info_act)
+        layout_parent.addWidget(self.menuBar)
+        layout_parent.setContentsMargins(0, 0, 0, 0)
+
+        layout_top_bar = QtWidgets.QHBoxLayout()
+        layout_parent.addLayout(layout_top_bar)
+        layout_top_bar.setContentsMargins(10, 0, 10, 0)
+
+        button_undo = QtWidgets.QPushButton(qta.icon("fa5s.undo"), "")
+        button_undo.setToolTip("undo")
+        button_undo.clicked.connect(undo)
+        layout_top_bar.addWidget(button_undo)
+
+        button_redo = QtWidgets.QPushButton(qta.icon("fa5s.redo"), "")
+        button_redo.setToolTip("redo")
+        button_redo.clicked.connect(redo)
+        layout_top_bar.addWidget(button_redo)
+
+        def updateChangesSignal(undo, redo, undo_text, redo_text):
+            button_undo.setDisabled(undo)
+            undo_act.setDisabled(undo)
+            if undo_text != "":
+                undo_act.setText(f"Undo: {undo_text}")
+                button_undo.setToolTip(f"Undo: {undo_text}")
+            else:
+                undo_act.setText(f"Undo")
+                button_undo.setToolTip(f"Undo")
+            button_redo.setDisabled(redo)
+            redo_act.setDisabled(redo)
+            if redo_text != "":
+                redo_act.setText(f"Redo: {redo_text}")
+                button_redo.setToolTip(f"Redo: {redo_text}")
+            else:
+                redo_act.setText(f"Redo")
+                button_redo.setToolTip(f"Redo")
+        self.update_changes_signal.connect(updateChangesSignal)
+
+        self.input_size = QPosAndSize(layout_top_bar, self.fig, self)
+
+        if 0:
+            self.layout_main = QtWidgets.QHBoxLayout()
+            self.layout_main.setContentsMargins(0, 0, 0, 0)
+            layout_parent.addLayout(self.layout_main)
+        else:
+            self.layout_main = QtWidgets.QSplitter()
+            self.layout_main.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+            layout_parent.addWidget(self.layout_main)
+        #
+        widget = QtWidgets.QWidget()
+        self.layout_tools = QtWidgets.QVBoxLayout(widget)
+        widget.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+        widget.setMaximumWidth(350)
+        widget.setMinimumWidth(350)
+        self.layout_main.addWidget(widget)
+
+        layout_rasterize_buttons = QtWidgets.QHBoxLayout()
+        self.layout_tools.addLayout(layout_rasterize_buttons)
+        self.button_rasterize = QtWidgets.QPushButton("rasterize")
+        layout_rasterize_buttons.addWidget(self.button_rasterize)
+        self.button_rasterize.clicked.connect(lambda x: self.rasterize(True))
+        self.button_derasterize = QtWidgets.QPushButton("derasterize")
+        layout_rasterize_buttons.addWidget(self.button_derasterize)
+        self.button_derasterize.clicked.connect(lambda x: self.rasterize(False))
+        self.button_derasterize.setDisabled(True)
+
+        self.treeView = MyTreeView(self, self.layout_tools, self.fig)
+
+        self.no_figure_dragger_selection_update = False
+        def item_selected(x):
+            self.elementSelected(x)
+            if not self.no_figure_dragger_selection_update:
+                self.fig.figure_dragger.select_element(x)
+        self.treeView.item_selected = item_selected
+
+        self.input_properties = QItemProperties(self.layout_tools, self.fig, self.treeView, self)
+        self.input_align = Align(self.layout_tools, self.fig)
+
+        # add plot layout
+        widget = QtWidgets.QWidget()
+        self.layout_plot = QtWidgets.QVBoxLayout(widget)
+        self.layout_plot.setContentsMargins(0, 0, 0, 0)
+        self.layout_plot.setSpacing(0)
+        widget.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)
+        self.layout_main.addWidget(widget)
+
+        # add plot canvas
+        self.layout_plot.addWidget(self.canvas_canvas)
+
+        # add toolbar
+        self.toolbar = ToolBar(self.canvas, self.fig)
+        self.layout_plot.addWidget(self.toolbar)
+
+        self.footer_layout = QtWidgets.QHBoxLayout()
+        self.layout_plot.addLayout(self.footer_layout)
+
+        self.footer_label = QtWidgets.QLabel("")
+        self.footer_layout.addWidget(self.footer_label)
+
+        self.footer_layout.addStretch()
+
+        self.footer_label2 = QtWidgets.QLabel("")
+        self.footer_layout.addWidget(self.footer_label2)
+        self.canvas_canvas.setFooters(self.footer_label, self.footer_label2)
+
+
+        from .QtGui import ColorChooserWidget
+        self.colorWidget = ColorChooserWidget(self, self.canvas)
+        self.colorWidget.setMaximumWidth(150)
+        self.layout_main.addWidget(self.colorWidget)
+
+        print("initialized")
+
+        #self.layout_main.setStretchFactor(0, 0)
+        #self.layout_main.setStretchFactor(1, 1)
+        #self.layout_main.setStretchFactor(2, 1)
+
+    def rasterize(self, rasterize: bool):
+        """ convert the figur elements to an image """
+        if len(self.fig.selection.targets):
+            self.fig.figure_dragger.select_element(None)
+        if rasterize:
+            rasterizeAxes(self.fig)
+            self.button_derasterize.setDisabled(False)
+        else:
+            restoreAxes(self.fig)
+            self.button_derasterize.setDisabled(True)
+        self.fig.canvas.draw()
+
+    def actionSave(self):
+        """ save the code for the figure """
+        self.fig.change_tracker.save()
+        for _last_saved_figure, args, kwargs in getattr(self.fig, "_last_saved_figure", []):
+            self.fig.savefig(_last_saved_figure, *args, **kwargs)
+
+    def actionSaveImage(self):
+        """ save figure as an image """
+        path = QtWidgets.QFileDialog.getSaveFileName(self, "Save Image", getattr(self.fig, "_last_saved_figure", [(None,)])[0][0],
+                                                     "Images (*.png *.jpg *.pdf)")
+        if isinstance(path, tuple):
+            path = str(path[0])
+        else:
+            path = str(path)
+        if not path:
+            return
+        if os.path.splitext(path)[1] == ".pdf":
+            self.fig.savefig(path, dpi=300)
+        else:
+            self.fig.savefig(path)
+        print("Saved plot image as", path)
+
+    def showInfo(self):
+        """ show the info dialog """
+        self.info_dialog = InfoDialog(self)
+        self.info_dialog.show()
+
+    def showEvent(self, event: QtCore.QEvent):
+        print("showEvent")
+        """ when the window is shown """
+        self.canvas_canvas.fitToView()
+        self.canvas_canvas.updateRuler()
+        self.colorWidget.updateColors()
 
     def elementSelected(self, element: Artist):
         """ when an element is selected """
@@ -1179,7 +1212,7 @@ class PlotWindow(QtWidgets.QWidget):
         self.fig.change_tracker.save = wrap(self.fig.change_tracker.save)
 
         self.treeView.setCurrentIndex(self.fig)
-        self.fitToView(True)
+        self.canvas_canvas.fitToView(True)
 
     def updateTitle(self):
         """ update the title of the window to display if it is saved or not """
