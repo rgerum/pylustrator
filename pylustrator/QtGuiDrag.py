@@ -94,6 +94,42 @@ def initialize(use_global_variable_names=False, use_exception_silencer=True):
 
     Figure.savefig = savefig
 
+def pyl_show(hide_window: bool = False):
+    """ the function overloads the matplotlib show function.
+    It opens a DragManager window instead of the default matplotlib window.
+    """
+    global figures, app
+    # set an application id, so that windows properly stacks them in the task bar
+    if sys.platform[:3] == 'win':
+        import ctypes
+        myappid = 'rgerum.pylustrator'  # arbitrary string
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+
+    if app is None:
+        app = QtWidgets.QApplication(sys.argv)
+    # iterate over figures
+    window = PlotWindow()
+    for figure_number in _pylab_helpers.Gcf.figs.copy():
+        fig = _pylab_helpers.Gcf.figs[figure_number].canvas.figure
+        window.setFigure(fig)
+        window.addFigure(fig)
+        # get variable names that point to this figure
+        #if setting_use_global_variable_names:
+        #    setFigureVariableNames(figure_number)
+        # get the window
+        #window = _pylab_helpers.Gcf.figs[figure].canvas.window_pylustrator
+        # warn about ticks not fitting tick labels
+        warnAboutTicks(fig)
+        # add dragger
+        DragManager(fig)
+        window.update()
+        # and show it
+        if hide_window is False:
+            window.show()
+    if hide_window is False:
+        # execute the application
+        app.exec_()
+
 
 def show(hide_window: bool = False):
     """ the function overloads the matplotlib show function.
@@ -243,6 +279,7 @@ class MyTreeView(QtWidgets.QTreeView):
 
     def setFigure(self, fig):
         self.fig = fig
+        self.model.removeRows(0, self.model.rowCount())
         self.expand(None)
 
     def selectionChanged(self, selection: QtCore.QItemSelection, y: QtCore.QItemSelection):
@@ -260,7 +297,10 @@ class MyTreeView(QtWidgets.QTreeView):
         while entry:
             item = self.getItemFromEntry(entry)
             if item is not None:
-                super().setCurrentIndex(item.index())
+                try:
+                    super().setCurrentIndex(item.index())
+                except RuntimeError:  # maybe find out why we run into this error when the figure is changed
+                    pass
                 return
             try:
                 entry = entry.tree_parent
@@ -994,8 +1034,13 @@ class PlotLayout(QtWidgets.QWidget):
     def setCanvas(self, canvas):
         self.layout_plot.removeItem(self.footer_layout)
         if self.toolbar is not None:
-            self.layout_plot.removeItem(self.toolbar)
-        self.toolbar = ToolBar(canvas, self.figure)
+            self.layout_plot.removeWidget(self.toolbar)
+            self.toolbar = None
+        if getattr(canvas, "pyl_toolbar", None) is None:
+            self.toolbar = ToolBar(canvas, self.figure)
+            canvas.pyl_toolbar = self.toolbar
+        else:
+            self.toolbar = canvas.pyl_toolbar
         self.layout_plot.addWidget(self.toolbar)
 
         self.layout_plot.addLayout(self.footer_layout)
@@ -1018,6 +1063,17 @@ class PlotWindow(QtWidgets.QWidget):
         self.canvas = canvas
         self.canvas.window_pylustrator = self
 
+    def addFigure(self, figure):
+        self.figures.append(figure)
+
+        undo_act = QtWidgets.QAction(f"Figure {figure.number}", self)
+
+        def undo():
+            self.setFigure(figure)
+
+        undo_act.triggered.connect(undo)
+        self.menu_edit.addAction(undo_act)
+
     def __init__(self, number: int=0):
         """ The main window of pylustrator
 
@@ -1026,6 +1082,8 @@ class PlotWindow(QtWidgets.QWidget):
             size: the size of the figure
         """
         super().__init__()
+
+        self.figures = []
 
         self.signals = Signals()
         self.signals.canvas_changed.connect(self.setCanvas)
@@ -1056,6 +1114,7 @@ class PlotWindow(QtWidgets.QWidget):
         file_menu.addAction(open_act)
 
         file_menu = self.menuBar.addMenu("&Edit")
+        self.menu_edit = file_menu
 
         info_act = QtWidgets.QAction("&Info", self)
         info_act.triggered.connect(self.showInfo)
@@ -1147,7 +1206,8 @@ class PlotWindow(QtWidgets.QWidget):
         def item_selected(x):
             self.elementSelected(x)
             if not self.no_figure_dragger_selection_update:
-                self.fig.figure_dragger.select_element(x)
+                if getattr(self.fig, "figure_dragger", None) is not None:
+                    self.fig.figure_dragger.select_element(x)
         self.treeView.item_selected = item_selected
 
         self.input_properties = QItemProperties(self.layout_tools, self.signals, self.treeView, self)
