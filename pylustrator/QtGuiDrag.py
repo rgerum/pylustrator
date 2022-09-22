@@ -78,7 +78,6 @@ def initialize(use_global_variable_names=False, use_exception_silencer=True):
     old_pltshow = plt.show
     old_pltfigure = plt.figure
     plt.show = show
-    plt.figure = figure
     patchColormapsWithMetaInfo()
 
     #stack_call_position = traceback.extract_stack()[-2]
@@ -94,13 +93,6 @@ def initialize(use_global_variable_names=False, use_exception_silencer=True):
         sf(self, filename, *args, **kwargs)
 
     Figure.savefig = savefig
-
-    # iterate over figures
-    for fig_number in _pylab_helpers.Gcf.figs.copy():
-        fig_old = plt.figure(fig_number)
-        fig = plt.figure(fig_number, force_add=True)
-        convertFromPyplot(fig_old, fig)
-        plt.close(fig_old)
 
 
 def show(hide_window: bool = False):
@@ -119,7 +111,9 @@ def show(hide_window: bool = False):
         if setting_use_global_variable_names:
             setFigureVariableNames(figure)
         # get the window
-        window = _pylab_helpers.Gcf.figs[figure].canvas.window_pylustrator
+        #window = _pylab_helpers.Gcf.figs[figure].canvas.window_pylustrator
+        window = PlotWindow()
+        window.setFigure(_pylab_helpers.Gcf.figs[figure].canvas.figure)
         # warn about ticks not fitting tick labels
         warnAboutTicks(window.fig)
         # add dragger
@@ -158,31 +152,6 @@ def patchColormapsWithMetaInfo():
         return c
 
     Colormap.__call__ = new_call
-
-
-def figure(num=None, figsize=None, force_add=False, *args, **kwargs):
-    """ overloads the matplotlib figure call and wrapps the Figure in a PlotWindow """
-    global figures
-    # if num is not defined create a new number
-    if num is None:
-        num = len(_pylab_helpers.Gcf.figs) + 1
-    # if number is not defined
-    if force_add or num not in _pylab_helpers.Gcf.figs.keys():
-        # create a new window and store it
-        canvas = PlotWindow(num, figsize, *args, **kwargs).canvas
-        canvas.figure.number = num
-        canvas.figure.clf()
-        canvas.manager.num = num
-        _pylab_helpers.Gcf.figs[num] = canvas.manager
-    # get the canvas of the figure
-    manager = _pylab_helpers.Gcf.figs[num]
-    # set the size if it is defined
-    if figsize is not None:
-        _pylab_helpers.Gcf.figs[num].window.setGeometry(100, 100, figsize[0] * 80, figsize[1] * 80)
-    # set the figure as the active figure
-    _pylab_helpers.Gcf.set_active(manager)
-    # return the figure
-    return manager.canvas.figure
 
 
 def warnAboutTicks(fig):
@@ -232,7 +201,7 @@ class MyTreeView(QtWidgets.QTreeView):
     last_selection = None
     last_hover = None
 
-    def __init__(self, parent: QtWidgets.QWidget, layout: QtWidgets.QLayout, fig: Figure):
+    def __init__(self, signals: "Signals", layout: QtWidgets.QLayout):
         """ A tree view to display the contents of a figure
 
         Args:
@@ -242,7 +211,7 @@ class MyTreeView(QtWidgets.QTreeView):
         """
         super().__init__()
 
-        self.fig = fig
+        signals.figure_changed.connect(self.setFigure)
 
         layout.addWidget(self)
 
@@ -272,6 +241,8 @@ class MyTreeView(QtWidgets.QTreeView):
 
         self.item_lookup = {}
 
+    def setFigure(self, fig):
+        self.fig = fig
         self.expand(None)
 
     def selectionChanged(self, selection: QtCore.QItemSelection, y: QtCore.QItemSelection):
@@ -609,7 +580,7 @@ class InfoDialog(QtWidgets.QWidget):
 
 
 class Align(QtWidgets.QWidget):
-    def __init__(self, layout: QtWidgets.QLayout, fig: Figure):
+    def __init__(self, layout: QtWidgets.QLayout, signals: "Signals"):
         """ A widget that allows to align the elements of a multi selection.
 
         Args:
@@ -618,7 +589,8 @@ class Align(QtWidgets.QWidget):
         """
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
-        self.fig = fig
+
+        signals.figure_changed.connect(self.setFigure)
 
         self.layout = QtWidgets.QHBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
@@ -649,21 +621,25 @@ class Align(QtWidgets.QWidget):
         self.fig.selection.update_selection_rectangles()
         self.fig.canvas.draw()
 
+    def setFigure(self, fig):
+        self.fig = fig
 
 class Canvas(QtWidgets.QWidget):
     fitted_to_view = False
     footer_label = None
     footer_label2 = None
 
-    def __init__(self, number, size, *args, **kwargs):
+    canvas = None
+
+    def __init__(self, signals: "Signals"):
         """ The wrapper around the matplotlib canvas to create a more image editor like canvas with background and side rulers
-
-        Args:
-            number: the id of the figure
-            size: the size of the figure
         """
-
         super().__init__()
+
+        signals.figure_changed.connect(self.setFigure)
+        signals.figure_size_changed.connect(lambda: (self.updateFigureSize(), self.updateRuler()))
+        self.signals = signals
+
         self.layout = QtWidgets.QHBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
 
@@ -686,14 +662,43 @@ class Canvas(QtWidgets.QWidget):
         self.x_scale = QtWidgets.QLabel(self.canvas_canvas)
         self.y_scale = QtWidgets.QLabel(self.canvas_canvas)
 
-        self.canvas = MatplotlibWidget(self, number, size=size, *args, **kwargs)
+        if 0:
+            self.canvas = MatplotlibWidget(self, number, size=size, *args, **kwargs)
+            self.canvas.window_pylustrator = self
+            self.canvas_wrapper_layout.addWidget(self.canvas)
+            self.fig = self.canvas.figure
+            self.fig.widget = self.canvas
+
+            self.fig.figure_size_changed = self.figure_size_changed
+            self.figure_size_changed.connect(lambda: (self.updateFigureSize(), self.updateRuler()))
+
+            #self.canvas_canvas.mousePressEvent = lambda event: self.canvas.mousePressEvent(event)
+            #self.canvas_canvas.mouseReleaseEvent = lambda event: self.canvas.mouseReleaseEvent(event)
+
+            self.fig.canvas.mpl_disconnect(self.fig.canvas.manager.key_press_handler_id)
+
+            self.fig.canvas.mpl_connect('scroll_event', self.scroll_event)
+            self.fig.canvas.mpl_connect('key_press_event', self.canvas_key_press)
+            self.fig.canvas.mpl_connect('key_release_event', self.canvas_key_release)
+            self.control_modifier = False
+
+            self.fig.canvas.mpl_connect('button_press_event', self.button_press_event)
+            self.fig.canvas.mpl_connect('motion_notify_event', self.mouse_move_event)
+            self.fig.canvas.mpl_connect('button_release_event', self.button_release_event)
+            self.drag = None
+
+    def setFigure(self, figure):
+        if self.canvas is not None:
+            self.canvas_wrapper_layout.removeWidget(self.canvas)
+            del self.canvas
+
+        self.canvas = MatplotlibWidget(self, figure=figure)
         self.canvas.window_pylustrator = self
+        self.canvas_wrapper_layout.addWidget(self.canvas)
+
         self.canvas_wrapper_layout.addWidget(self.canvas)
         self.fig = self.canvas.figure
         self.fig.widget = self.canvas
-
-        #self.canvas_canvas.mousePressEvent = lambda event: self.canvas.mousePressEvent(event)
-        #self.canvas_canvas.mouseReleaseEvent = lambda event: self.canvas.mouseReleaseEvent(event)
 
         self.fig.canvas.mpl_disconnect(self.fig.canvas.manager.key_press_handler_id)
 
@@ -706,6 +711,8 @@ class Canvas(QtWidgets.QWidget):
         self.fig.canvas.mpl_connect('motion_notify_event', self.mouse_move_event)
         self.fig.canvas.mpl_connect('button_release_event', self.button_release_event)
         self.drag = None
+
+        self.signals.canvas_changed.emit(self.canvas)
 
     def setFooters(self, footer, footer2):
         self.footer_label = footer
@@ -853,7 +860,6 @@ class Canvas(QtWidgets.QWidget):
 
         self.updateRuler()
 
-
     def scroll_event(self, event: QtCore.QEvent):
         """ when the mouse wheel is used to zoom the figure """
         if self.control_modifier:
@@ -881,13 +887,17 @@ class Canvas(QtWidgets.QWidget):
 
             bb = self.fig.axes[0].get_position()
 
-
     def resizeEvent(self, event: QtCore.QEvent):
         """ when the window is resized """
         if self.fitted_to_view:
             self.fitToView(True)
         else:
             self.updateRuler()
+
+    def showEvent(self, event: QtCore.QEvent):
+        """ when the window is shown """
+        self.fitToView(True)
+        self.updateRuler()
 
     def button_press_event(self, event: QtCore.QEvent):
         """ when a mouse button is pressed """
@@ -931,7 +941,6 @@ class Canvas(QtWidgets.QWidget):
         if event.key() == QtCore.Qt.Key_F:
             self.fitToView(True)
 
-
     def keyReleaseEvent(self, event: QtCore.QEvent):
         """ when a key is released """
         if event.key() == QtCore.Qt.Key_Control:
@@ -949,24 +958,79 @@ class Canvas(QtWidgets.QWidget):
         self.fig.canvas.draw()
 
 
+class PlotLayout(QtWidgets.QWidget):
+    toolbar = None
+
+    def __init__(self, signals: "Signals"):
+        super().__init__()
+
+        signals.figure_changed.connect(self.setFigure)
+        signals.canvas_changed.connect(self.setCanvas)
+
+        self.layout_plot = QtWidgets.QVBoxLayout(self)
+        self.layout_plot.setContentsMargins(0, 0, 0, 0)
+        self.layout_plot.setSpacing(0)
+
+        self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)
+
+        self.canvas_canvas = Canvas(signals)
+        self.layout_plot.addWidget(self.canvas_canvas)
+
+        self.footer_layout = QtWidgets.QHBoxLayout()
+        self.layout_plot.addLayout(self.footer_layout)
+
+        self.footer_label = QtWidgets.QLabel("")
+        self.footer_layout.addWidget(self.footer_label)
+
+        self.footer_layout.addStretch()
+
+        self.footer_label2 = QtWidgets.QLabel("")
+        self.footer_layout.addWidget(self.footer_label2)
+        self.canvas_canvas.setFooters(self.footer_label, self.footer_label2)
+
+    def setFigure(self, figure):
+        self.figure = figure
+
+    def setCanvas(self, canvas):
+        self.layout_plot.removeItem(self.footer_layout)
+        if self.toolbar is not None:
+            self.layout_plot.removeItem(self.toolbar)
+        self.toolbar = ToolBar(canvas, self.figure)
+        self.layout_plot.addWidget(self.toolbar)
+
+        self.layout_plot.addLayout(self.footer_layout)
+
+
+class Signals(QtWidgets.QWidget):
+    figure_changed = QtCore.Signal(Figure)
+    canvas_changed = QtCore.Signal(object)
+    figure_size_changed = QtCore.Signal()
+
+
 class PlotWindow(QtWidgets.QWidget):
     update_changes_signal = QtCore.Signal(bool, bool, str, str)
 
-    def __init__(self, number: int, size: tuple, *args, **kwargs):
+    def setFigure(self, figure):
+        self.fig = figure
+        self.signals.figure_changed.emit(figure)
+
+    def setCanvas(self, canvas):
+        self.canvas = canvas
+        self.canvas.window_pylustrator = self
+
+    def __init__(self, number: int=0):
         """ The main window of pylustrator
 
         Args:
             number: the id of the figure
             size: the size of the figure
         """
-        QtWidgets.QWidget.__init__(self)
+        super().__init__()
 
-        self.canvas_canvas = Canvas(number, size=size, *args, **kwargs)
-        self.fig = self.canvas_canvas.fig
-        self.canvas = self.canvas_canvas.canvas
-        self.canvas.window_pylustrator = self
-        self.updateFigureSize = self.canvas_canvas.updateFigureSize
-        self.updateRuler = self.canvas_canvas.updateRuler
+        self.signals = Signals()
+        self.signals.canvas_changed.connect(self.setCanvas)
+
+        self.plot_layout = PlotLayout(self.signals)
 
         # widget layout and elements
         self.setWindowTitle("Figure %s - Pylustrator" % number)
@@ -1049,7 +1113,7 @@ class PlotWindow(QtWidgets.QWidget):
                 button_redo.setToolTip(f"Redo")
         self.update_changes_signal.connect(updateChangesSignal)
 
-        self.input_size = QPosAndSize(layout_top_bar, self.fig, self)
+        self.input_size = QPosAndSize(layout_top_bar, self.signals)
 
         if 0:
             self.layout_main = QtWidgets.QHBoxLayout()
@@ -1077,7 +1141,7 @@ class PlotWindow(QtWidgets.QWidget):
         self.button_derasterize.clicked.connect(lambda x: self.rasterize(False))
         self.button_derasterize.setDisabled(True)
 
-        self.treeView = MyTreeView(self, self.layout_tools, self.fig)
+        self.treeView = MyTreeView(self.signals, self.layout_tools)
 
         self.no_figure_dragger_selection_update = False
         def item_selected(x):
@@ -1086,39 +1150,14 @@ class PlotWindow(QtWidgets.QWidget):
                 self.fig.figure_dragger.select_element(x)
         self.treeView.item_selected = item_selected
 
-        self.input_properties = QItemProperties(self.layout_tools, self.fig, self.treeView, self)
-        self.input_align = Align(self.layout_tools, self.fig)
+        self.input_properties = QItemProperties(self.layout_tools, self.signals, self.treeView, self)
+        self.input_align = Align(self.layout_tools, self.signals)
 
         # add plot layout
-        widget = QtWidgets.QWidget()
-        self.layout_plot = QtWidgets.QVBoxLayout(widget)
-        self.layout_plot.setContentsMargins(0, 0, 0, 0)
-        self.layout_plot.setSpacing(0)
-        widget.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)
-        self.layout_main.addWidget(widget)
-
-        # add plot canvas
-        self.layout_plot.addWidget(self.canvas_canvas)
-
-        # add toolbar
-        self.toolbar = ToolBar(self.canvas, self.fig)
-        self.layout_plot.addWidget(self.toolbar)
-
-        self.footer_layout = QtWidgets.QHBoxLayout()
-        self.layout_plot.addLayout(self.footer_layout)
-
-        self.footer_label = QtWidgets.QLabel("")
-        self.footer_layout.addWidget(self.footer_label)
-
-        self.footer_layout.addStretch()
-
-        self.footer_label2 = QtWidgets.QLabel("")
-        self.footer_layout.addWidget(self.footer_label2)
-        self.canvas_canvas.setFooters(self.footer_label, self.footer_label2)
-
+        self.layout_main.addWidget(self.plot_layout)
 
         from .QtGui import ColorChooserWidget
-        self.colorWidget = ColorChooserWidget(self, self.canvas)
+        self.colorWidget = ColorChooserWidget(self, None, self.signals)
         self.colorWidget.setMaximumWidth(150)
         self.layout_main.addWidget(self.colorWidget)
 
@@ -1168,10 +1207,7 @@ class PlotWindow(QtWidgets.QWidget):
         self.info_dialog.show()
 
     def showEvent(self, event: QtCore.QEvent):
-        print("showEvent")
         """ when the window is shown """
-        self.canvas_canvas.fitToView()
-        self.canvas_canvas.updateRuler()
         self.colorWidget.updateColors()
 
     def elementSelected(self, element: Artist):
@@ -1212,7 +1248,6 @@ class PlotWindow(QtWidgets.QWidget):
         self.fig.change_tracker.save = wrap(self.fig.change_tracker.save)
 
         self.treeView.setCurrentIndex(self.fig)
-        self.canvas_canvas.fitToView(True)
 
     def updateTitle(self):
         """ update the title of the window to display if it is saved or not """

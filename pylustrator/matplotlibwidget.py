@@ -50,8 +50,11 @@ from matplotlib.figure import Figure
 
 
 class MatplotlibWidget(Canvas):
-    def __init__(self, parent=None, num=1, size=None, dpi=100, *args, **kwargs):
-        self.figure = Figure(figsize=size, dpi=dpi, *args, **kwargs)
+    def __init__(self, parent=None, num=1, size=None, dpi=100, figure=None, *args, **kwargs):
+        if figure is None:
+            self.figure = Figure(figsize=size, dpi=dpi, *args, **kwargs)
+        else:
+            self.figure = figure
 
         Canvas.__init__(self, self.figure)
         self.setParent(parent)

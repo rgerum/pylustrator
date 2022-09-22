@@ -859,24 +859,21 @@ class QPosAndSize(QtWidgets.QWidget):
     transform_index = 0
     scale_type = 0
 
-    def __init__(self, layout: QtWidgets.QLayout, fig: Figure, parent: QtWidgets.QWidget):
+    def __init__(self, layout: QtWidgets.QLayout, signals: "Signals"):
         """ a widget that holds all the properties to set and the tree view
 
         Args:
             layout: the layout to which to add the widget
             fig: the figure
-            tree: the tree view of the elements of the figure
-            parent: the parent widget
         """
         QtWidgets.QWidget.__init__(self)
+
+        signals.figure_changed.connect(self.setFigure)
+        self.signals = signals
+
         layout.addWidget(self)
         self.layout = QtWidgets.QHBoxLayout(self)
         self.layout.setContentsMargins(10, 0, 10, 0)
-        #self.tree = tree
-        self.parent = parent
-
-        #self.label = QtWidgets.QLabel()
-        #self.layout.addWidget(self.label)
 
         self.input_position = DimensionsWidget(self.layout, "X:", "Y:", "cm")
         self.input_position.valueChanged.connect(self.changePos)
@@ -890,11 +887,12 @@ class QPosAndSize(QtWidgets.QWidget):
         self.input_shape_transform = ComboWidget(self.layout, "", ["scale", "bottom right", "top left"])
         self.input_shape_transform.editingFinished.connect(self.changeTransform2)
 
-        self.fig = fig
-
         self.layout.addStretch()
 
-    def changeTransform(self):#, transform_index: int, name: str):
+    def setFigure(self, figure):
+        self.fig = figure
+
+    def changeTransform(self):
         """ change the tranform and the units of the position and size widgets """
         name = self.input_transform.text()
         self.transform_index = ["cm", "in", "px", "none"].index(name)#transform_index
@@ -955,8 +953,9 @@ class QPosAndSize(QtWidgets.QWidget):
             self.fig.selection.update_selection_rectangles()
             self.fig.canvas.draw()
             self.fig.widget.updateGeometry()
-            self.parent.updateFigureSize()
-            self.parent.updateRuler()
+
+            # emit a signal that the figure size has changed
+            self.signals.figure_size_changed.emit()
         else:
             elements = [self.element]
             elements += [element.target for element in self.element.figure.selection.targets if
@@ -1057,7 +1056,7 @@ class QItemProperties(QtWidgets.QWidget):
     valueChanged = QtCore.Signal(tuple)
     element = None
 
-    def __init__(self, layout: QtWidgets.QLayout, fig: Figure, tree: QtWidgets.QTreeView, parent: QtWidgets.QWidget):
+    def __init__(self, layout: QtWidgets.QLayout, signals: "Signals", tree: QtWidgets.QTreeView, parent: QtWidgets.QWidget):
         """ a widget that holds all the properties to set and the tree view
 
         Args:
@@ -1068,6 +1067,9 @@ class QItemProperties(QtWidgets.QWidget):
         """
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
+
+        signals.figure_changed.connect(self.setFigure)
+
         self.layout = QtWidgets.QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.tree = tree
@@ -1169,6 +1171,7 @@ class QItemProperties(QtWidgets.QWidget):
         self.layout_buttons.addWidget(self.button_legend)
         self.button_legend.clicked.connect(self.buttonLegendClicked)
 
+    def setFigure(self, fig):
         self.fig = fig
 
     def buttonAddImageClicked(self):

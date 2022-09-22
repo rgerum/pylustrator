@@ -229,7 +229,7 @@ def figureSwapColor(figure: Figure, new_color: str, color_base: str):
 class ColorChooserWidget(QtWidgets.QWidget):
     trigger_no_update = False
 
-    def __init__(self, parent: QtWidgets, canvas: Canvas):
+    def __init__(self, parent: QtWidgets, canvas: Canvas, signals: "Signals"=None):
         """ A widget to display all curently used colors and let the user switch them.
 
         Args:
@@ -275,6 +275,12 @@ class ColorChooserWidget(QtWidgets.QWidget):
         self.colors_text_widget.setAcceptRichText(False)
         self.layout_colors2.addWidget(self.colors_text_widget)
         self.colors_text_widget.textChanged.connect(self.colors_changed)
+
+        if signals:
+            signals.canvas_changed.connect(self.setCanvas)
+
+    def setCanvas(self, canvas):
+        self.canvas = canvas
 
     def saveColors(self):
         """ save the colors to a .txt file """
