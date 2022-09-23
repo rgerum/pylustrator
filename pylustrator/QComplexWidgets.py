@@ -144,21 +144,33 @@ class TextPropertiesWidget(QtWidgets.QWidget):
 
         for element in self.target_list:
             element.set_fontname(font.family())
-            element.figure.change_tracker.addChange(element, ".set_fontname(\"%s\")" % (element.get_fontname(),))
+            if getattr(element, "is_new_text", False) is False:
+                element.figure.change_tracker.addChange(element, ".set_fontname(\"%s\")" % (element.get_fontname(),))
+            else:
+                element.figure.change_tracker.addNewTextChange(element)
 
             if font.weight() != font0.weight():
                 weight = self.convertQtWeightToMplWeight(font.weight())
                 element.set_weight(weight)
-                element.figure.change_tracker.addChange(element, ".set_weight(\"%s\")" % (weight,))
+                if getattr(element, "is_new_text", False) is False:
+                    element.figure.change_tracker.addChange(element, ".set_weight(\"%s\")" % (weight,))
+                else:
+                    element.figure.change_tracker.addNewTextChange(element)
 
             if font.pointSizeF() != font0.pointSizeF():
                 element.set_fontsize(font.pointSizeF())
-                element.figure.change_tracker.addChange(element, ".set_fontsize(%f)" % (font.pointSizeF(),))
+                if getattr(element, "is_new_text", False) is False:
+                    element.figure.change_tracker.addChange(element, ".set_fontsize(%f)" % (font.pointSizeF(),))
+                else:
+                    element.figure.change_tracker.addNewTextChange(element)
 
             if font.italic() != font0.italic():
                 style = "italic" if font.italic() else "normal"
                 element.set_style(style)
-                element.figure.change_tracker.addChange(element, ".set_style(\"%s\")" % (style,))
+                if getattr(element, "is_new_text", False) is False:
+                    element.figure.change_tracker.addChange(element, ".set_style(\"%s\")" % (style,))
+                else:
+                    element.figure.change_tracker.addNewTextChange(element)
 
         self.target.figure.canvas.draw()
         self.setTarget(self.target_list)
@@ -203,8 +215,12 @@ class TextPropertiesWidget(QtWidgets.QWidget):
 
             for element in self.target_list:
                 element.set_weight("bold" if checked else "normal")
-                element.figure.change_tracker.addChange(element,
-                                                        ".set_weight(\"%s\")" % ("bold" if checked else "normal",))
+
+                if getattr(element, "is_new_text", False) is False:
+                    element.figure.change_tracker.addChange(element,
+                                                            ".set_weight(\"%s\")" % ("bold" if checked else "normal",))
+                else:
+                    element.figure.change_tracker.addNewTextChange(element)
 
             self.target = element
             self.target.figure.canvas.draw()
@@ -217,8 +233,11 @@ class TextPropertiesWidget(QtWidgets.QWidget):
 
             for element in self.target_list:
                 element.set_style("italic" if checked else "normal")
-                element.figure.change_tracker.addChange(element,
-                                                        ".set_style(\"%s\")" % ("italic" if checked else "normal",))
+
+                if getattr(element, "is_new_text", False) is False:
+                    element.figure.change_tracker.addChange(element, ".set_style(\"%s\")" % ("italic" if checked else "normal",))
+                else:
+                    element.figure.change_tracker.addNewTextChange(element)
 
             self.target = element
             self.target.figure.canvas.draw()
@@ -231,7 +250,10 @@ class TextPropertiesWidget(QtWidgets.QWidget):
 
             for element in self.target_list:
                 element.set_color(color)
-                element.figure.change_tracker.addChange(element, ".set_color(\"%s\")" % (color,))
+                if getattr(element, "is_new_text", False) is False:
+                    element.figure.change_tracker.addChange(element, ".set_color(\"%s\")" % (color,))
+                else:
+                    element.figure.change_tracker.addNewTextChange(element)
 
             self.target = element
             self.target.figure.canvas.draw()
@@ -247,7 +269,10 @@ class TextPropertiesWidget(QtWidgets.QWidget):
                 for index, button in enumerate(self.buttons_align):
                     button.setChecked(index == index_selected)
                 element.set_ha(align)
-                element.figure.change_tracker.addChange(element, ".set_ha(\"%s\")" % align)
+                if getattr(element, "is_new_text", False) is False:
+                    element.figure.change_tracker.addChange(element, ".set_ha(\"%s\")" % align)
+                else:
+                    element.figure.change_tracker.addNewTextChange(element)
 
             self.target = element
             self.target.figure.canvas.draw()
@@ -257,8 +282,12 @@ class TextPropertiesWidget(QtWidgets.QWidget):
         if self.target:
             for element in self.target_list:
                 element.set_fontsize(value)
-                element.figure.change_tracker.addChange(element, ".set_fontsize(%d)" % value)
+                if getattr(element, "is_new_text", False) is False:
+                    element.figure.change_tracker.addChange(element, ".set_fontsize(%d)" % value)
+                else:
+                    element.figure.change_tracker.addNewTextChange(element)
             self.target.figure.canvas.draw()
+
 
 class TextPropertiesWidget2(QtWidgets.QWidget):
     stateChanged = QtCore.Signal(int, str)
@@ -923,7 +952,11 @@ class QPosAndSize(QtWidgets.QWidget):
         except AttributeError:
             pos = value
 
-            self.fig.change_tracker.addChange(self.element, ".set_position([%f, %f])" % (pos[0], pos[1]))
+            if getattr(self.element, "is_new_text", False) is True:
+                self.fig.change_tracker.addNewTextChange(self.element)
+            else:
+                self.fig.change_tracker.addChange(self.element, ".set_position([%f, %f])" % (pos[0], pos[1]))
+        print("Set pos", pos, self.element)
         self.element.set_position(pos)
         self.fig.canvas.draw()
 
@@ -1200,10 +1233,13 @@ class QItemProperties(QtWidgets.QWidget):
         addChange(axes, ".imshow(plt.imread(\"%s\"))" % filename)
         addChange(axes, '.set_xticks([])')
         addChange(axes, '.set_yticks([])')
-        addChange(axes, ".spines['right'].set_visible(False)")
-        addChange(axes, ".spines['left'].set_visible(False)")
-        addChange(axes, ".spines['top'].set_visible(False)")
-        addChange(axes, ".spines['bottom'].set_visible(False)")
+        if 0:
+            addChange(axes, ".spines['right'].set_visible(False)")
+            addChange(axes, ".spines['left'].set_visible(False)")
+            addChange(axes, ".spines['top'].set_visible(False)")
+            addChange(axes, ".spines['bottom'].set_visible(False)")
+        else:
+            addChange(axes, ".spines[:].set_visible(False)")
 
         self.tree.updateEntry(self.element, update_children=True)
         self.fig.figure_dragger.make_dragable(axes)
@@ -1220,11 +1256,13 @@ class QItemProperties(QtWidgets.QWidget):
             self.fig.change_tracker.addChange(self.element,
                                               ".text(0.5, 0.5, 'New Text', transform=%s.transAxes)  # id=%s.new" % (
                                                   getReference(self.element), getReference(text)), text, ".new")
+            text.is_new_text = True
         if isinstance(self.element, Figure):
             text = self.element.text(0.5, 0.5, "New Text", transform=self.element.transFigure)
             self.fig.change_tracker.addChange(self.element,
                                               ".text(0.5, 0.5, 'New Text', transform=%s.transFigure)  # id=%s.new" % (
                                                   getReference(self.element), getReference(text)), text, ".new")
+            text.is_new_text = True
         self.tree.updateEntry(self.element, update_children=True)
         self.fig.figure_dragger.make_dragable(text)
         self.fig.canvas.draw()

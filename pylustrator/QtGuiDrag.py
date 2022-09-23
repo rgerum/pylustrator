@@ -1035,6 +1035,7 @@ class PlotLayout(QtWidgets.QWidget):
         self.layout_plot.removeItem(self.footer_layout)
         if self.toolbar is not None:
             self.layout_plot.removeWidget(self.toolbar)
+            self.toolbar.setVisible(False)
             self.toolbar = None
         if getattr(canvas, "pyl_toolbar", None) is None:
             self.toolbar = ToolBar(canvas, self.figure)

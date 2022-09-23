@@ -181,7 +181,10 @@ class TargetWrapper(object):
                 self.label_x = points[0][0]
             else:
                 self.target.set_position(points[0])
-                self.figure.figure.change_tracker.addChange(self.target,
+                if getattr(self.target, "is_new_text", None):
+                    self.figure.figure.change_tracker.addNewTextChange(self.target)
+                else:
+                    self.figure.figure.change_tracker.addChange(self.target,
                                                      ".set_position([%f, %f])" % self.target.get_position())
                 if getattr(self.target, "xy", None) is not None:
                     self.target.xy = points[1]

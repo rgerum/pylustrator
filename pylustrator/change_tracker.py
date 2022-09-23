@@ -209,6 +209,38 @@ class ChangeTracker:
         self.saved = False
         self.changeCountChanged()
 
+    text_properties_defaults = None
+    def addNewTextChange(self, element):
+        # make sure there are no old changes to this element
+        keys = [k for k in self.changes]
+        for reference_obj, reference_command in keys:
+            if reference_obj == element:
+                del self.changes[reference_obj, reference_command]
+
+        properties = ["ha", "va", "fontsize", "color", "style", "weight", "fontname", "rotation"]
+        if self.text_properties_defaults is None:
+            self.text_properties_defaults = {}
+            if element.axes:
+                text = element.axes.text(0.5, 0.5, "text")
+            else:
+                text = element.figure.text(0.5, 0.5, "text")
+            for prop in properties:
+                self.text_properties_defaults[prop] = getattr(text, f"get_{prop}")()
+            text.remove()
+        kwargs = ""
+        for prop in properties:
+            value = getattr(element, f"get_{prop}")()
+            if self.text_properties_defaults[prop] != value:
+                kwargs += f", {prop}={repr(value)}"
+        pos = element.get_position()
+        if element.axes:
+            transform = getReference(element.axes) + '.transAxes'
+        else:
+            transform = getReference(element.figure) + '.transFigure'
+        element.figure.change_tracker.addChange(element.axes or element.figure,
+                f".text({pos[0]}, {pos[1]}, {repr(element.get_text())}, transform={transform}{kwargs})  # id={getReference(element)}.new",
+                                                element, ".new")
+
     def changeCountChanged(self):
         if self.update_changes_signal is not None:
             name_undo = ""
@@ -341,6 +373,8 @@ class ChangeTracker:
             if command == ".text" or command == ".annotate" or command == ".add_patch":
                 reference_obj, _ = re.match(r"(.*)(\..*)", key).groups()
                 reference_command = ".new"
+                if command == ".text":
+                    eval(reference_obj).is_new_text = True
 
             command_obj = eval(command_obj)
             reference_obj_str = reference_obj

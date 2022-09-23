@@ -167,7 +167,10 @@ class Linkable:
             else:
                 fig = element.figure
 
-            fig.change_tracker.addChange(element, self.serializeLinkedProperty(self.getSerialized()))
+            if getattr(element, "is_new_text", None):
+                fig.change_tracker.addNewTextChange(element)
+            else:
+                fig.change_tracker.addChange(element, self.serializeLinkedProperty(self.getSerialized()))
 
         new_value = self.getLinkedPropertyAll()
         fig.change_tracker.addEdit([undo, redo, "Change property"])
@@ -403,7 +406,6 @@ class TextWidget(QtWidgets.QWidget, Linkable):
     def getSerialized(self) -> str:
         """ serialize the value (used for the Linkable parent class) """
         return "\"" + str(self.get()) + "\""
-
 
 class NumberWidget(QtWidgets.QWidget, Linkable):
     editingFinished = QtCore.Signal()
