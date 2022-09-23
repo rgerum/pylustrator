@@ -1334,7 +1334,7 @@ class QItemProperties(QtWidgets.QWidget):
 
     def buttonDespineClicked(self):
         """ despine the target """
-        commands = [".spines['right'].set_visible(False)", ".spines['top'].set_visible(False)"]
+        commands = [".spines[['right', 'top']].set_visible(False)"]
         for command in commands:
             elements = [element.target for element in self.element.figure.selection.targets
                         if isinstance(element.target, Axes)]
