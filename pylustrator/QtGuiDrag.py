@@ -761,10 +761,10 @@ class Canvas(QtWidgets.QWidget):
     def updateRuler(self):
         """ update the ruler around the figure to show the dimensions """
         trans = transforms.Affine2D().scale(1. / 2.54, 1. / 2.54) + self.fig.dpi_scale_trans
-        l = 17
-        l1 = 13
-        l2 = 6
-        l3 = 4
+        l = 20
+        l1 = 20
+        l2 = 10
+        l3 = 5
 
         w = self.canvas_canvas.width()
         h = self.canvas_canvas.height()
@@ -785,16 +785,24 @@ class Canvas(QtWidgets.QWidget):
         start_x = np.floor(trans.inverted().transform((-offset, 0))[0])
         end_x = np.ceil(trans.inverted().transform((-offset + w, 0))[0])
         dx = 0.1
-        for i, pos_cm in enumerate(np.arange(start_x, end_x, dx)):
+
+        pix_per_cm = trans.transform((0, 1))[1] - trans.transform((0, 0))[1]
+        big_lines = int(self.fontMetrics().height() * 5 / pix_per_cm)
+        medium_lines = big_lines / 2
+        dx = big_lines / 10
+
+        positions = np.hstack([np.arange(0, start_x, -dx)[::-1], np.arange(0, end_x, dx)])
+        for i, pos_cm in enumerate(positions):
+        #for i, pos_cm in enumerate(np.arange(start_x, end_x, dx)):
             x = (trans.transform((pos_cm, 0))[0] + offset)
-            if i % 10 == 0:
+            if pos_cm % big_lines == 0:
                 painterX.drawLine(int(x), int(l - l1 - 1), int(x), int(l - 1))
                 text = str("%d" % np.round(pos_cm))
                 o = 0
-                painterX.drawText(int(x + 3), int(o - 5), int(self.fontMetrics().width(text)), int(o + self.fontMetrics().height()),
+                painterX.drawText(int(x + 3), int(o - 3), int(self.fontMetrics().width(text)), int(o + self.fontMetrics().height()),
                                   QtCore.Qt.AlignLeft,
                                   text)
-            elif i % 2 == 0:
+            elif pos_cm % medium_lines == 0:
                 painterX.drawLine(int(x), int(l - l2 - 1), int(x), int(l - 1))
             else:
                 painterX.drawLine(int(x), int(l - l3 - 1), int(x), int(l - 1))
@@ -809,16 +817,27 @@ class Canvas(QtWidgets.QWidget):
         start_y = np.floor(trans.inverted().transform((0, +offset - h))[1])
         end_y = np.ceil(trans.inverted().transform((0, +offset))[1])
         dy = 0.1
-        for i, pos_cm in enumerate(np.arange(start_y, end_y, dy)):
+
+        big_lines = 1
+        medium_lines = 0.5
+
+        pix_per_cm = trans.transform((0, 1))[1]-trans.transform((0, 0))[1]
+        big_lines = int(self.fontMetrics().height()*5/pix_per_cm)
+        medium_lines = big_lines / 2
+        dy = big_lines / 10
+
+        positions = np.hstack([np.arange(0, start_y, -dy)[::-1], np.arange(0, end_y, dy)])
+        for i, pos_cm in enumerate(positions):
             y = (-trans.transform((0, pos_cm))[1] + offset)
-            if i % 10 == 0:
+            if pos_cm % big_lines == 0:
                 painterY.drawLine(int(l - l1 - 1), int(y), int(l - 1), int(y))
                 text = str("%d" % np.round(pos_cm))
                 o = 0
-                painterY.drawText(int(o), int(y + 3), int(o + self.fontMetrics().width(text)), int(self.fontMetrics().height()),
-                                  QtCore.Qt.AlignRight,
-                                  text)
-            elif i % 2 == 0:
+                for ti, t in enumerate(text):
+                    painterY.drawText(int(o), int(y + 3 + self.fontMetrics().height()*ti),
+                                      int(o + self.fontMetrics().width("0")), int(self.fontMetrics().height()),
+                                      QtCore.Qt.AlignCenter, t)
+            elif pos_cm % medium_lines == 0:
                 painterY.drawLine(int(l - l2 - 1), int(y), int(l - 1), int(y))
             else:
                 painterY.drawLine(int(l - l3 - 1), int(y), int(l - 1), int(y))
@@ -1053,6 +1072,43 @@ class Signals(QtWidgets.QWidget):
     figure_size_changed = QtCore.Signal()
 
 
+class FigurePreviews(QtWidgets.QWidget):
+    def __init__(self, parent):
+        super().__init__()
+        self.figures = []
+        self.buttons = []
+        self.parent = parent
+
+        layout = QtWidgets.QVBoxLayout(self)
+        self.layout2 = QtWidgets.QVBoxLayout()
+        layout.addLayout(self.layout2)
+        layout.addStretch()
+
+    def addFigure(self, figure):
+        self.figures.append(figure)
+        button = QtWidgets.QLabel("figure")
+        self.buttons.append(button)
+        self.layout2.addWidget(button)
+
+        button.setAlignment(QtCore.Qt.AlignCenter)
+        pix = QtGui.QPixmap(20, 30)
+        pix.fill(QtGui.QColor("#666666"))
+
+        target_width = 150
+        target_height = 150*9/16
+        w, h = figure.get_size_inches()
+        figure.savefig("tmp.png", dpi=min([target_width/w, target_height/h]))
+        button.setStyleSheet("background:#d1d1d1")
+        button.setMaximumWidth(150)
+        button.setMaximumHeight(150)
+        self.setMaximumWidth(150)
+
+        pix.load("tmp.png")
+        # scale pixmap to fit in label'size and keep ratio of pixmap
+        #pix = pix.scaled(160, 90, QtCore.Qt.KeepAspectRatio)
+        button.setPixmap(pix)
+        button.mousePressEvent = lambda e: self.parent.setFigure(figure)
+
 class PlotWindow(QtWidgets.QWidget):
     update_changes_signal = QtCore.Signal(bool, bool, str, str)
 
@@ -1074,6 +1130,8 @@ class PlotWindow(QtWidgets.QWidget):
 
         undo_act.triggered.connect(undo)
         self.menu_edit.addAction(undo_act)
+
+        self.preview.addFigure(figure)
 
     def __init__(self, number: int=0):
         """ The main window of pylustrator
@@ -1183,6 +1241,9 @@ class PlotWindow(QtWidgets.QWidget):
             self.layout_main = QtWidgets.QSplitter()
             self.layout_main.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
             layout_parent.addWidget(self.layout_main)
+
+        self.preview = FigurePreviews(self)
+        self.layout_main.addWidget(self.preview)
         #
         widget = QtWidgets.QWidget()
         self.layout_tools = QtWidgets.QVBoxLayout(widget)
