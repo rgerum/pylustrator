@@ -1131,7 +1131,7 @@ class PlotWindow(QtWidgets.QWidget):
         undo_act.triggered.connect(undo)
         self.menu_edit.addAction(undo_act)
 
-        self.preview.addFigure(figure)
+        #self.preview.addFigure(figure)
 
     def __init__(self, number: int=0):
         """ The main window of pylustrator
@@ -1242,8 +1242,8 @@ class PlotWindow(QtWidgets.QWidget):
             self.layout_main.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
             layout_parent.addWidget(self.layout_main)
 
-        self.preview = FigurePreviews(self)
-        self.layout_main.addWidget(self.preview)
+        #self.preview = FigurePreviews(self)
+        #self.layout_main.addWidget(self.preview)
         #
         widget = QtWidgets.QWidget()
         self.layout_tools = QtWidgets.QVBoxLayout(widget)
@@ -1252,15 +1252,25 @@ class PlotWindow(QtWidgets.QWidget):
         widget.setMinimumWidth(350)
         self.layout_main.addWidget(widget)
 
-        layout_rasterize_buttons = QtWidgets.QHBoxLayout()
-        self.layout_tools.addLayout(layout_rasterize_buttons)
-        self.button_rasterize = QtWidgets.QPushButton("rasterize")
-        layout_rasterize_buttons.addWidget(self.button_rasterize)
-        self.button_rasterize.clicked.connect(lambda x: self.rasterize(True))
-        self.button_derasterize = QtWidgets.QPushButton("derasterize")
-        layout_rasterize_buttons.addWidget(self.button_derasterize)
-        self.button_derasterize.clicked.connect(lambda x: self.rasterize(False))
-        self.button_derasterize.setDisabled(True)
+        if 0:
+            layout_rasterize_buttons = QtWidgets.QHBoxLayout()
+            self.layout_tools.addLayout(layout_rasterize_buttons)
+            self.button_rasterize = QtWidgets.QPushButton("rasterize")
+            layout_rasterize_buttons.addWidget(self.button_rasterize)
+            self.button_rasterize.clicked.connect(lambda x: self.rasterize(True))
+            self.button_derasterize = QtWidgets.QPushButton("derasterize")
+            layout_rasterize_buttons.addWidget(self.button_derasterize)
+            self.button_derasterize.clicked.connect(lambda x: self.rasterize(False))
+            self.button_derasterize.setDisabled(True)
+        elif 0:
+            self.button_rasterize = QtWidgets.QAction("rasterize", self)
+            self.button_rasterize.triggered.connect(lambda x: self.rasterize(True))
+            self.menu_edit.addAction(self.button_rasterize)
+
+            self.button_derasterize = QtWidgets.QAction("derasterize", self)
+            self.button_derasterize.triggered.connect(lambda x: self.rasterize(False))
+            self.menu_edit.addAction(self.button_derasterize)
+            self.button_derasterize.setDisabled(True)
 
         self.treeView = MyTreeView(self.signals, self.layout_tools)
 
