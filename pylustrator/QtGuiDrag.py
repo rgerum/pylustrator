@@ -228,7 +228,7 @@ class myTreeWidgetItem(QtGui.QStandardItem):
 
 
 class MyTreeView(QtWidgets.QTreeView):
-    item_selected = lambda x, y: 0
+    #item_selected = lambda x, y: 0
     item_clicked = lambda x, y: 0
     item_activated = lambda x, y: 0
     item_hoverEnter = lambda x, y: 0
@@ -236,6 +236,11 @@ class MyTreeView(QtWidgets.QTreeView):
 
     last_selection = None
     last_hover = None
+
+    def item_selected(self, x):
+        if not self.fig.no_figure_dragger_selection_update:
+            if getattr(self.fig, "figure_dragger", None) is not None:
+                self.fig.figure_dragger.select_element(x)
 
     def __init__(self, signals: "Signals", layout: QtWidgets.QLayout):
         """ A tree view to display the contents of a figure
@@ -248,6 +253,7 @@ class MyTreeView(QtWidgets.QTreeView):
         super().__init__()
 
         signals.figure_changed.connect(self.setFigure)
+        signals.figure_element_selected.connect(self.select_element)
 
         layout.addWidget(self)
 
@@ -277,10 +283,22 @@ class MyTreeView(QtWidgets.QTreeView):
 
         self.item_lookup = {}
 
+    def select_element(self, element: Artist):
+        """ select an element """
+        if element is None:
+            self.setCurrentIndex(self.fig)
+        else:
+            self.setCurrentIndex(element)
+
     def setFigure(self, fig):
         self.fig = fig
         self.model.removeRows(0, self.model.rowCount())
         self.expand(None)
+
+        self.deleteEntry(self.fig)
+        self.expand(None)
+        self.expand(self.fig)
+        self.setCurrentIndex(self.fig)
 
     def selectionChanged(self, selection: QtCore.QItemSelection, y: QtCore.QItemSelection):
         """ when the selection in the tree view changes """
@@ -1070,6 +1088,7 @@ class Signals(QtWidgets.QWidget):
     figure_changed = QtCore.Signal(Figure)
     canvas_changed = QtCore.Signal(object)
     figure_size_changed = QtCore.Signal()
+    figure_element_selected = QtCore.Signal(object)
 
 
 class FigurePreviews(QtWidgets.QWidget):
@@ -1113,6 +1132,7 @@ class PlotWindow(QtWidgets.QWidget):
     update_changes_signal = QtCore.Signal(bool, bool, str, str)
 
     def setFigure(self, figure):
+        figure.no_figure_dragger_selection_update = False
         self.fig = figure
         self.signals.figure_changed.emit(figure)
 
@@ -1133,27 +1153,7 @@ class PlotWindow(QtWidgets.QWidget):
 
         #self.preview.addFigure(figure)
 
-    def __init__(self, number: int=0):
-        """ The main window of pylustrator
-
-        Args:
-            number: the id of the figure
-            size: the size of the figure
-        """
-        super().__init__()
-
-        self.figures = []
-
-        self.signals = Signals()
-        self.signals.canvas_changed.connect(self.setCanvas)
-
-        self.plot_layout = PlotLayout(self.signals)
-
-        # widget layout and elements
-        self.setWindowTitle("Figure %s - Pylustrator" % number)
-        self.setWindowIcon(QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", "logo.ico")))
-        layout_parent = QtWidgets.QVBoxLayout(self)
-
+    def create_menu(self, layout_parent):
         self.menuBar = QtWidgets.QMenuBar()
         file_menu = self.menuBar.addMenu("&File")
 
@@ -1178,57 +1178,83 @@ class PlotWindow(QtWidgets.QWidget):
         info_act = QtWidgets.QAction("&Info", self)
         info_act.triggered.connect(self.showInfo)
 
-        undo_act = QtWidgets.QAction("Undo", self)
+        self.undo_act = QtWidgets.QAction("Undo", self)
+        self.undo_act.triggered.connect(self.undo)
+        self.undo_act.setShortcut("Ctrl+Z")
+        file_menu.addAction(self.undo_act)
 
-        def undo():
-            self.fig.figure_dragger.undo()
-        undo_act.triggered.connect(undo)
-        undo_act.setShortcut("Ctrl+Z")
-        file_menu.addAction(undo_act)
-
-        redo_act = QtWidgets.QAction("Redo", self)
-
-        def redo():
-            self.fig.figure_dragger.redo()
-        redo_act.triggered.connect(redo)
-        redo_act.setShortcut("Ctrl+Y")
-        file_menu.addAction(redo_act)
+        self.redo_act = QtWidgets.QAction("Redo", self)
+        self.redo_act.triggered.connect(self.redo)
+        self.redo_act.setShortcut("Ctrl+Y")
+        file_menu.addAction(self.redo_act)
 
         self.menuBar.addAction(info_act)
+
         layout_parent.addWidget(self.menuBar)
+
+    def undo(self):
+        self.fig.figure_dragger.undo()
+
+    def redo(self):
+        self.fig.figure_dragger.redo()
+
+    def __init__(self, number: int=0):
+        """ The main window of pylustrator
+
+        Args:
+            number: the id of the figure
+            size: the size of the figure
+        """
+        super().__init__()
+
+        self.figures = []
+
+        self.signals = Signals()
+        self.signals.canvas_changed.connect(self.setCanvas)
+
+        self.plot_layout = PlotLayout(self.signals)
+
+        # widget layout and elements
+        self.setWindowTitle("Figure %s - Pylustrator" % number)
+        self.setWindowIcon(QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", "logo.ico")))
+        layout_parent = QtWidgets.QVBoxLayout(self)
         layout_parent.setContentsMargins(0, 0, 0, 0)
+
+        # add the menu
+        self.create_menu(layout_parent)
 
         layout_top_bar = QtWidgets.QHBoxLayout()
         layout_parent.addLayout(layout_top_bar)
         layout_top_bar.setContentsMargins(10, 0, 10, 0)
 
-        button_undo = QtWidgets.QPushButton(qta.icon("fa5s.undo"), "")
+        button_undo = QtWidgets.QPushButton(qta.icon("mdi.undo"), "")
         button_undo.setToolTip("undo")
-        button_undo.clicked.connect(undo)
+        button_undo.clicked.connect(self.undo)
         layout_top_bar.addWidget(button_undo)
 
-        button_redo = QtWidgets.QPushButton(qta.icon("fa5s.redo"), "")
+        button_redo = QtWidgets.QPushButton(qta.icon("mdi.redo"), "")
         button_redo.setToolTip("redo")
-        button_redo.clicked.connect(redo)
+        button_redo.clicked.connect(self.redo)
         layout_top_bar.addWidget(button_redo)
 
         def updateChangesSignal(undo, redo, undo_text, redo_text):
             button_undo.setDisabled(undo)
-            undo_act.setDisabled(undo)
+            self.undo_act.setDisabled(undo)
             if undo_text != "":
-                undo_act.setText(f"Undo: {undo_text}")
+                self.undo_act.setText(f"Undo: {undo_text}")
                 button_undo.setToolTip(f"Undo: {undo_text}")
             else:
-                undo_act.setText(f"Undo")
+                self.undo_act.setText(f"Undo")
                 button_undo.setToolTip(f"Undo")
             button_redo.setDisabled(redo)
-            redo_act.setDisabled(redo)
+            self.redo_act.setDisabled(redo)
             if redo_text != "":
-                redo_act.setText(f"Redo: {redo_text}")
+                self.redo_act.setText(f"Redo: {redo_text}")
                 button_redo.setToolTip(f"Redo: {redo_text}")
             else:
-                redo_act.setText(f"Redo")
+                self.redo_act.setText(f"Redo")
                 button_redo.setToolTip(f"Redo")
+
         self.update_changes_signal.connect(updateChangesSignal)
 
         self.input_size = QPosAndSize(layout_top_bar, self.signals)
@@ -1273,14 +1299,6 @@ class PlotWindow(QtWidgets.QWidget):
             self.button_derasterize.setDisabled(True)
 
         self.treeView = MyTreeView(self.signals, self.layout_tools)
-
-        self.no_figure_dragger_selection_update = False
-        def item_selected(x):
-            self.elementSelected(x)
-            if not self.no_figure_dragger_selection_update:
-                if getattr(self.fig, "figure_dragger", None) is not None:
-                    self.fig.figure_dragger.select_element(x)
-        self.treeView.item_selected = item_selected
 
         self.input_properties = QItemProperties(self.layout_tools, self.signals, self.treeView, self)
         self.input_align = Align(self.layout_tools, self.signals)
@@ -1342,24 +1360,16 @@ class PlotWindow(QtWidgets.QWidget):
         """ when the window is shown """
         self.colorWidget.updateColors()
 
-    def elementSelected(self, element: Artist):
-        """ when an element is selected """
-        self.input_properties.setElement(element)
-        self.input_size.setElement(element)
-
     def update(self):
         """ update the tree view """
         # self.input_size.setValue(np.array(self.fig.get_size_inches())*2.54)
-        self.treeView.deleteEntry(self.fig)
-        self.treeView.expand(None)
-        self.treeView.expand(self.fig)
 
         def wrap(func):
             def newfunc(element, event=None):
-                self.no_figure_dragger_selection_update = True
-                self.select_element(element)
+                self.fig.no_figure_dragger_selection_update = True
+                self.signals.figure_element_selected.emit(element)
                 ret = func(element, event)
-                self.no_figure_dragger_selection_update = False
+                self.fig.no_figure_dragger_selection_update = False
                 return ret
 
             return newfunc
@@ -1376,10 +1386,8 @@ class PlotWindow(QtWidgets.QWidget):
             return newfunc
 
         self.fig.change_tracker.addChange = wrap(self.fig.change_tracker.addChange)
-
         self.fig.change_tracker.save = wrap(self.fig.change_tracker.save)
-
-        self.treeView.setCurrentIndex(self.fig)
+        self.signals.figure_element_selected.emit(self.fig)
 
     def updateTitle(self):
         """ update the title of the window to display if it is saved or not """
@@ -1387,15 +1395,6 @@ class PlotWindow(QtWidgets.QWidget):
             self.setWindowTitle("Figure %s - Pylustrator" % self.fig.number)
         else:
             self.setWindowTitle("Figure %s* - Pylustrator" % self.fig.number)
-
-    def select_element(self, element: Artist):
-        """ select an element """
-        if element is None:
-            self.treeView.setCurrentIndex(self.fig)
-            self.input_properties.setElement(self.fig)
-        else:
-            self.treeView.setCurrentIndex(element)
-            self.input_properties.setElement(element)
 
     def closeEvent(self, event: QtCore.QEvent):
         """ when the window is closed, ask the user to save """

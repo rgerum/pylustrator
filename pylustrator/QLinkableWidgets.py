@@ -167,7 +167,7 @@ class Linkable:
             else:
                 fig = element.figure
 
-            if getattr(element, "is_new_text", None):
+            if isinstance(element, Text):
                 fig.change_tracker.addNewTextChange(element)
             else:
                 fig.change_tracker.addChange(element, self.serializeLinkedProperty(self.getSerialized()))
