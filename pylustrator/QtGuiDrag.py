@@ -251,6 +251,7 @@ class MyTreeView(QtWidgets.QTreeView):
             fig: the target figure
         """
         super().__init__()
+        #self.setMaximumWidth(300)
 
         signals.figure_changed.connect(self.setFigure)
         signals.figure_element_selected.connect(self.select_element)
@@ -1041,6 +1042,7 @@ class PlotLayout(QtWidgets.QWidget):
 
     def __init__(self, signals: "Signals"):
         super().__init__()
+        self.setMinimumSize(600, 500)
 
         signals.figure_changed.connect(self.setFigure)
         signals.canvas_changed.connect(self.setCanvas)
@@ -1276,8 +1278,8 @@ class PlotWindow(QtWidgets.QWidget):
         widget = QtWidgets.QWidget()
         self.layout_tools = QtWidgets.QVBoxLayout(widget)
         widget.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
-        widget.setMaximumWidth(350)
-        widget.setMinimumWidth(350)
+        #widget.setMaximumWidth(350)
+        #widget.setMinimumWidth(350)
         self.layout_main.addWidget(widget)
 
         if 0:
@@ -1313,11 +1315,9 @@ class PlotWindow(QtWidgets.QWidget):
         self.colorWidget.setMaximumWidth(150)
         self.layout_main.addWidget(self.colorWidget)
 
-        print("initialized")
-
-        #self.layout_main.setStretchFactor(0, 0)
-        #self.layout_main.setStretchFactor(1, 1)
-        #self.layout_main.setStretchFactor(2, 1)
+        self.layout_main.setStretchFactor(0, 0)
+        self.layout_main.setStretchFactor(1, 1)
+        self.layout_main.setStretchFactor(2, 0)
 
     def rasterize(self, rasterize: bool):
         """ convert the figur elements to an image """

@@ -831,7 +831,6 @@ class QAxesProperties(QtWidgets.QWidget):
 
         self.input_lim = DimensionsWidget(self.layout, axis + "-Lim:", "-", "", free=True)
         self.input_lim.link(axis + "lim", signal=self.targetChanged)
-
         self.button_ticks = QtWidgets.QPushButton(
             QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", "ticks.ico")), "")
         self.button_ticks.clicked.connect(self.showTickWidget)
@@ -1185,6 +1184,8 @@ class QItemProperties(QtWidgets.QWidget):
         self.layout_buttons.addWidget(self.button_legend)
         self.button_legend.clicked.connect(self.buttonLegendClicked)
 
+        self.setElement(None)
+
     def select_element(self, element: Artist):
         """ select an element """
         if element is None:
@@ -1239,10 +1240,8 @@ class QItemProperties(QtWidgets.QWidget):
 
     def buttonAddTextClicked(self):
         """ when the button 'add text' is clicked """
-        print("buttonAddTextClicked", self.element)
         if isinstance(self.element, Axes):
             text = self.element.text(0.5, 0.5, "New Text", transform=self.element.transAxes)
-            print("add text", text, text.axes, text.axes.texts)
             self.fig.change_tracker.addChange(self.element,
                                               ".text(0.5, 0.5, 'New Text', transform=%s.transAxes)  # id=%s.new" % (
                                                   getReference(self.element), getReference(text)), text, ".new")
