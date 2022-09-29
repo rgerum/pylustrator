@@ -1070,7 +1070,7 @@ class QItemProperties(QtWidgets.QWidget):
     valueChanged = QtCore.Signal(tuple)
     element = None
 
-    def __init__(self, layout: QtWidgets.QLayout, signals: "Signals", tree: QtWidgets.QTreeView, parent: QtWidgets.QWidget):
+    def __init__(self, layout: QtWidgets.QLayout, signals: "Signals"):
         """ a widget that holds all the properties to set and the tree view
 
         Args:
@@ -1081,14 +1081,13 @@ class QItemProperties(QtWidgets.QWidget):
         """
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
+        self.signals = signals
 
         signals.figure_changed.connect(self.setFigure)
         signals.figure_element_selected.connect(self.select_element)
 
         self.layout = QtWidgets.QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
-        self.tree = tree
-        self.parent = parent
 
         self.label = QtWidgets.QLabel()
         self.layout.addWidget(self.label)
@@ -1230,7 +1229,7 @@ class QItemProperties(QtWidgets.QWidget):
         else:
             addChange(axes, ".spines[:].set_visible(False)")
 
-        self.tree.updateEntry(self.element, update_children=True)
+        self.signals.figure_element_child_created.emit(self.element)
         self.fig.figure_dragger.make_dragable(axes)
         self.fig.figure_dragger.select_element(axes)
         self.fig.canvas.draw()
@@ -1254,7 +1253,7 @@ class QItemProperties(QtWidgets.QWidget):
                                               ".text(0.5, 0.5, 'New Text', transform=%s.transFigure)  # id=%s.new" % (
                                                   getReference(self.element), getReference(text)), text, ".new")
             text.is_new_text = True
-        self.tree.updateEntry(self.element, update_children=True)
+        self.signals.figure_element_child_created.emit(self.element)
         self.fig.figure_dragger.make_dragable(text)
         self.fig.canvas.draw()
         self.fig.figure_dragger.on_deselect(None)
@@ -1275,7 +1274,7 @@ class QItemProperties(QtWidgets.QWidget):
                                           text.xy, text.get_position(), getReference(text)),
                                           text, ".new")
 
-        self.tree.updateEntry(self.element, update_children=True)
+        self.signals.figure_element_child_created.emit(self.element)
         self.fig.figure_dragger.make_dragable(text)
         self.fig.figure_dragger.select_element(text)
         self.fig.canvas.draw()
@@ -1294,7 +1293,7 @@ class QItemProperties(QtWidgets.QWidget):
                                               p.get_xy(), p.get_width(), p.get_height(), getReference(p)),
                                           p, ".new")
 
-        self.tree.updateEntry(self.element, update_children=True)
+        self.signals.figure_element_child_created.emit(self.element)
         self.fig.figure_dragger.make_dragable(p)
         self.fig.figure_dragger.select_element(p)
         self.fig.canvas.draw()
@@ -1315,7 +1314,7 @@ class QItemProperties(QtWidgets.QWidget):
                                           p._posA_posB[0], p._posA_posB[1], getReference(p)),
                                           p, ".new")
 
-        self.tree.updateEntry(self.element, update_children=True)
+        self.signals.figure_element_child_created.emit(self.element)
         self.fig.figure_dragger.make_dragable(p)
         self.fig.figure_dragger.select_element(p)
         self.fig.canvas.draw()
@@ -1362,7 +1361,7 @@ class QItemProperties(QtWidgets.QWidget):
         self.fig.change_tracker.addChange(self.element, ".legend()")
         self.fig.figure_dragger.make_dragable(self.element.get_legend())
         self.fig.canvas.draw()
-        self.tree.updateEntry(self.element, update_children=True)
+        self.signals.figure_element_child_created.emit(self.element)
 
     def changePickable(self):
         """ make the target pickable """
@@ -1370,7 +1369,7 @@ class QItemProperties(QtWidgets.QWidget):
             self.element._draggable.connect()
         else:
             self.element._draggable.disconnect()
-        self.tree.updateEntry(self.element)
+        self.signals.figure_element_child_created.emit(self.element)
 
     def setElement(self, element: Artist):
         """ set the target Artist of this widget """

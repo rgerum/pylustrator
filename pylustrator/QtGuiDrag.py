@@ -254,6 +254,7 @@ class MyTreeView(QtWidgets.QTreeView):
 
         signals.figure_changed.connect(self.setFigure)
         signals.figure_element_selected.connect(self.select_element)
+        signals.figure_element_child_created.connect(lambda x: self.updateEntry(x, update_children=True))
 
         layout.addWidget(self)
 
@@ -1089,6 +1090,7 @@ class Signals(QtWidgets.QWidget):
     canvas_changed = QtCore.Signal(object)
     figure_size_changed = QtCore.Signal()
     figure_element_selected = QtCore.Signal(object)
+    figure_element_child_created = QtCore.Signal(object)
 
 
 class FigurePreviews(QtWidgets.QWidget):
@@ -1300,7 +1302,7 @@ class PlotWindow(QtWidgets.QWidget):
 
         self.treeView = MyTreeView(self.signals, self.layout_tools)
 
-        self.input_properties = QItemProperties(self.layout_tools, self.signals, self.treeView, self)
+        self.input_properties = QItemProperties(self.layout_tools, self.signals)
         self.input_align = Align(self.layout_tools, self.signals)
 
         # add plot layout
