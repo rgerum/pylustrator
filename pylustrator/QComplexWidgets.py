@@ -831,8 +831,12 @@ class QAxesProperties(QtWidgets.QWidget):
 
         self.input_lim = DimensionsWidget(self.layout, axis + "-Lim:", "-", "", free=True)
         self.input_lim.link(axis + "lim", signal=self.targetChanged)
-        self.button_ticks = QtWidgets.QPushButton(
-            QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", "ticks.ico")), "")
+        if axis == "x":
+            self.button_ticks = QtWidgets.QPushButton(
+                QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", "ticks.ico")), "")
+        else:
+            self.button_ticks = QtWidgets.QPushButton(
+                QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", "ticks_y.ico")), "")
         self.button_ticks.clicked.connect(self.showTickWidget)
         self.layout.addWidget(self.button_ticks)
 
