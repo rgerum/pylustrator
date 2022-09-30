@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# QComplexWidgets.py
+# qitem_properties.py
 
 # Copyright (c) 2016-2020, Richard Gerum
 #
@@ -20,45 +20,20 @@
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
 import os
-import sys
-
-import os
-import sys
-import traceback
+from typing import Any
+import numpy as np
 
 import qtawesome as qta
-from matplotlib import _pylab_helpers
+from qtpy import QtCore, QtWidgets, QtGui
 
-from .ax_rasterisation import rasterizeAxes, restoreAxes
-from .change_tracker import setFigureVariableNames
-from .drag_helper import DragManager
-from .exception_swallower import swallow_get_exceptions
-from .matplotlibwidget import MatplotlibWidget
-
-import qtawesome as qta
-from matplotlib import _pylab_helpers
 from matplotlib.axes._subplots import Axes
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import matplotlib.transforms as transforms
-import numpy as np
 from matplotlib.artist import Artist
 from matplotlib.figure import Figure
-from qtpy import QtCore, QtWidgets, QtGui
-from typing import Any, Optional
 
-from .change_tracker import getReference
-from .helper_functions import changeFigureSize
-from .QLinkableWidgets import QColorWidget, CheckWidget, TextWidget, RadioWidget, DimensionsWidget, NumberWidget, ComboWidget
-
-from qtpy import API_NAME as QT_API_NAME
-
-if QT_API_NAME.startswith("PyQt4"):
-    from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as Canvas
-    from matplotlib.backends.backend_qt4 import NavigationToolbar2QT as NavigationToolbar
-else:
-    from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as Canvas
-    from matplotlib.backends.backend_qt5 import NavigationToolbar2QT as NavigationToolbar
+from pylustrator.change_tracker import getReference
+from pylustrator.QLinkableWidgets import QColorWidget, CheckWidget, TextWidget, DimensionsWidget, NumberWidget, ComboWidget
 
 
 class TextPropertiesWidget(QtWidgets.QWidget):
@@ -554,7 +529,7 @@ class QTickEdit(QtWidgets.QWidget):
         """
         QtWidgets.QWidget.__init__(self)
         self.setWindowTitle("Figure - " + axis + "-Axis - Ticks - Pylustrator")
-        self.setWindowIcon(QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", "ticks.ico")))
+        self.setWindowIcon(QtGui.QIcon(os.path.join(os.path.dirname(__file__), "../icons", "ticks.ico")))
         self.layout = QtWidgets.QVBoxLayout(self)
         self.axis = axis
 
@@ -833,10 +808,10 @@ class QAxesProperties(QtWidgets.QWidget):
         self.input_lim.link(axis + "lim", signal=self.targetChanged)
         if axis == "x":
             self.button_ticks = QtWidgets.QPushButton(
-                QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", "ticks.ico")), "")
+                QtGui.QIcon(os.path.join(os.path.dirname(__file__), "../icons", "ticks.ico")), "")
         else:
             self.button_ticks = QtWidgets.QPushButton(
-                QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", "ticks_y.ico")), "")
+                QtGui.QIcon(os.path.join(os.path.dirname(__file__), "../icons", "ticks_y.ico")), "")
         self.button_ticks.clicked.connect(self.showTickWidget)
         self.layout.addWidget(self.button_ticks)
 
@@ -857,215 +832,6 @@ class QAxesProperties(QtWidgets.QWidget):
             self.hide()
 
 
-class QPosAndSize(QtWidgets.QWidget):
-    element = None
-    transform = None
-    transform_index = 0
-    scale_type = 0
-
-    def __init__(self, layout: QtWidgets.QLayout, signals: "Signals"):
-        """ a widget that holds all the properties to set and the tree view
-
-        Args:
-            layout: the layout to which to add the widget
-            fig: the figure
-        """
-        QtWidgets.QWidget.__init__(self)
-
-        signals.figure_changed.connect(self.setFigure)
-        signals.figure_element_selected.connect(self.select_element)
-        self.signals = signals
-
-        layout.addWidget(self)
-        self.layout = QtWidgets.QHBoxLayout(self)
-        self.layout.setContentsMargins(10, 0, 10, 0)
-
-        self.input_position = DimensionsWidget(self.layout, "X:", "Y:", "cm")
-        self.input_position.valueChanged.connect(self.changePos)
-
-        self.input_shape = DimensionsWidget(self.layout, "W:", "H:", "cm")
-        self.input_shape.valueChanged.connect(self.changeSize)
-
-        self.input_transform = ComboWidget(self.layout, "", ["cm", "in", "px", "none"])
-        self.input_transform.editingFinished.connect(self.changeTransform)
-
-        self.input_shape_transform = ComboWidget(self.layout, "", ["scale", "bottom right", "top left"])
-        self.input_shape_transform.editingFinished.connect(self.changeTransform2)
-
-        self.layout.addStretch()
-
-    def setFigure(self, figure):
-        self.fig = figure
-
-    def select_element(self, element):
-        """ select an element """
-        if element is None:
-            self.setElement(self.fig)
-        else:
-            self.setElement(element)
-
-    def changeTransform(self):
-        """ change the tranform and the units of the position and size widgets """
-        name = self.input_transform.text()
-        self.transform_index = ["cm", "in", "px", "none"].index(name)#transform_index
-        if name == "none":
-            name = ""
-        self.input_shape.setUnit(name)
-        self.input_position.setUnit(name)
-        self.setElement(self.element)
-
-    def changeTransform2(self):#, state: int, name: str):
-        """ when the dimension change type is changed from 'scale' to 'bottom right' or 'bottom left' """
-        name = self.input_shape_transform.text()
-        self.scale_type = ["scale", "bottom right", "top left"].index(name)
-        #self.scale_type = state
-
-    def changePos(self, value: list):
-        """ change the position of an axes """
-        pos = self.element.get_position()
-        try:
-            w, h = pos.width, pos.height
-            pos.x0 = value[0]
-            pos.y0 = value[1]
-            pos.x1 = value[0] + w
-            pos.y1 = value[1] + h
-
-            self.fig.change_tracker.addChange(self.element, ".set_position([%f, %f, %f, %f])" % (
-            pos.x0, pos.y0, pos.width, pos.height))
-        except AttributeError:
-            pos = value
-
-            from matplotlib.text import Text
-            if isinstance(self.element, Text):
-                self.fig.change_tracker.addNewTextChange(self.element)
-            else:
-                self.fig.change_tracker.addChange(self.element, ".set_position([%f, %f])" % (pos[0], pos[1]))
-
-        self.element.set_position(pos)
-        self.fig.canvas.draw()
-
-    def changeSize(self, value: list):
-        """ change the size of an axes or figure """
-        if isinstance(self.element, Figure):
-
-            if self.scale_type == 0:
-                self.fig.set_size_inches(value)
-                self.fig.change_tracker.addChange(self.element, ".set_size_inches(%f/2.54, %f/2.54, forward=True)" % (
-                value[0] * 2.54, value[1] * 2.54))
-            else:
-                if self.scale_type == 1:
-                    changeFigureSize(value[0], value[1], fig=self.fig)
-                elif self.scale_type == 2:
-                    changeFigureSize(value[0], value[1], cut_from_top=True, cut_from_left=True, fig=self.fig)
-                self.fig.change_tracker.addChange(self.element, ".set_size_inches(%f/2.54, %f/2.54, forward=True)" % (
-                value[0] * 2.54, value[1] * 2.54))
-                for axes in self.fig.axes:
-                    pos = axes.get_position()
-                    self.fig.change_tracker.addChange(axes, ".set_position([%f, %f, %f, %f])" % (
-                    pos.x0, pos.y0, pos.width, pos.height))
-                for text in self.fig.texts:
-                    pos = text.get_position()
-                    self.fig.change_tracker.addChange(text, ".set_position([%f, %f])" % (pos[0], pos[1]))
-
-            self.fig.selection.update_selection_rectangles()
-            self.fig.canvas.draw()
-            self.fig.widget.updateGeometry()
-
-            # emit a signal that the figure size has changed
-            self.signals.figure_size_changed.emit()
-        else:
-            elements = [self.element]
-            elements += [element.target for element in self.element.figure.selection.targets if
-                         element.target != self.element and isinstance(element.target, Axes)]
-
-            old_positions = []
-            new_positions = []
-            for element in elements:
-                pos = element.get_position()
-                old_positions.append(pos)
-                pos = [pos.x0, pos.y0, pos.width, pos.height]
-                pos[2] = value[0]
-                pos[3] = value[1]
-                new_positions.append(pos)
-
-            fig = self.fig
-
-            def redo():
-                for element, pos in zip(elements, new_positions):
-                    element.set_position(pos)
-                    fig.change_tracker.addChange(element, ".set_position([%f, %f, %f, %f])" % tuple(pos))
-
-            def undo():
-                for element, pos in zip(elements, new_positions):
-                    element.set_position(pos)
-                    fig.change_tracker.addChange(element, ".set_position([%f, %f, %f, %f])" % tuple(pos))
-
-            redo()
-            self.fig.change_tracker.addEdit([undo, redo, "Change size"])
-            self.fig.selection.update_selection_rectangles()
-            self.fig.canvas.draw()
-
-
-    def getTransform(self, element: Artist) -> Optional[mpl.transforms.Transform]:
-        """ get the transform of an Artist """
-        if isinstance(element, Figure):
-            if self.transform_index == 0:
-                return transforms.Affine2D().scale(2.54, 2.54)
-            return None
-        if isinstance(element, Axes):
-            if self.transform_index == 0:
-                return transforms.Affine2D().scale(2.54,
-                                                   2.54) + element.figure.dpi_scale_trans.inverted() + element.figure.transFigure
-            if self.transform_index == 1:
-                return element.figure.dpi_scale_trans.inverted() + element.figure.transFigure
-            if self.transform_index == 2:
-                return element.figure.transFigure
-            return None
-        if self.transform_index == 0:
-            return transforms.Affine2D().scale(2.54,
-                                               2.54) + element.figure.dpi_scale_trans.inverted() + element.get_transform()
-        if self.transform_index == 1:
-            return element.figure.dpi_scale_trans.inverted() + element.get_transform()
-        if self.transform_index == 2:
-            return element.get_transform()
-        return None
-
-    def setElement(self, element: Artist):
-        """ set the target Artist of this widget """
-        #self.label.setText(str(element))
-        self.element = element
-
-        self.input_shape_transform.setDisabled(True)
-        self.input_transform.setDisabled(True)
-
-        if isinstance(element, Figure):
-            pos = element.get_size_inches()
-            self.input_shape.setTransform(self.getTransform(element))
-            self.input_shape.setValue((pos[0], pos[1]))
-            self.input_shape.setEnabled(True)
-            self.input_transform.setEnabled(True)
-            self.input_shape_transform.setEnabled(True)
-        elif isinstance(element, Axes):
-            pos = element.get_position()
-            self.input_shape.setTransform(self.getTransform(element))
-            self.input_shape.setValue((pos.width, pos.height))
-            self.input_transform.setEnabled(True)
-            self.input_shape.setEnabled(True)
-
-        else:
-            self.input_shape.setDisabled(True)
-
-        try:
-            pos = element.get_position()
-            self.input_position.setTransform(self.getTransform(element))
-            try:
-                self.input_position.setValue(pos)
-            except Exception as err:
-                self.input_position.setValue((pos.x0, pos.y0))
-            self.input_transform.setEnabled(True)
-            self.input_position.setEnabled(True)
-        except:
-            self.input_position.setDisabled(True)
 
 
 class QItemProperties(QtWidgets.QWidget):
@@ -1422,89 +1188,3 @@ class QItemProperties(QtWidgets.QWidget):
         self.targetChanged.emit(element)
 
 
-class ToolBar(QtWidgets.QToolBar):
-
-    def __init__(self, canvas: Canvas, figure: Figure):
-        """ A widget that displays a toolbar similar to the default Matplotlib toolbar (for the zoom and pan tool)
-
-        Args:
-            canvas: the canvas of the figure
-            figure: the figure
-        """
-        super().__init__()
-        self.canvas = canvas
-        self.fig = figure
-        self.navi_toolbar = NavigationToolbar(self.canvas, self)
-        self.navi_toolbar.hide()
-
-        self._actions = self.navi_toolbar._actions
-        self._actions["home"] = self.addAction(self.navi_toolbar._icon("home.png"), "", self.navi_toolbar.home)
-
-        self._actions["back"] = self.addAction(self.navi_toolbar._icon("back.png"), "", self.navi_toolbar.back)
-
-        self._actions["forward"] = self.addAction(self.navi_toolbar._icon("forward.png"), "", self.navi_toolbar.forward)
-        self.addSeparator()
-
-        # the action group makes the actions exclusive, you
-        # can't use 2 at the same time
-        action_group = QtWidgets.QActionGroup(self)
-
-        self._actions["drag"] = self.addAction(self.icon("arrow.png"), "", self.setSelect)
-        self._actions["drag"].setCheckable(True)
-        self._actions["drag"].setActionGroup(action_group)
-
-        self._actions["pan"] = self.addAction(self.navi_toolbar._icon("move.png"), "", self.setPan)
-        self._actions["pan"].setCheckable(True)
-        self._actions["pan"].setActionGroup(action_group)
-
-        self._actions["zoom"] = self.addAction(self.navi_toolbar._icon("zoom_to_rect.png"), "", self.setZoom)
-        self._actions["zoom"].setCheckable(True)
-        self._actions["zoom"].setActionGroup(action_group)
-
-        self.navi_toolbar._active = 'DRAG'
-        self._actions['drag'].setChecked(True)
-        self.prev_active = 'DRAG'
-
-    def icon(self, name: str):
-        """ get an icon with the given filename """
-        pm = QtGui.QPixmap(os.path.join(os.path.dirname(__file__), "icons", name))
-        if hasattr(pm, 'setDevicePixelRatio'):
-            try:  # older mpl < 3.5.0
-                pm.setDevicePixelRatio(self.canvas._dpi_ratio)
-            except AttributeError:
-                pm.setDevicePixelRatio(self.canvas.device_pixel_ratio)
-
-        return QtGui.QIcon(pm)
-
-    def setSelect(self):
-        """ select the pylustrator selection and drag tool """
-        self.fig.figure_dragger.activate()
-
-        if self.prev_active=="PAN":
-            self.navi_toolbar.pan()
-        elif self.prev_active=="ZOOM":
-            self.navi_toolbar.zoom()
-
-        self.prev_active = 'DRAG'
-
-        self.navi_toolbar._active = 'DRAG'
-
-    def setPan(self):
-        """ select the mpl pan tool """
-        if self.prev_active == "DRAG":
-            self.fig.figure_dragger.deactivate()
-
-        if self.navi_toolbar._active != 'PAN':
-            self.navi_toolbar.pan()
-
-        self.prev_active = 'PAN'
-
-    def setZoom(self):
-        """ select the mpl zoom tool """
-        if self.prev_active == "DRAG":
-            self.fig.figure_dragger.deactivate()
-
-        if self.navi_toolbar._active != 'ZOOM':
-            self.navi_toolbar.zoom()
-
-        self.prev_active = 'ZOOM'
