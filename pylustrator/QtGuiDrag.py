@@ -205,13 +205,15 @@ def warnAboutTicks(fig):
         ticks = ax.get_yticks()
         labels = [t.get_text() for t in ax.get_yticklabels()]
         for t, l in zip(ticks, labels):
+            l = l.replace("−", "-")
             if l == "":
                 continue
             try:
                 l = float(l)
             except ValueError:
                 pass
-            if t != l:
+            # if the label is still a string or too far away from the tick value
+            if isinstance(l, str) or abs(t - l) > abs(1e-3 * t):
                 ax_name = ax.get_label()
                 if ax_name == "":
                     ax_name = "#%d" % index
