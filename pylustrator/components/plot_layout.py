@@ -240,8 +240,8 @@ class Canvas(QtWidgets.QWidget):
             self.canvas_container.setMinimumSize(w, h)
             self.canvas_container.setMaximumSize(w, h)
 
-            self.canvas_container.move(int((self.canvas_canvas.width() - w) / 2 + 5),
-                                       int((self.canvas_canvas.height() - h) / 2 + 5))
+            self.canvas_container.move(int((self.canvas_canvas.width() - w) / 2 + 10),
+                                       int((self.canvas_canvas.height() - h) / 2 + 10))
 
             self.updateRuler()
             self.fig.canvas.draw()
