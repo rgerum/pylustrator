@@ -31,7 +31,7 @@ class Align(QtWidgets.QWidget):
             button.clicked.connect(lambda x, act=act: self.execute_action(act))
             self.buttons.append(button)
             align_group.addButton(button)
-            if index == 3:
+            if index == 3 or index == 7:
                 line = QtWidgets.QFrame()
                 line.setFrameShape(QtWidgets.QFrame.VLine)
                 line.setFrameShadow(QtWidgets.QFrame.Sunken)

@@ -87,10 +87,10 @@ class TextPropertiesWidget(QtWidgets.QWidget):
         self.layout.addWidget(self.label)
         self.label.clicked.connect(self.selectFont)
 
-        self.button_delete = QtWidgets.QPushButton(qta.icon("fa5s.trash"), "")
-        self.button_delete.clicked.connect(self.delete)
-        self.button_delete.setToolTip("delete")
-        self.layout.addWidget(self.button_delete)
+        #self.button_delete = QtWidgets.QPushButton(qta.icon("fa5s.trash"), "")
+        #self.button_delete.clicked.connect(self.delete)
+        #self.button_delete.setToolTip("delete")
+        #self.layout.addWidget(self.button_delete)
 
     def convertMplWeightToQtWeight(self, weight: str) -> int:
         """ convert a font weight string to a weight enumeration of Qt """
@@ -955,6 +955,7 @@ class QItemProperties(QtWidgets.QWidget):
         self.button_legend.clicked.connect(self.buttonLegendClicked)
 
         self.setElement(None)
+        self.setMinimumWidth(100)
 
     def select_element(self, element: Artist):
         """ select an element """

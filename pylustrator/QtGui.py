@@ -19,8 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
-from qtpy import QtCore, QtWidgets, QtGui
-import qtawesome as qta
+from qtpy import QtWidgets, QtGui
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -31,7 +30,7 @@ if QT_API_NAME.startswith("PyQt4"):
 else:
     from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as Canvas
     from matplotlib.backends.backend_qt5 import NavigationToolbar2QT as NavigationToolbar
-from .matplotlibwidget import MatplotlibWidget
+from pylustrator.components.matplotlibwidget import MatplotlibWidget
 from matplotlib import _pylab_helpers
 from matplotlib.figure import Figure
 from matplotlib.artist import Artist
@@ -269,6 +268,7 @@ class ColorChooserWidget(QtWidgets.QWidget):
         self.layout_buttons.addWidget(self.button_load)
 
         self.canvas = canvas
+        #self.updateColors()
 
         # add a text widget to allow easy copy and paste
         self.colors_text_widget = QtWidgets.QTextEdit()
