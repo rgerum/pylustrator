@@ -34,7 +34,7 @@ setup(name='pylustrator',
       license="GPLv3",
       author='Richard Gerum',
       author_email='richard.gerum@fau.de',
-      packages=['pylustrator'],
+      packages=['pylustrator', 'pylustrator.components'],
       include_package_data=True,
       install_requires=[
           'natsort',
