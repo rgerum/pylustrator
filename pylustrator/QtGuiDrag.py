@@ -49,7 +49,7 @@ def my_excepthook(type, value, tback):
 
 sys.excepthook = my_excepthook
 
-""" Matplotlib overlaod """
+""" Matplotlib overload """
 figures = {}
 app = None
 keys_for_lines = {}
@@ -198,8 +198,33 @@ def patchColormapsWithMetaInfo():
     Colormap.__call__ = new_call
 
 
+def figure(num=None, figsize=None, force_add=False, *args, **kwargs):
+    """ overloads the matplotlib figure call and wraps the Figure in a PlotWindow """
+    global figures
+    # if num is not defined create a new number
+    if num is None:
+        num = len(_pylab_helpers.Gcf.figs) + 1
+    # if number is not defined
+    if force_add or num not in _pylab_helpers.Gcf.figs.keys():
+        # create a new window and store it
+        canvas = PlotWindow(num, figsize, *args, **kwargs).canvas
+        canvas.figure.number = num
+        canvas.figure.clf()
+        canvas.manager.num = num
+        _pylab_helpers.Gcf.figs[num] = canvas.manager
+    # get the canvas of the figure
+    manager = _pylab_helpers.Gcf.figs[num]
+    # set the size if it is defined
+    if figsize is not None:
+        _pylab_helpers.Gcf.figs[num].window.setGeometry(100, 100, figsize[0] * 80, figsize[1] * 80)
+    # set the figure as the active figure
+    _pylab_helpers.Gcf.set_active(manager)
+    # return the figure
+    return manager.canvas.figure
+
+
 def warnAboutTicks(fig):
-    """ warn if the tick labels and tick values do not match, to prevent users from accidently setting wrong tick values """
+    """ warn if the tick labels and tick values do not match, to prevent users from accidentally setting wrong tick values """
     import sys
     for index, ax in enumerate(fig.axes):
         ticks = ax.get_yticks()
@@ -461,7 +486,7 @@ class PlotWindow(QtWidgets.QWidget):
 
     def showEvent(self, event: QtCore.QEvent):
         """ when the window is shown """
-        self.colorWidget.updateColors()
+        self.colorWidget.updateColorsText()
 
     def update(self):
         """ update the tree view """
