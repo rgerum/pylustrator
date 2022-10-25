@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# QComplexWidgets.py
+# qitem_properties.py
 
 # Copyright (c) 2016-2020, Richard Gerum
 #
@@ -20,45 +20,20 @@
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
 import os
-import sys
-
-import os
-import sys
-import traceback
+from typing import Any
+import numpy as np
 
 import qtawesome as qta
-from matplotlib import _pylab_helpers
+from qtpy import QtCore, QtWidgets, QtGui
 
-from .ax_rasterisation import rasterizeAxes, restoreAxes
-from .change_tracker import setFigureVariableNames
-from .drag_helper import DragManager
-from .exception_swallower import swallow_get_exceptions
-from .matplotlibwidget import MatplotlibWidget
-
-import qtawesome as qta
-from matplotlib import _pylab_helpers
 from matplotlib.axes._subplots import Axes
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import matplotlib.transforms as transforms
-import numpy as np
 from matplotlib.artist import Artist
 from matplotlib.figure import Figure
-from qtpy import QtCore, QtWidgets, QtGui
-from typing import Any, Optional
 
-from .change_tracker import getReference
-from .helper_functions import changeFigureSize
-from .QLinkableWidgets import QColorWidget, CheckWidget, TextWidget, RadioWidget, DimensionsWidget, NumberWidget, ComboWidget
-
-from qtpy import API_NAME as QT_API_NAME
-
-if QT_API_NAME.startswith("PyQt4"):
-    from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as Canvas
-    from matplotlib.backends.backend_qt4 import NavigationToolbar2QT as NavigationToolbar
-else:
-    from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as Canvas
-    from matplotlib.backends.backend_qt5 import NavigationToolbar2QT as NavigationToolbar
+from pylustrator.change_tracker import getReference
+from pylustrator.QLinkableWidgets import QColorWidget, CheckWidget, TextWidget, DimensionsWidget, NumberWidget, ComboWidget
 
 
 class TextPropertiesWidget(QtWidgets.QWidget):
@@ -112,10 +87,10 @@ class TextPropertiesWidget(QtWidgets.QWidget):
         self.layout.addWidget(self.label)
         self.label.clicked.connect(self.selectFont)
 
-        self.button_delete = QtWidgets.QPushButton(qta.icon("fa5s.trash"), "")
-        self.button_delete.clicked.connect(self.delete)
-        self.button_delete.setToolTip("delete")
-        self.layout.addWidget(self.button_delete)
+        #self.button_delete = QtWidgets.QPushButton(qta.icon("fa5s.trash"), "")
+        #self.button_delete.clicked.connect(self.delete)
+        #self.button_delete.setToolTip("delete")
+        #self.layout.addWidget(self.button_delete)
 
     def convertMplWeightToQtWeight(self, weight: str) -> int:
         """ convert a font weight string to a weight enumeration of Qt """
@@ -144,21 +119,21 @@ class TextPropertiesWidget(QtWidgets.QWidget):
 
         for element in self.target_list:
             element.set_fontname(font.family())
-            element.figure.change_tracker.addChange(element, ".set_fontname(\"%s\")" % (element.get_fontname(),))
+            element.figure.change_tracker.addNewTextChange(element)
 
             if font.weight() != font0.weight():
                 weight = self.convertQtWeightToMplWeight(font.weight())
                 element.set_weight(weight)
-                element.figure.change_tracker.addChange(element, ".set_weight(\"%s\")" % (weight,))
+                element.figure.change_tracker.addNewTextChange(element)
 
             if font.pointSizeF() != font0.pointSizeF():
                 element.set_fontsize(font.pointSizeF())
-                element.figure.change_tracker.addChange(element, ".set_fontsize(%f)" % (font.pointSizeF(),))
+                element.figure.change_tracker.addNewTextChange(element)
 
             if font.italic() != font0.italic():
                 style = "italic" if font.italic() else "normal"
                 element.set_style(style)
-                element.figure.change_tracker.addChange(element, ".set_style(\"%s\")" % (style,))
+                element.figure.change_tracker.addNewTextChange(element)
 
         self.target.figure.canvas.draw()
         self.setTarget(self.target_list)
@@ -203,8 +178,8 @@ class TextPropertiesWidget(QtWidgets.QWidget):
 
             for element in self.target_list:
                 element.set_weight("bold" if checked else "normal")
-                element.figure.change_tracker.addChange(element,
-                                                        ".set_weight(\"%s\")" % ("bold" if checked else "normal",))
+
+                element.figure.change_tracker.addNewTextChange(element)
 
             self.target = element
             self.target.figure.canvas.draw()
@@ -217,8 +192,8 @@ class TextPropertiesWidget(QtWidgets.QWidget):
 
             for element in self.target_list:
                 element.set_style("italic" if checked else "normal")
-                element.figure.change_tracker.addChange(element,
-                                                        ".set_style(\"%s\")" % ("italic" if checked else "normal",))
+
+                element.figure.change_tracker.addNewTextChange(element)
 
             self.target = element
             self.target.figure.canvas.draw()
@@ -231,7 +206,7 @@ class TextPropertiesWidget(QtWidgets.QWidget):
 
             for element in self.target_list:
                 element.set_color(color)
-                element.figure.change_tracker.addChange(element, ".set_color(\"%s\")" % (color,))
+                element.figure.change_tracker.addNewTextChange(element)
 
             self.target = element
             self.target.figure.canvas.draw()
@@ -247,7 +222,7 @@ class TextPropertiesWidget(QtWidgets.QWidget):
                 for index, button in enumerate(self.buttons_align):
                     button.setChecked(index == index_selected)
                 element.set_ha(align)
-                element.figure.change_tracker.addChange(element, ".set_ha(\"%s\")" % align)
+                element.figure.change_tracker.addNewTextChange(element)
 
             self.target = element
             self.target.figure.canvas.draw()
@@ -257,8 +232,9 @@ class TextPropertiesWidget(QtWidgets.QWidget):
         if self.target:
             for element in self.target_list:
                 element.set_fontsize(value)
-                element.figure.change_tracker.addChange(element, ".set_fontsize(%d)" % value)
+                element.figure.change_tracker.addNewTextChange(element)
             self.target.figure.canvas.draw()
+
 
 class TextPropertiesWidget2(QtWidgets.QWidget):
     stateChanged = QtCore.Signal(int, str)
@@ -553,7 +529,7 @@ class QTickEdit(QtWidgets.QWidget):
         """
         QtWidgets.QWidget.__init__(self)
         self.setWindowTitle("Figure - " + axis + "-Axis - Ticks - Pylustrator")
-        self.setWindowIcon(QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", "ticks.ico")))
+        self.setWindowIcon(QtGui.QIcon(os.path.join(os.path.dirname(__file__), "../icons", "ticks.ico")))
         self.layout = QtWidgets.QVBoxLayout(self)
         self.axis = axis
 
@@ -830,9 +806,12 @@ class QAxesProperties(QtWidgets.QWidget):
 
         self.input_lim = DimensionsWidget(self.layout, axis + "-Lim:", "-", "", free=True)
         self.input_lim.link(axis + "lim", signal=self.targetChanged)
-
-        self.button_ticks = QtWidgets.QPushButton(
-            QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", "ticks.ico")), "")
+        if axis == "x":
+            self.button_ticks = QtWidgets.QPushButton(
+                QtGui.QIcon(os.path.join(os.path.dirname(__file__), "../icons", "ticks.ico")), "")
+        else:
+            self.button_ticks = QtWidgets.QPushButton(
+                QtGui.QIcon(os.path.join(os.path.dirname(__file__), "../icons", "ticks_y.ico")), "")
         self.button_ticks.clicked.connect(self.showTickWidget)
         self.layout.addWidget(self.button_ticks)
 
@@ -853,203 +832,6 @@ class QAxesProperties(QtWidgets.QWidget):
             self.hide()
 
 
-class QPosAndSize(QtWidgets.QWidget):
-    element = None
-    transform = None
-    transform_index = 0
-    scale_type = 0
-
-    def __init__(self, layout: QtWidgets.QLayout, fig: Figure, parent: QtWidgets.QWidget):
-        """ a widget that holds all the properties to set and the tree view
-
-        Args:
-            layout: the layout to which to add the widget
-            fig: the figure
-            tree: the tree view of the elements of the figure
-            parent: the parent widget
-        """
-        QtWidgets.QWidget.__init__(self)
-        layout.addWidget(self)
-        self.layout = QtWidgets.QHBoxLayout(self)
-        self.layout.setContentsMargins(10, 0, 10, 0)
-        #self.tree = tree
-        self.parent = parent
-
-        #self.label = QtWidgets.QLabel()
-        #self.layout.addWidget(self.label)
-
-        self.input_position = DimensionsWidget(self.layout, "X:", "Y:", "cm")
-        self.input_position.valueChanged.connect(self.changePos)
-
-        self.input_shape = DimensionsWidget(self.layout, "W:", "H:", "cm")
-        self.input_shape.valueChanged.connect(self.changeSize)
-
-        self.input_transform = ComboWidget(self.layout, "", ["cm", "in", "px", "none"])
-        self.input_transform.editingFinished.connect(self.changeTransform)
-
-        self.input_shape_transform = ComboWidget(self.layout, "", ["scale", "bottom right", "top left"])
-        self.input_shape_transform.editingFinished.connect(self.changeTransform2)
-
-        self.fig = fig
-
-        self.layout.addStretch()
-
-    def changeTransform(self):#, transform_index: int, name: str):
-        """ change the tranform and the units of the position and size widgets """
-        name = self.input_transform.text()
-        self.transform_index = ["cm", "in", "px", "none"].index(name)#transform_index
-        if name == "none":
-            name = ""
-        self.input_shape.setUnit(name)
-        self.input_position.setUnit(name)
-        self.setElement(self.element)
-
-    def changeTransform2(self):#, state: int, name: str):
-        """ when the dimension change type is changed from 'scale' to 'bottom right' or 'bottom left' """
-        name = self.input_shape_transform.text()
-        self.scale_type = ["scale", "bottom right", "top left"].index(name)
-        #self.scale_type = state
-
-    def changePos(self, value: list):
-        """ change the position of an axes """
-        pos = self.element.get_position()
-        try:
-            w, h = pos.width, pos.height
-            pos.x0 = value[0]
-            pos.y0 = value[1]
-            pos.x1 = value[0] + w
-            pos.y1 = value[1] + h
-
-            self.fig.change_tracker.addChange(self.element, ".set_position([%f, %f, %f, %f])" % (
-            pos.x0, pos.y0, pos.width, pos.height))
-        except AttributeError:
-            pos = value
-
-            self.fig.change_tracker.addChange(self.element, ".set_position([%f, %f])" % (pos[0], pos[1]))
-        self.element.set_position(pos)
-        self.fig.canvas.draw()
-
-    def changeSize(self, value: list):
-        """ change the size of an axes or figure """
-        if isinstance(self.element, Figure):
-
-            if self.scale_type == 0:
-                self.fig.set_size_inches(value)
-                self.fig.change_tracker.addChange(self.element, ".set_size_inches(%f/2.54, %f/2.54, forward=True)" % (
-                value[0] * 2.54, value[1] * 2.54))
-            else:
-                if self.scale_type == 1:
-                    changeFigureSize(value[0], value[1], fig=self.fig)
-                elif self.scale_type == 2:
-                    changeFigureSize(value[0], value[1], cut_from_top=True, cut_from_left=True, fig=self.fig)
-                self.fig.change_tracker.addChange(self.element, ".set_size_inches(%f/2.54, %f/2.54, forward=True)" % (
-                value[0] * 2.54, value[1] * 2.54))
-                for axes in self.fig.axes:
-                    pos = axes.get_position()
-                    self.fig.change_tracker.addChange(axes, ".set_position([%f, %f, %f, %f])" % (
-                    pos.x0, pos.y0, pos.width, pos.height))
-                for text in self.fig.texts:
-                    pos = text.get_position()
-                    self.fig.change_tracker.addChange(text, ".set_position([%f, %f])" % (pos[0], pos[1]))
-
-            self.fig.selection.update_selection_rectangles()
-            self.fig.canvas.draw()
-            self.fig.widget.updateGeometry()
-            self.parent.updateFigureSize()
-            self.parent.updateRuler()
-        else:
-            elements = [self.element]
-            elements += [element.target for element in self.element.figure.selection.targets if
-                         element.target != self.element and isinstance(element.target, Axes)]
-            print("elements", elements)
-            old_positions = []
-            new_positions = []
-            for element in elements:
-                pos = element.get_position()
-                old_positions.append(pos)
-                pos = [pos.x0, pos.y0, pos.width, pos.height]
-                pos[2] = value[0]
-                pos[3] = value[1]
-                new_positions.append(pos)
-
-            fig = self.fig
-
-            def redo():
-                for element, pos in zip(elements, new_positions):
-                    element.set_position(pos)
-                    fig.change_tracker.addChange(element, ".set_position([%f, %f, %f, %f])" % tuple(pos))
-
-            def undo():
-                for element, pos in zip(elements, new_positions):
-                    element.set_position(pos)
-                    fig.change_tracker.addChange(element, ".set_position([%f, %f, %f, %f])" % tuple(pos))
-
-            redo()
-            self.fig.change_tracker.addEdit([undo, redo, "Change size"])
-            self.fig.selection.update_selection_rectangles()
-            self.fig.canvas.draw()
-
-
-    def getTransform(self, element: Artist) -> Optional[mpl.transforms.Transform]:
-        """ get the transform of an Artist """
-        if isinstance(element, Figure):
-            if self.transform_index == 0:
-                return transforms.Affine2D().scale(2.54, 2.54)
-            return None
-        if isinstance(element, Axes):
-            if self.transform_index == 0:
-                return transforms.Affine2D().scale(2.54,
-                                                   2.54) + element.figure.dpi_scale_trans.inverted() + element.figure.transFigure
-            if self.transform_index == 1:
-                return element.figure.dpi_scale_trans.inverted() + element.figure.transFigure
-            if self.transform_index == 2:
-                return element.figure.transFigure
-            return None
-        if self.transform_index == 0:
-            return transforms.Affine2D().scale(2.54,
-                                               2.54) + element.figure.dpi_scale_trans.inverted() + element.get_transform()
-        if self.transform_index == 1:
-            return element.figure.dpi_scale_trans.inverted() + element.get_transform()
-        if self.transform_index == 2:
-            return element.get_transform()
-        return None
-
-    def setElement(self, element: Artist):
-        """ set the target Artist of this widget """
-        #self.label.setText(str(element))
-        self.element = element
-
-        self.input_shape_transform.setDisabled(True)
-        self.input_transform.setDisabled(True)
-
-        if isinstance(element, Figure):
-            pos = element.get_size_inches()
-            self.input_shape.setTransform(self.getTransform(element))
-            self.input_shape.setValue((pos[0], pos[1]))
-            self.input_shape.setEnabled(True)
-            self.input_transform.setEnabled(True)
-            self.input_shape_transform.setEnabled(True)
-        elif isinstance(element, Axes):
-            pos = element.get_position()
-            self.input_shape.setTransform(self.getTransform(element))
-            self.input_shape.setValue((pos.width, pos.height))
-            self.input_transform.setEnabled(True)
-            self.input_shape.setEnabled(True)
-
-        else:
-            self.input_shape.setDisabled(True)
-
-        try:
-            pos = element.get_position()
-            self.input_position.setTransform(self.getTransform(element))
-            try:
-                self.input_position.setValue(pos)
-            except Exception as err:
-                self.input_position.setValue((pos.x0, pos.y0))
-            self.input_transform.setEnabled(True)
-            self.input_position.setEnabled(True)
-        except:
-            self.input_position.setDisabled(True)
 
 
 class QItemProperties(QtWidgets.QWidget):
@@ -1057,7 +839,7 @@ class QItemProperties(QtWidgets.QWidget):
     valueChanged = QtCore.Signal(tuple)
     element = None
 
-    def __init__(self, layout: QtWidgets.QLayout, fig: Figure, tree: QtWidgets.QTreeView, parent: QtWidgets.QWidget):
+    def __init__(self, layout: QtWidgets.QLayout, signals: "Signals"):
         """ a widget that holds all the properties to set and the tree view
 
         Args:
@@ -1068,10 +850,13 @@ class QItemProperties(QtWidgets.QWidget):
         """
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
+        self.signals = signals
+
+        signals.figure_changed.connect(self.setFigure)
+        signals.figure_element_selected.connect(self.select_element)
+
         self.layout = QtWidgets.QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
-        self.tree = tree
-        self.parent = parent
 
         self.label = QtWidgets.QLabel()
         self.layout.addWidget(self.label)
@@ -1169,6 +954,17 @@ class QItemProperties(QtWidgets.QWidget):
         self.layout_buttons.addWidget(self.button_legend)
         self.button_legend.clicked.connect(self.buttonLegendClicked)
 
+        self.setElement(None)
+        self.setMinimumWidth(100)
+
+    def select_element(self, element: Artist):
+        """ select an element """
+        if element is None:
+            self.setElement(self.fig)
+        else:
+            self.setElement(element)
+
+    def setFigure(self, fig):
         self.fig = fig
 
     def buttonAddImageClicked(self):
@@ -1197,12 +993,15 @@ class QItemProperties(QtWidgets.QWidget):
         addChange(axes, ".imshow(plt.imread(\"%s\"))" % filename)
         addChange(axes, '.set_xticks([])')
         addChange(axes, '.set_yticks([])')
-        addChange(axes, ".spines['right'].set_visible(False)")
-        addChange(axes, ".spines['left'].set_visible(False)")
-        addChange(axes, ".spines['top'].set_visible(False)")
-        addChange(axes, ".spines['bottom'].set_visible(False)")
+        if 0:
+            addChange(axes, ".spines['right'].set_visible(False)")
+            addChange(axes, ".spines['left'].set_visible(False)")
+            addChange(axes, ".spines['top'].set_visible(False)")
+            addChange(axes, ".spines['bottom'].set_visible(False)")
+        else:
+            addChange(axes, ".spines[:].set_visible(False)")
 
-        self.tree.updateEntry(self.element, update_children=True)
+        self.signals.figure_element_child_created.emit(self.element)
         self.fig.figure_dragger.make_dragable(axes)
         self.fig.figure_dragger.select_element(axes)
         self.fig.canvas.draw()
@@ -1217,12 +1016,14 @@ class QItemProperties(QtWidgets.QWidget):
             self.fig.change_tracker.addChange(self.element,
                                               ".text(0.5, 0.5, 'New Text', transform=%s.transAxes)  # id=%s.new" % (
                                                   getReference(self.element), getReference(text)), text, ".new")
+            text.is_new_text = True
         if isinstance(self.element, Figure):
             text = self.element.text(0.5, 0.5, "New Text", transform=self.element.transFigure)
             self.fig.change_tracker.addChange(self.element,
                                               ".text(0.5, 0.5, 'New Text', transform=%s.transFigure)  # id=%s.new" % (
                                                   getReference(self.element), getReference(text)), text, ".new")
-        self.tree.updateEntry(self.element, update_children=True)
+            text.is_new_text = True
+        self.signals.figure_element_child_created.emit(self.element)
         self.fig.figure_dragger.make_dragable(text)
         self.fig.canvas.draw()
         self.fig.figure_dragger.on_deselect(None)
@@ -1243,7 +1044,7 @@ class QItemProperties(QtWidgets.QWidget):
                                           text.xy, text.get_position(), getReference(text)),
                                           text, ".new")
 
-        self.tree.updateEntry(self.element, update_children=True)
+        self.signals.figure_element_child_created.emit(self.element)
         self.fig.figure_dragger.make_dragable(text)
         self.fig.figure_dragger.select_element(text)
         self.fig.canvas.draw()
@@ -1262,7 +1063,7 @@ class QItemProperties(QtWidgets.QWidget):
                                               p.get_xy(), p.get_width(), p.get_height(), getReference(p)),
                                           p, ".new")
 
-        self.tree.updateEntry(self.element, update_children=True)
+        self.signals.figure_element_child_created.emit(self.element)
         self.fig.figure_dragger.make_dragable(p)
         self.fig.figure_dragger.select_element(p)
         self.fig.canvas.draw()
@@ -1283,7 +1084,7 @@ class QItemProperties(QtWidgets.QWidget):
                                           p._posA_posB[0], p._posA_posB[1], getReference(p)),
                                           p, ".new")
 
-        self.tree.updateEntry(self.element, update_children=True)
+        self.signals.figure_element_child_created.emit(self.element)
         self.fig.figure_dragger.make_dragable(p)
         self.fig.figure_dragger.select_element(p)
         self.fig.canvas.draw()
@@ -1293,7 +1094,7 @@ class QItemProperties(QtWidgets.QWidget):
 
     def buttonDespineClicked(self):
         """ despine the target """
-        commands = [".spines['right'].set_visible(False)", ".spines['top'].set_visible(False)"]
+        commands = [".spines[['right', 'top']].set_visible(False)"]
         for command in commands:
             elements = [element.target for element in self.element.figure.selection.targets
                         if isinstance(element.target, Axes)]
@@ -1330,7 +1131,7 @@ class QItemProperties(QtWidgets.QWidget):
         self.fig.change_tracker.addChange(self.element, ".legend()")
         self.fig.figure_dragger.make_dragable(self.element.get_legend())
         self.fig.canvas.draw()
-        self.tree.updateEntry(self.element, update_children=True)
+        self.signals.figure_element_child_created.emit(self.element)
 
     def changePickable(self):
         """ make the target pickable """
@@ -1338,7 +1139,7 @@ class QItemProperties(QtWidgets.QWidget):
             self.element._draggable.connect()
         else:
             self.element._draggable.disconnect()
-        self.tree.updateEntry(self.element)
+        self.signals.figure_element_child_created.emit(self.element)
 
     def setElement(self, element: Artist):
         """ set the target Artist of this widget """
@@ -1388,89 +1189,3 @@ class QItemProperties(QtWidgets.QWidget):
         self.targetChanged.emit(element)
 
 
-class ToolBar(QtWidgets.QToolBar):
-
-    def __init__(self, canvas: Canvas, figure: Figure):
-        """ A widget that displays a toolbar similar to the default Matplotlib toolbar (for the zoom and pan tool)
-
-        Args:
-            canvas: the canvas of the figure
-            figure: the figure
-        """
-        super().__init__()
-        self.canvas = canvas
-        self.fig = figure
-        self.navi_toolbar = NavigationToolbar(self.canvas, self)
-        self.navi_toolbar.hide()
-
-        self._actions = self.navi_toolbar._actions
-        self._actions["home"] = self.addAction(self.navi_toolbar._icon("home.png"), "", self.navi_toolbar.home)
-
-        self._actions["back"] = self.addAction(self.navi_toolbar._icon("back.png"), "", self.navi_toolbar.back)
-
-        self._actions["forward"] = self.addAction(self.navi_toolbar._icon("forward.png"), "", self.navi_toolbar.forward)
-        self.addSeparator()
-
-        # the action group makes the actions exclusive, you
-        # can't use 2 at the same time
-        action_group = QtWidgets.QActionGroup(self)
-
-        self._actions["drag"] = self.addAction(self.icon("arrow.png"), "", self.setSelect)
-        self._actions["drag"].setCheckable(True)
-        self._actions["drag"].setActionGroup(action_group)
-
-        self._actions["pan"] = self.addAction(self.navi_toolbar._icon("move.png"), "", self.setPan)
-        self._actions["pan"].setCheckable(True)
-        self._actions["pan"].setActionGroup(action_group)
-
-        self._actions["zoom"] = self.addAction(self.navi_toolbar._icon("zoom_to_rect.png"), "", self.setZoom)
-        self._actions["zoom"].setCheckable(True)
-        self._actions["zoom"].setActionGroup(action_group)
-
-        self.navi_toolbar._active = 'DRAG'
-        self._actions['drag'].setChecked(True)
-        self.prev_active = 'DRAG'
-
-    def icon(self, name: str):
-        """ get an icon with the given filename """
-        pm = QtGui.QPixmap(os.path.join(os.path.dirname(__file__), "icons", name))
-        if hasattr(pm, 'setDevicePixelRatio'):
-            try:  # older mpl < 3.5.0
-                pm.setDevicePixelRatio(self.canvas._dpi_ratio)
-            except AttributeError:
-                pm.setDevicePixelRatio(self.canvas.device_pixel_ratio)
-
-        return QtGui.QIcon(pm)
-
-    def setSelect(self):
-        """ select the pylustrator selection and drag tool """
-        self.fig.figure_dragger.activate()
-
-        if self.prev_active=="PAN":
-            self.navi_toolbar.pan()
-        elif self.prev_active=="ZOOM":
-            self.navi_toolbar.zoom()
-
-        self.prev_active = 'DRAG'
-
-        self.navi_toolbar._active = 'DRAG'
-
-    def setPan(self):
-        """ select the mpl pan tool """
-        if self.prev_active == "DRAG":
-            self.fig.figure_dragger.deactivate()
-
-        if self.navi_toolbar._active != 'PAN':
-            self.navi_toolbar.pan()
-
-        self.prev_active = 'PAN'
-
-    def setZoom(self):
-        """ select the mpl zoom tool """
-        if self.prev_active == "DRAG":
-            self.fig.figure_dragger.deactivate()
-
-        if self.navi_toolbar._active != 'ZOOM':
-            self.navi_toolbar.zoom()
-
-        self.prev_active = 'ZOOM'
