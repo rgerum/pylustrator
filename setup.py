@@ -27,7 +27,7 @@ this_directory = Path(__file__).parent
 long_description = (this_directory / "README.md").read_text()
 
 setup(name='pylustrator',
-      version="1.2",
+      version="1.2.1",
       description='Adds interactivity to arrange panels in matplotlib',
       long_description=long_description,
       url='https://github.com/rgerum/pylustrator',
