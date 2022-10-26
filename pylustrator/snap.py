@@ -20,6 +20,7 @@
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
 from typing import List, Tuple, Optional
+from packaging import version
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -68,7 +69,11 @@ class TargetWrapper(object):
             # and optionally have a fixed aspect ratio
             if self.target.get_aspect() != "auto" and self.target.get_adjustable() != "datalim":
                 self.fixed_aspect = True
-            self.get_transform = lambda: self.target.figure.transSubfigure if self.target.figure.transSubfigure else self.target.figure.transFigure
+            # old matplotlib version
+            if version.parse(mpl.__version__) < version.parse("3.4.0"):
+                self.get_transform = lambda: self.target.figure.transFigure
+            else:
+                self.get_transform = lambda: self.target.figure.transSubfigure if self.target.figure.transSubfigure else self.target.figure.transFigure
         # texts use get_transform
         elif isinstance(self.target, Text):
             if getattr(self.target, "xy", None) is not None:
@@ -143,30 +148,35 @@ class TargetWrapper(object):
         """ set the position of the target Artist """
         points = self.transform_inverted_points(points)
 
+        if self.figure.figure is not None:
+            change_tracker = self.figure.figure.change_tracker
+        else:
+            change_tracker = self.figure.change_tracker
+
         if isinstance(self.target, Rectangle):
             self.target.set_xy(points[0])
             self.target.set_width(points[1][0] - points[0][0])
             self.target.set_height(points[1][1] - points[0][1])
             if self.target.get_label() is None or not self.target.get_label().startswith("_rect"):
-                self.figure.figure.change_tracker.addChange(self.target, ".set_xy([%f, %f])" % tuple(self.target.get_xy()))
-                self.figure.figure.change_tracker.addChange(self.target, ".set_width(%f)" % self.target.get_width())
-                self.figure.figure.change_tracker.addChange(self.target, ".set_height(%f)" % self.target.get_height())
+                change_tracker.addChange(self.target, ".set_xy([%f, %f])" % tuple(self.target.get_xy()))
+                change_tracker.addChange(self.target, ".set_width(%f)" % self.target.get_width())
+                change_tracker.addChange(self.target, ".set_height(%f)" % self.target.get_height())
         elif isinstance(self.target, Ellipse):
             self.target.center = np.mean(points, axis=0)
             self.target.width = points[1][0] - points[0][0]
             self.target.height = points[1][1] - points[0][1]
-            self.figure.figure.change_tracker.addChange(self.target, ".center = (%f, %f)" % tuple(self.target.center))
-            self.figure.figure.change_tracker.addChange(self.target, ".width = %f" % self.target.width)
-            self.figure.figure.change_tracker.addChange(self.target, ".height = %f" % self.target.height)
+            change_tracker.addChange(self.target, ".center = (%f, %f)" % tuple(self.target.center))
+            change_tracker.addChange(self.target, ".width = %f" % self.target.width)
+            change_tracker.addChange(self.target, ".height = %f" % self.target.height)
         elif isinstance(self.target, FancyArrowPatch):
             self.target.set_positions(points[0], points[1])
-            self.figure.figure.change_tracker.addChange(self.target,
+            change_tracker.addChange(self.target,
                                                  ".set_positions(%s, %s)" % (tuple(points[0]), tuple(points[1])))
         elif isinstance(self.target, Text):
             if checkXLabel(self.target):
                 axes = checkXLabel(self.target)
                 axes.xaxis.labelpad = -(points[0][1] - self.target.pad_offset) / self.label_factor
-                self.figure.figure.change_tracker.addChange(axes,
+                change_tracker.addChange(axes,
                                                      ".xaxis.labelpad = %f" % axes.xaxis.labelpad)
 
                 self.target.set_position(points[0])
@@ -174,7 +184,7 @@ class TargetWrapper(object):
             elif checkYLabel(self.target):
                 axes = checkYLabel(self.target)
                 axes.yaxis.labelpad = -(points[0][0] - self.target.pad_offset) / self.label_factor
-                self.figure.figure.change_tracker.addChange(axes,
+                change_tracker.addChange(axes,
                                                      ".yaxis.labelpad = %f" % axes.yaxis.labelpad)
 
                 self.target.set_position(points[0])
@@ -182,23 +192,23 @@ class TargetWrapper(object):
             else:
                 self.target.set_position(points[0])
                 if getattr(self.target, "is_new_text", None):
-                    self.figure.figure.change_tracker.addNewTextChange(self.target)
+                    change_tracker.addNewTextChange(self.target)
                 else:
-                    self.figure.figure.change_tracker.addChange(self.target,
+                    change_tracker.addChange(self.target,
                                                      ".set_position([%f, %f])" % self.target.get_position())
                 if getattr(self.target, "xy", None) is not None:
                     self.target.xy = points[1]
-                    self.figure.figure.change_tracker.addChange(self.target, ".xy = (%f, %f)" % tuple(self.target.xy))
+                    change_tracker.addChange(self.target, ".xy = (%f, %f)" % tuple(self.target.xy))
         elif isinstance(self.target, Legend):
             point = self.target.axes.transAxes.inverted().transform(self.transform_inverted_points(points)[0])
             self.target._loc = tuple(point)
-            self.figure.figure.change_tracker.addChange(self.target, "._set_loc((%f, %f))" % tuple(point))
+            change_tracker.addChange(self.target, "._set_loc((%f, %f))" % tuple(point))
         elif isinstance(self.target, Axes):
             position = np.array([points[0], points[1] - points[0]]).flatten()
             if self.fixed_aspect:
                 position[3] = position[2] * self.target.get_position().height / self.target.get_position().width
             self.target.set_position(position)
-            self.figure.figure.change_tracker.addChange(self.target, ".set_position([%f, %f, %f, %f])" % tuple(
+            change_tracker.addChange(self.target, ".set_position([%f, %f, %f, %f])" % tuple(
                 np.array([points[0], points[1] - points[0]]).flatten()))
 
     def get_extent(self) -> (int, int, int, int):

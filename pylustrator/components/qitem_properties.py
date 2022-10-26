@@ -22,6 +22,7 @@
 import os
 from typing import Any
 import numpy as np
+from packaging import version
 
 import qtawesome as qta
 from qtpy import QtCore, QtWidgets, QtGui
@@ -1094,7 +1095,11 @@ class QItemProperties(QtWidgets.QWidget):
 
     def buttonDespineClicked(self):
         """ despine the target """
-        commands = [".spines[['right', 'top']].set_visible(False)"]
+
+        if version.parse(mpl.__version__) < version.parse("3.4.0"):
+            commands = [".spines['right'].set_visible(False)", ".spines['top'].set_visible(False)"]
+        else:
+            commands = [".spines[['right', 'top']].set_visible(False)"]
         for command in commands:
             elements = [element.target for element in self.element.figure.selection.targets
                         if isinstance(element.target, Axes)]

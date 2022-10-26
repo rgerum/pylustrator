@@ -23,6 +23,7 @@ import re
 import sys
 import traceback
 from typing import IO
+from packaging import version
 
 import matplotlib
 import matplotlib as mpl
@@ -31,11 +32,18 @@ from matplotlib import _pylab_helpers
 from matplotlib.artist import Artist
 from matplotlib.axes._subplots import Axes
 from matplotlib.collections import Collection
-from matplotlib.figure import Figure, SubFigure
+from matplotlib.figure import Figure
+try:
+    from matplotlib.figure import SubFigure  # since matplotlib 3.4.0
+except ImportError:
+    SubFigure = None
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
 from matplotlib.text import Text
-from natsort import natsorted
+try:
+    from natsort import natsorted
+except:
+    natsorted = sorted
 
 from .exception_swallower import Dummy
 from .jupyter_cells import open
@@ -81,7 +89,8 @@ def getReference(element: Artist, allow_using_variable_names=True):
             return "plt.figure(%s)" % element.number
         else:
             return "plt.figure(\"%s\")" % element.number
-    if isinstance(element, SubFigure):
+    # subfigures are only available in matplotlib>=3.4.0
+    if version.parse(mpl.__version__) >= version.parse("3.4.0") and isinstance(element, SubFigure):
         index = element.figure.subfigs.index(element)
         return getReference(element.figure) + ".subfigs[%d]" % index
     if isinstance(element, matplotlib.lines.Line2D):
@@ -237,9 +246,12 @@ class ChangeTracker:
             transform = getReference(element.axes) + '.transAxes'
         else:
             transform = getReference(element.figure) + '.transFigure'
-        element.figure.change_tracker.addChange(element.axes or element.figure,
-                f".text({pos[0]}, {pos[1]}, {repr(element.get_text())}, transform={transform}{kwargs})  # id={getReference(element)}.new",
-                                                element, ".new")
+        if getattr(element, "is_new_text", False):
+            element.figure.change_tracker.addChange(element.axes or element.figure,
+                    f".text({pos[0]}, {pos[1]}, {repr(element.get_text())}, transform={transform}{kwargs})  # id={getReference(element)}.new",
+                                                    element, ".new")
+        else:
+            element.figure.change_tracker.addChange(element, f".set(position={repr(pos)}, text={repr(element.get_text())}{kwargs})")
 
     def changeCountChanged(self):
         if self.update_changes_signal is not None:
