@@ -1,4 +1,4 @@
-from qtpy import QtCore, QtWidgets, QtGui
+from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
 
 
 class FigurePreviews(QtWidgets.QWidget):

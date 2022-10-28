@@ -40,8 +40,6 @@ setup(name='pylustrator',
           'natsort',
           'numpy',
           'matplotlib',
-          'pyqt5',
-          'qtpy',
           'qtawesome',
           'scikit-image'
       ],

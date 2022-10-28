@@ -1,5 +1,5 @@
 import os
-from qtpy import QtGui, QtWidgets
+from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
 
 
 class Align(QtWidgets.QWidget):

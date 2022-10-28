@@ -19,17 +19,11 @@
 # You should have received a copy of the GNU General Public License
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
-from qtpy import QtWidgets, QtGui
+from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
 
 import numpy as np
 import matplotlib.pyplot as plt
-from qtpy import API_NAME as QT_API_NAME
-if QT_API_NAME.startswith("PyQt4"):
-    from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as Canvas
-    from matplotlib.backends.backend_qt4 import NavigationToolbar2QT as NavigationToolbar
-else:
-    from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as Canvas
-    from matplotlib.backends.backend_qt5 import NavigationToolbar2QT as NavigationToolbar
+from matplotlib.backends.backend_qtagg import (FigureCanvas, FigureManager, NavigationToolbar2QT as NavigationToolbar)
 from pylustrator.components.matplotlibwidget import MatplotlibWidget
 from matplotlib import _pylab_helpers
 from matplotlib.figure import Figure
@@ -228,7 +222,7 @@ def figureSwapColor(figure: Figure, new_color: str, color_base: str):
 class ColorChooserWidget(QtWidgets.QWidget):
     trigger_no_update = False
 
-    def __init__(self, parent: QtWidgets, canvas: Canvas, signals: "Signals"=None):
+    def __init__(self, parent: QtWidgets, canvas: FigureCanvas, signals: "Signals"=None):
         """ A widget to display all curently used colors and let the user switch them.
 
         Args:

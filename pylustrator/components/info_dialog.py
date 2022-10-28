@@ -1,5 +1,5 @@
 import os
-from qtpy import QtCore, QtGui, QtWidgets
+from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
 
 
 class InfoDialog(QtWidgets.QWidget):

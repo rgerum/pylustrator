@@ -29,7 +29,7 @@ from matplotlib.artist import Artist
 from matplotlib.figure import Figure
 from matplotlib.text import Text
 from matplotlib.axes import Axes
-from qtpy import QtCore, QtWidgets, QtGui
+from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
 
 
 class Linkable:

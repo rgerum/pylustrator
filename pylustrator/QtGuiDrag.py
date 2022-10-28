@@ -27,7 +27,7 @@ import os
 import qtawesome as qta
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
-from qtpy import QtCore, QtWidgets, QtGui
+from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
 
 
 from .ax_rasterisation import rasterizeAxes, restoreAxes

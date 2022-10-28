@@ -1,5 +1,5 @@
 from typing import Optional
-from qtpy import QtCore, QtGui, QtWidgets
+from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
 
 import matplotlib as mpl
 import matplotlib.transforms as transforms

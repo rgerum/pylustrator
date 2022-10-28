@@ -34,29 +34,22 @@ Copyright © 2005 Florent Rougon, 2006 Darren Dale
 
 __version__ = "1.0.0"
 
-import qtawesome as qta
-from qtpy import QtWidgets, QtCore
-from qtpy import API_NAME as QT_API_NAME
+import sys
 
-if QT_API_NAME.startswith("PyQt4"):
-    from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as Canvas
-    from matplotlib.backends.backend_qt4agg import FigureManager
-    from matplotlib.backends.backend_qt4 import NavigationToolbar2QT as NavigationToolbar
-else:
-    from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as Canvas
-    from matplotlib.backends.backend_qt5agg import FigureManager
-    from matplotlib.backends.backend_qt5 import NavigationToolbar2QT as NavigationToolbar
+import qtawesome as qta
+from matplotlib.backends.qt_compat import QtWidgets, QtCore
+from matplotlib.backends.backend_qtagg import (FigureCanvas, FigureManager, NavigationToolbar2QT as NavigationToolbar)
 from matplotlib.figure import Figure
 
 
-class MatplotlibWidget(Canvas):
+class MatplotlibWidget(FigureCanvas):
     def __init__(self, parent=None, num=1, size=None, dpi=100, figure=None, *args, **kwargs):
         if figure is None:
             self.figure = Figure(figsize=size, dpi=dpi, *args, **kwargs)
         else:
             self.figure = figure
 
-        Canvas.__init__(self, self.figure)
+        super().__init__(self.figure)
         self.setParent(parent)
 
         self.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)

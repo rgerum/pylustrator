@@ -25,7 +25,7 @@ import numpy as np
 from packaging import version
 
 import qtawesome as qta
-from qtpy import QtCore, QtWidgets, QtGui
+from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
 
 from matplotlib.axes._subplots import Axes
 import matplotlib as mpl

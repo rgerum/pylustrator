@@ -13,7 +13,6 @@ natsort = ">=2.0.0"
 numpy = ">=1.0.3"
 matplotlib = ">=2.0.2"
 PyQt5 = ">=5.6"
-QtPy = ">=1.0.1"
 qtawesome = ">=0.5.0"
 scikit-image = ">=0.7.0"
 
