@@ -233,7 +233,7 @@ class Canvas(QtWidgets.QWidget):
             w, h = self.canvas.get_width_height()
             factor = min((self.canvas_canvas.width() - 30) / w, (self.canvas_canvas.height() - 30) / h)
             self.fig.set_dpi(self.fig.get_dpi() * factor)
-            self.fig.canvas.draw()
+            #self.fig.canvas.draw()
 
             self.canvas.updateGeometry()
             w, h = self.canvas.get_width_height()
@@ -244,7 +244,7 @@ class Canvas(QtWidgets.QWidget):
                                        int((self.canvas_canvas.height() - h) / 2 + 10))
 
             self.updateRuler()
-            self.fig.canvas.draw()
+            #self.fig.canvas.draw()
 
         else:
             w, h = self.canvas.get_width_height()
