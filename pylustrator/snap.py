@@ -52,6 +52,25 @@ def checkYLabel(target: Artist):
             return axes
 
 
+def cache_property(object, name):
+    if getattr(object, f"_pylustrator_cached_{name}", False) is True:
+        return
+    setattr(object, f"_pylustrator_cached_{name}", True)
+    getter = getattr(object, f"get_{name}")
+    setter = getattr(object, f"set_{name}")
+    def new_getter(*args, **kwargs):
+        if getattr(object, f"_pylustrator_cache_{name}", None) is None:
+            setattr(object, f"_pylustrator_cache_{name}", getter(*args, **kwargs))
+        return getattr(object, f"_pylustrator_cache_{name}", None)
+    def new_setter(*args, **kwargs):
+        result = setter(*args, **kwargs)
+        setattr(object, f"_pylustrator_cache_{name}", None)
+        return result
+    setattr(object, f"get_{name}", new_getter)
+    setattr(object, f"set_{name}", new_setter)
+
+
+
 class TargetWrapper(object):
     """ a wrapper to add unified set and get position methods for any matplotlib artist """
     target = None
@@ -74,6 +93,9 @@ class TargetWrapper(object):
                 self.get_transform = lambda: self.target.figure.transFigure
             else:
                 self.get_transform = lambda: self.target.figure.transSubfigure if self.target.figure.transSubfigure else self.target.figure.transFigure
+
+            # cache the get_position
+            cache_property(self.target, "position")
         # texts use get_transform
         elif isinstance(self.target, Text):
             if getattr(self.target, "xy", None) is not None:
@@ -210,8 +232,17 @@ class TargetWrapper(object):
             self.target.set_position(position)
             change_tracker.addChange(self.target, ".set_position([%f, %f, %f, %f])" % tuple(
                 np.array([points[0], points[1] - points[0]]).flatten()))
+        setattr(self.target, "_pylustrator_cached_get_extend", None)
 
-    def get_extent(self) -> (int, int, int, int):
+    def get_extent(self):
+        # get get_extent as it can be called very frequently when checking snap conditions
+        if getattr(self.target, "_pylustrator_cached_get_extend_added", False):
+            setattr(self.target, "_pylustrator_cached_get_extend_added", True)
+        if getattr(self.target, "_pylustrator_cached_get_extend", None) is None:
+            setattr(self.target, "_pylustrator_cached_get_extend", self.do_get_extent())
+        return getattr(self.target, "_pylustrator_cached_get_extend")
+
+    def do_get_extent(self) -> (int, int, int, int):
         """ get the extend of the target """
         points = np.array(self.get_positions())
         return [np.min(points[:, 0]),
