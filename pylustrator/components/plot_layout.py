@@ -17,6 +17,73 @@ else:
 from .matplotlibwidget import MatplotlibWidget
 
 
+class MyScene(QtWidgets.QGraphicsScene):
+    grabber_pressed = None
+
+    def mousePressEvent(self, e):
+        super().mousePressEvent(e)
+
+    def mouseReleaseEvent(self, e):
+        super().mouseReleaseEvent(e)
+        if self.grabber_pressed:
+            self.grabber_pressed.mouseReleaseEvent(e)
+
+class MyView(QtWidgets.QGraphicsView):
+    grabber_found = False
+    grabber_pressed = None
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.setMouseTracking(True)
+
+    def event(self, e):
+        if e.type() == QtCore.QEvent.KeyPress or e.type() == QtCore.QEvent.KeyRelease:
+            self.canvas_canvas.event(e)
+        super().event(e)
+        return True
+
+    def wheelEvent(self, e):
+        super().wheelEvent(e)
+        self.canvas_canvas.wheelEvent(e)
+
+    def mouseMoveEvent(self, e):
+        super().mouseMoveEvent(e)
+        self.canvas_canvas.mouseMoveEvent(e)
+
+    def mouseReleaseEvent(self, e):
+        super().mouseReleaseEvent(e)
+        self.canvas_canvas.mouseReleaseEvent(e)
+
+    def mousePressEvent(self, e):
+        super().mousePressEvent(e)
+        if self.grabber_found:
+            self.grabber_found = False
+        else:
+            e.ignore()
+            self.canvas_canvas.mousePressEvent(e)
+
+class MyEvent:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+class MyRect(QtWidgets.QGraphicsRectItem):
+    w = 10
+    def __init__(self, x, y, grabber):
+        self.grabber = grabber
+        super().__init__(x-self.w/2, y-self.w/2, self.w, self.w)
+
+    def mousePressEvent(self, e):
+        super().mousePressEvent(e)
+        self.view.grabber_found = True
+        p = e.scenePos()
+        self.grabber.button_press_event(MyEvent(p.x(), self.h - p.y()))
+
+    def mouseReleaseEvent(self, e):
+        super().mouseReleaseEvent(e)
+        self.view.grabber_found = True
+        p = e.scenePos()
+        self.grabber.button_release_event(MyEvent(p.x(), self.h - p.y()))
+
 class Canvas(QtWidgets.QWidget):
     fitted_to_view = False
     footer_label = None
@@ -30,6 +97,7 @@ class Canvas(QtWidgets.QWidget):
         super().__init__()
 
         signals.figure_changed.connect(self.setFigure)
+        signals.figure_selection_update.connect(self.updateRuler)
         signals.figure_size_changed.connect(lambda: (self.updateFigureSize(), self.updateRuler()))
         self.signals = signals
 
@@ -55,30 +123,18 @@ class Canvas(QtWidgets.QWidget):
         self.x_scale = QtWidgets.QLabel(self.canvas_canvas)
         self.y_scale = QtWidgets.QLabel(self.canvas_canvas)
 
-        if 0:
-            self.canvas = MatplotlibWidget(self, number, size=size, *args, **kwargs)
-            self.canvas.window_pylustrator = self
-            self.canvas_wrapper_layout.addWidget(self.canvas)
-            self.fig = self.canvas.figure
-            self.fig.widget = self.canvas
+        self.selections_scene = MyScene()
+        self.selections_scene_origin = QtWidgets.QGraphicsRectItem()
+        self.selections_scene_origin.setTransform(QtGui.QTransform(1, 0, 0, -1, 0, 0))
 
-            self.fig.figure_size_changed = self.figure_size_changed
-            self.figure_size_changed.connect(lambda: (self.updateFigureSize(), self.updateRuler()))
-
-            #self.canvas_canvas.mousePressEvent = lambda event: self.canvas.mousePressEvent(event)
-            #self.canvas_canvas.mouseReleaseEvent = lambda event: self.canvas.mouseReleaseEvent(event)
-
-            self.fig.canvas.mpl_disconnect(self.fig.canvas.manager.key_press_handler_id)
-
-            self.fig.canvas.mpl_connect('scroll_event', self.scroll_event)
-            self.fig.canvas.mpl_connect('key_press_event', self.canvas_key_press)
-            self.fig.canvas.mpl_connect('key_release_event', self.canvas_key_release)
-            self.control_modifier = False
-
-            self.fig.canvas.mpl_connect('button_press_event', self.button_press_event)
-            self.fig.canvas.mpl_connect('motion_notify_event', self.mouse_move_event)
-            self.fig.canvas.mpl_connect('button_release_event', self.button_release_event)
-            self.drag = None
+        self.selections_scene.addItem(self.selections_scene_origin)
+        self.selections_view = MyView(self.selections_scene, self.canvas_canvas)
+        self.selections_scene_origin.view = self.selections_view
+        self.selections_view.parent = self
+        self.selections_view.setStyleSheet("background:transparent")
+        self.selections_view.setAttribute(QtCore.Qt.WA_TranslucentBackground)
+        self.selections_view.setAttribute(QtCore.Qt.WA_NoSystemBackground)
+        self.selections_view.canvas_canvas = self.canvas_canvas
 
     def setFigure(self, figure):
         if self.canvas is not None:
@@ -88,6 +144,8 @@ class Canvas(QtWidgets.QWidget):
         self.canvas = MatplotlibWidget(self, figure=figure)
         self.canvas.window_pylustrator = self
         self.canvas_wrapper_layout.addWidget(self.canvas)
+
+        self.selections_view.canvas_canvas = self.canvas
 
         self.canvas_wrapper_layout.addWidget(self.canvas)
         self.fig = self.canvas.figure
@@ -107,6 +165,8 @@ class Canvas(QtWidgets.QWidget):
 
         self.signals.canvas_changed.emit(self.canvas)
 
+        figure._pyl_scene = self.selections_scene_origin
+
     def setFooters(self, footer, footer2):
         self.footer_label = footer
         self.footer_label2 = footer2
@@ -119,6 +179,22 @@ class Canvas(QtWidgets.QWidget):
         l2 = 10
         l3 = 5
 
+        ##
+
+        w = self.canvas.width()
+        h = self.canvas.height()
+        self.selections_scene.setSceneRect(0, 0, w, h)
+        self.selections_view.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.selections_view.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.selections_view.setMinimumSize(w, h)
+        self.selections_view.setMaximumSize(w, h)
+        p = self.canvas_container.pos()
+        self.selections_view.move(p.x(), p.y())
+        self.selections_scene_origin.setTransform(QtGui.QTransform(1, 0, 0, -1, 0, h))
+
+        self.selections_view.h = h
+
+        ##
         w = self.canvas_canvas.width()
         h = self.canvas_canvas.height()
 

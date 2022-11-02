@@ -19,7 +19,6 @@
 # You should have received a copy of the GNU General Public License
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
-from __future__ import division, print_function
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.artist import Artist
@@ -28,14 +27,18 @@ from matplotlib.text import Text
 from matplotlib.patches import Rectangle, Ellipse
 from matplotlib.backend_bases import MouseEvent, KeyEvent
 from typing import Sequence
+from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
 
 from .snap import TargetWrapper, getSnaps, checkSnaps, checkSnapsActive, SnapBase
 from .change_tracker import ChangeTracker
+import time
 
 DIR_X0 = 1
 DIR_Y0 = 2
 DIR_X1 = 4
 DIR_Y1 = 8
+
+blit = False
 
 
 class GrabFunctions(object):
@@ -86,6 +89,16 @@ class GrabFunctions(object):
 
         self.snaps = getSnaps(self.targets, self.dir, no_height=self.no_height)
 
+        if blit is True:
+            for target in self.targets:
+                target.target.set_animated(True)
+
+            self.figure.canvas.draw()
+            self.bg = self.figure.canvas.copy_from_bbox(self.figure.bbox)
+        else:
+            pass
+        self.time = time.time()
+
     def releasedEvent(self, event: MouseEvent):
         """ when the mouse is released """
         for snap in self.snaps:
@@ -93,6 +106,12 @@ class GrabFunctions(object):
         self.snaps = []
 
         self.parent.end_move()
+
+        if blit is True:
+            for target in self.targets:
+                target.target.set_animated(False)
+        else:
+            pass
 
     def movedEvent(self, event: MouseEvent):
         """ when the mouse is moved """
@@ -107,21 +126,35 @@ class GrabFunctions(object):
 
         self.parent.move([dx, dy], self.dir, self.snaps, keep_aspect_ratio=keep_aspect, ignore_snaps=ignore_snaps)
 
+        if blit is True:
+            fig = self.figure
+            fig.canvas.restore_region(self.bg)
+            for target in self.targets:
+                fig.draw_artist(target.target)
+            # copy the image to the GUI state, but screen might not be changed yet
+            fig.canvas.blit(fig.bbox)
+            # flush any pending GUI events, re-painting the screen if needed
+            fig.canvas.flush_events()
+        else:
+            self.figure.canvas.schedule_draw()
 
 class GrabbableRectangleSelection(GrabFunctions):
     grabbers = None
 
     def addGrabber(self, x: float, y: float, dir: int, GrabberClass: object):
         # add a grabber object at the given coordinates
-        self.grabbers.append(GrabberClass(self, x, y, dir))
+        self.grabbers.append(GrabberClass(self, x, y, dir, self.graphics_scene))
 
-    def __init__(self, figure: Figure):
+    def __init__(self, figure: Figure, graphics_scene=None):
         self.grabbers = []
         pos = [0, 0, 0, 0]
         self.positions = np.array(pos, dtype=float)
         self.p1 = self.positions[:2]
         self.p2 = self.positions[2:]
         self.figure = figure
+        self.graphics_scene = graphics_scene
+        self.graphics_scene_myparent = QtWidgets.QGraphicsRectItem(0, 0, 0, 0, self.graphics_scene)
+
 
         GrabFunctions.__init__(self, self, DIR_X0 | DIR_X1 | DIR_Y0 | DIR_Y1, no_height=True)
 
@@ -153,14 +186,31 @@ class GrabbableRectangleSelection(GrabFunctions):
 
         x0, y0, x1, y1 = np.min(new_points[:, 0]), np.min(new_points[:, 1]), np.max(new_points[:, 0]), np.max(
             new_points[:, 1])
-        rect1 = Rectangle((x0, y0), x1 - x0, y1 - y0, picker=False, figure=self.figure, linestyle="-", edgecolor="w",
-                          facecolor="#FFFFFF00", zorder=900, label="_rect for %s" % str(target))
-        rect2 = Rectangle((x0, y0), x1 - x0, y1 - y0, picker=False, figure=self.figure, linestyle="--", edgecolor="k",
-                          facecolor="#FFFFFF00", zorder=900, label="_rect2 for %s" % str(target))
-        self.figure.patches.append(rect1)
-        self.figure.patches.append(rect2)
-        self.targets_rects.append(rect1)
-        self.targets_rects.append(rect2)
+        if 0:
+
+            rect1 = Rectangle((x0, y0), x1 - x0, y1 - y0, picker=False, figure=self.figure, linestyle="-", edgecolor="w",
+                              facecolor="#FFFFFF00", zorder=900, label="_rect for %s" % str(target))
+            rect2 = Rectangle((x0, y0), x1 - x0, y1 - y0, picker=False, figure=self.figure, linestyle="--", edgecolor="k",
+                              facecolor="#FFFFFF00", zorder=900, label="_rect2 for %s" % str(target))
+            self.figure.patches.append(rect1)
+            self.figure.patches.append(rect2)
+            self.targets_rects.append(rect1)
+            self.targets_rects.append(rect2)
+        else:
+            pen1 = QtGui.QPen(QtGui.QColor("white"), 2)
+            pen2 = QtGui.QPen(QtGui.QColor("black"), 2)
+            pen2.setStyle(QtCore.Qt.DashLine)
+            pen3 = QtGui.QPen(QtGui.QColor("black"), 2)
+            brush1 = QtGui.QBrush(QtGui.QColor("red"))
+
+            w0, h0 = x1 - x0, y1 - y0
+            rect1 = QtWidgets.QGraphicsRectItem(x0, y0, w0, h0, self.graphics_scene_myparent)
+            rect1.setPen(pen1)
+            rect2 = QtWidgets.QGraphicsRectItem(x0, y0, w0, h0, self.graphics_scene_myparent)
+            rect2.setPen(pen2)
+
+            self.targets_rects.append(rect1)
+            self.targets_rects.append(rect2)
 
         self.update_extent()
 
@@ -260,13 +310,21 @@ class GrabbableRectangleSelection(GrabFunctions):
         """ update the selection visualisation """
         if len(self.targets) == 0:
             return
-        for index, target in enumerate(self.targets):
-            new_points = np.array(target.get_positions())
-            for i in range(2):
-                rect = self.targets_rects[index*2+i]
-                rect.set_xy(new_points[0])
-                rect.set_width(new_points[1][0] - new_points[0][0])
-                rect.set_height(new_points[1][1] - new_points[0][1])
+        if 0:
+            for index, target in enumerate(self.targets):
+                new_points = np.array(target.get_positions())
+                for i in range(2):
+                    rect = self.targets_rects[index*2+i]
+                    rect.set_xy(new_points[0])
+                    rect.set_width(new_points[1][0] - new_points[0][0])
+                    rect.set_height(new_points[1][1] - new_points[0][1])
+        else:
+            for index, target in enumerate(self.targets):
+                new_points = np.array(target.get_positions())
+                for i in range(2):
+                    rect = self.targets_rects[index * 2 + i]
+                    x, y = new_points[0]
+                    rect.setRect(x, y, new_points[1][0] - new_points[0][0], new_points[1][1] - new_points[0][1])
 
         self.update_extent()
 
@@ -279,8 +337,10 @@ class GrabbableRectangleSelection(GrabFunctions):
         self.targets.pop(index)
         rect1 = self.targets_rects.pop(index*2)
         rect2 = self.targets_rects.pop(index*2)
-        self.figure.patches.remove(rect1)
-        self.figure.patches.remove(rect2)
+        self.graphics_scene.removeItem(rect1)
+        self.graphics_scene.removeItem(rect2)
+        #self.figure.patches.remove(rect1)
+        #self.figure.patches.remove(rect2)
         if len(self.targets) == 0:
             self.clear_targets()
         else:
@@ -302,7 +362,8 @@ class GrabbableRectangleSelection(GrabFunctions):
     def clear_targets(self):
         """ remove all elements from the selection """
         for rect in self.targets_rects:
-            self.figure.patches.remove(rect)
+            self.graphics_scene.scene().removeItem(rect)
+            #self.figure.patches.remove(rect)
         self.targets_rects = []
         self.targets = []
 
@@ -377,7 +438,6 @@ class GrabbableRectangleSelection(GrabFunctions):
     def end_move(self):
         """ a grabber move stopped """
         self.update_grabber()
-        self.figure.canvas.draw()
 
         self.store_end = self.get_save_point()
         if self.has_moved is True:
@@ -433,8 +493,9 @@ class GrabbableRectangleSelection(GrabFunctions):
         for target in self.targets:
             self.transform_target(transform, target)
 
-        for rect in self.targets_rects:
-            self.transform_target(transform, TargetWrapper(rect))
+        self.update_selection_rectangles()
+        #for rect in self.targets_rects:
+        #    self.transform_target(transform, TargetWrapper(rect))
 
     def move(self, pos: Sequence[float], dir: int, snaps: Sequence[SnapBase], keep_aspect_ratio: bool = False, ignore_snaps: bool = False):
         """ called from a grabber to move the selection. """
@@ -448,8 +509,6 @@ class GrabbableRectangleSelection(GrabFunctions):
             offx, offy = checkSnaps(self.snaps)
 
         checkSnapsActive(snaps)
-
-        self.figure.canvas.draw()
 
     def apply_transform(self, transform: np.ndarray, point: Sequence[float]):
         """ apply the given transformation to a point"""
@@ -498,7 +557,6 @@ class GrabbableRectangleSelection(GrabFunctions):
             for target in self.targets[::-1]:
                 self.figure.change_tracker.removeElement(target.target)
             self.figure.canvas.draw()
-        #print("event", event.key)
 
 
 class DragManager:
@@ -537,7 +595,7 @@ class DragManager:
         for patch in self.figure.patches:
             self.make_dragable(patch)
 
-        self.selection = GrabbableRectangleSelection(figure)
+        self.selection = GrabbableRectangleSelection(figure, figure._pyl_scene)
         self.figure.selection = self.selection
         self.change_tracker = ChangeTracker(figure)
         self.figure.change_tracker = self.change_tracker
@@ -637,7 +695,6 @@ class DragManager:
         # if there is a new element, select it
         self.on_select(element, event)
         self.selected_element = element
-        self.figure.canvas.draw()
 
     def on_deselect(self, event: MouseEvent):
         """ deselect currently selected artists"""
@@ -710,36 +767,97 @@ class GrabberGeneric(GrabFunctions):
         self.set_xy((self.ox+pos[0], self.oy+pos[1]))
 
 
-class GrabberGenericRound(Ellipse, GrabberGeneric):
+class GrabberGenericRound(GrabberGeneric):
     """ a rectangle with a round appearance """
     d = 10
+    shape = "round"
 
-    def __init__(self, parent: GrabbableRectangleSelection, x: float, y: float, dir: int):
+    def __init__(self, parent: GrabbableRectangleSelection, x: float, y: float, dir: int, scene):
+        pen3 = QtGui.QPen(QtGui.QColor("black"), 2)
+        brush1 = QtGui.QBrush(QtGui.QColor("red"))
+
+        self.ellipse = MyEllipse(x, y, 10, 10, scene)
+        self.ellipse.view = scene.view
+        self.ellipse.grabber = self
+        self.ellipse.setPen(pen3)
+        self.ellipse.setBrush(brush1)
+        self.center = (x, y)
+
         GrabberGeneric.__init__(self, parent, x, y, dir)
-        Ellipse.__init__(self, (0, 0), self.d, self.d, picker=True, figure=parent.figure, edgecolor="k", facecolor="r", zorder=1000, label="grabber")
-        self.figure.patches.append(self)
-        self.updatePos()
+
+    def set_xy(self, xy: (float, float)):
+        self.xy = xy
+        self.ellipse.setRect(xy[0]-5, xy[1]-5, 10, 10)
 
 
-class GrabberGenericRectangle(Rectangle, GrabberGeneric):
+class GrabberGenericRectangle(GrabberGeneric):
     """ a rectangle with a square appearance """
     d = 10
+    shape = "rect"
 
-    def __init__(self, parent: GrabbableRectangleSelection, x: float, y: float, dir: int):
+    def __init__(self, parent: GrabbableRectangleSelection, x: float, y: float, dir: int, scene):
         # somehow the original "self" rectangle does not show up in the current matplotlib version, therefore this doubling
-        self.rect = Rectangle((0, 0), self.d, self.d, figure=parent.figure, edgecolor="k", facecolor="r", zorder=1000, label="grabber")
-        self.rect._no_save = True
-        parent.figure.patches.append(self.rect)
+        #self.rect = Rectangle((0, 0), self.d, self.d, figure=parent.figure, edgecolor="k", facecolor="r", zorder=1000, label="grabber")
+        #self.rect._no_save = True
+        #parent.figure.patches.append(self.rect)
 
-        Rectangle.__init__(self, (0, 0), self.d, self.d, picker=True, figure=parent.figure, edgecolor="k", facecolor="r", zorder=1000, label="grabber")
+        #Rectangle.__init__(self, (0, 0), self.d, self.d, picker=True, figure=parent.figure, edgecolor="k", facecolor="r", zorder=1000, label="grabber")
+
+        #self.figure.patches.append(self)
+
+        pen3 = QtGui.QPen(QtGui.QColor("black"), 2)
+        brush1 = QtGui.QBrush(QtGui.QColor("red"))
+
+        self.ellipse = MyRect(x-5, y-5, 10, 10, scene)
+        self.ellipse.view = scene.view
+        self.ellipse.grabber = self
+        self.ellipse.setPen(pen3)
+        self.ellipse.setBrush(brush1)
+
+        self.xy = (x, y)
+        #self.updatePos()
+
         GrabberGeneric.__init__(self, parent, x, y, dir)
-        self.figure.patches.append(self)
-        self.updatePos()
 
     def get_xy(self):
+        return self.xy
         xy = Rectangle.get_xy(self)
         return xy[0] + self.d / 2, xy[1] + self.d / 2
 
     def set_xy(self, xy: (float, float)):
+        self.xy = xy
+
+        self.ellipse.setRect(xy[0] - 5, xy[1] - 5, 10, 10)
+        return
         Rectangle.set_xy(self, (xy[0] - self.d / 2, xy[1] - self.d / 2))
         self.rect.set_xy((xy[0] - self.d / 2, xy[1] - self.d / 2))
+
+class MyItem:
+    w = 10
+
+    def mousePressEvent(self, e):
+        super().mousePressEvent(e)
+        self.view.grabber_found = True
+        p = e.scenePos()
+        self.scene().grabber_pressed = self
+        self.grabber.button_press_event(MyEvent(p.x(), self.view.h - p.y()))
+
+    def mouseReleaseEvent(self, e):
+        super().mouseReleaseEvent(e)
+        self.scene().grabber_pressed = None
+        self.view.grabber_found = True
+        p = e.scenePos()
+        self.grabber.button_release_event(MyEvent(p.x(), self.view.h - p.y()))
+
+class MyRect(MyItem, QtWidgets.QGraphicsRectItem):
+    pass
+
+class MyEllipse(MyItem, QtWidgets.QGraphicsEllipseItem):
+    pass
+
+
+
+class MyEvent:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y

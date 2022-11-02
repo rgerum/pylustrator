@@ -261,8 +261,9 @@ class TargetWrapper(object):
         return [transform.inverted().transform(p) for p in points]
 
 
-class SnapBase(Line2D):
+class SnapBase():
     """ The base class to implement snaps. """
+    data = None
 
     def __init__(self, ax_source: Artist, ax_target: Artist, edge: int):
         # wrap both object with a TargetWrapper
@@ -270,9 +271,9 @@ class SnapBase(Line2D):
         self.ax_target = TargetWrapper(ax_target)
         self.edge = edge
         # initialize a line object for the visualisation of the snap
-        Line2D.__init__(self, [], [], transform=None, clip_on=False, lw=1, zorder=100, linestyle="dashed",
-                        color="r", marker="o", ms=1, label="_tmp_snap")
-        plt.gca().add_artist(self)
+        #Line2D.__init__(self, [], [], transform=None, clip_on=False, lw=1, zorder=100, linestyle="dashed",
+        #                color="r", marker="o", ms=1, label="_tmp_snap")
+        #plt.gca().add_artist(self)
 
     def getPosition(self, target: TargetWrapper):
         """ get the position of a target """
@@ -305,15 +306,18 @@ class SnapBase(Line2D):
         """ Implements a visualisation of the snap, e.g. lines to indicate what objects are snapped to what """
         pass
 
+    def set_data(self, *data):
+        self.data = data
+
     def hide(self):
         """ Hides the visualisation """
-        self.set_data((), ())
+        self.set_data(())
 
     def remove(self):
         """ Remove the snap and its visualisation """
         self.hide()
         try:
-            self.axes.artists.remove(self)
+            pass#self.axes.artists.remove(self)
         except ValueError:
             pass
 

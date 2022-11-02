@@ -119,8 +119,7 @@ def pyl_show(hide_window: bool = False):
     window = PlotWindow()
     for figure_number in _pylab_helpers.Gcf.figs.copy():
         fig = _pylab_helpers.Gcf.figs[figure_number].canvas.figure
-        window.setFigure(fig)
-        window.addFigure(fig)
+
         # get variable names that point to this figure
         #if setting_use_global_variable_names:
         #    setFigureVariableNames(figure_number)
@@ -130,6 +129,8 @@ def pyl_show(hide_window: bool = False):
         warnAboutTicks(fig)
         # add dragger
         DragManager(fig)
+        window.setFigure(fig)
+        window.addFigure(fig)
         window.update()
         # and show it
         if hide_window is False:
@@ -255,6 +256,7 @@ class Signals(QtWidgets.QWidget):
     canvas_changed = QtCore.Signal(object)
     figure_size_changed = QtCore.Signal()
     figure_element_selected = QtCore.Signal(object)
+    figure_selection_update = QtCore.Signal()
     figure_element_child_created = QtCore.Signal(object)
 
 

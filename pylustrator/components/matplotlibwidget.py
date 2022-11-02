@@ -35,6 +35,7 @@ Copyright © 2005 Florent Rougon, 2006 Darren Dale
 __version__ = "1.0.0"
 
 import sys
+import time
 
 import qtawesome as qta
 from matplotlib.backends.qt_compat import QtWidgets, QtCore
@@ -43,6 +44,8 @@ from matplotlib.figure import Figure
 
 
 class MatplotlibWidget(FigureCanvas):
+    quick_draw = True
+
     def __init__(self, parent=None, num=1, size=None, dpi=100, figure=None, *args, **kwargs):
         if figure is None:
             self.figure = Figure(figsize=size, dpi=dpi, *args, **kwargs)
@@ -57,6 +60,29 @@ class MatplotlibWidget(FigureCanvas):
         
         self.manager = FigureManager(self, 1)
         self.manager._cidgcf = self.figure
+
+        self.timer = QtCore.QTimer()
+        self.timer.setInterval(300)
+        self.timer.timeout.connect(self.draw)
+    timer = None
+    def schedule_draw(self):
+        if self.quick_draw is True:
+            return super().draw()
+        if not self.timer.isActive():
+            self.timer.start()
+
+    def draw(self):
+        self.timer.stop()
+        import traceback
+        #print(traceback.print_stack())
+        t = time.time()
+        super().draw()
+        duration = time.time() - t
+        # if drawing is slow delay the drawing a bit to create a more smooth experience
+        if duration > 0.1:
+            self.quick_draw = False
+        else:
+            self.quick_draw = True
         
     def show(self):
         self.draw()
