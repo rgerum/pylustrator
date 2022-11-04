@@ -55,7 +55,7 @@ app = None
 keys_for_lines = {}
 
 no_save_allowed = False
-def initialize(use_global_variable_names=False, use_exception_silencer=True, disable_save=False):
+def initialize(use_global_variable_names=False, use_exception_silencer=False, disable_save=False):
     """
     This will overload the commands ``plt.figure()`` and ``plt.show()``.
     If a figure is created after this command was called (directly or indirectly), a GUI window will be initialized
