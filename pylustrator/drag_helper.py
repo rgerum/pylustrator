@@ -566,7 +566,7 @@ class DragManager:
     selected_element = None
     grab_element = None
 
-    def __init__(self, figure: Figure):
+    def __init__(self, figure: Figure, no_save):
         self.figure = figure
         self.figure.figure_dragger = self
 
@@ -599,7 +599,7 @@ class DragManager:
 
         self.selection = GrabbableRectangleSelection(figure, figure._pyl_scene)
         self.figure.selection = self.selection
-        self.change_tracker = ChangeTracker(figure)
+        self.change_tracker = ChangeTracker(figure, no_save)
         self.figure.change_tracker = self.change_tracker
 
     def activate(self):

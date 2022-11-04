@@ -185,12 +185,13 @@ class ChangeTracker:
 
     update_changes_signal = None
 
-    def __init__(self, figure: Figure):
+    def __init__(self, figure: Figure, no_save):
         global stack_position
         self.figure = figure
         self.edits = []
         self.last_edit = -1
         self.changes = {}
+        self.no_save = no_save
 
         # make all the subplots pickable
         for index, axes in enumerate(self.figure.axes):
@@ -455,6 +456,9 @@ class ChangeTracker:
 
     def save(self):
         """ save the changes to the .py file """
+        # if saving is disabled
+        if self.no_save is True:
+            return
         header = [getReference(self.figure) + ".ax_dict = {ax.get_label(): ax for ax in " + getReference(
             self.figure) + ".axes}", "import matplotlib as mpl"]
 

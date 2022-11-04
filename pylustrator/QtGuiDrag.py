@@ -54,8 +54,8 @@ figures = {}
 app = None
 keys_for_lines = {}
 
-
-def initialize(use_global_variable_names=False, use_exception_silencer=True):
+no_save_allowed = False
+def initialize(use_global_variable_names=False, use_exception_silencer=True, disable_save=False):
     """
     This will overload the commands ``plt.figure()`` and ``plt.show()``.
     If a figure is created after this command was called (directly or indirectly), a GUI window will be initialized
@@ -69,7 +69,10 @@ def initialize(use_global_variable_names=False, use_exception_silencer=True):
     use_global_variable_names : bool, optional
         if used, try to find global variables that reference a figure and use them in the generated code.
     """
-    global app, keys_for_lines, old_pltshow, old_pltfigure, setting_use_global_variable_names
+    global app, keys_for_lines, old_pltshow, old_pltfigure, setting_use_global_variable_names, no_save_allowed
+
+    # store write only attribute
+    no_save_allowed = disable_save
 
     # warning for shell session
     stack_pos = traceback.extract_stack()[-2]
@@ -128,7 +131,7 @@ def pyl_show(hide_window: bool = False):
         # warn about ticks not fitting tick labels
         warnAboutTicks(fig)
         # add dragger
-        DragManager(fig)
+        DragManager(fig, no_save_allowed)
         window.setFigure(fig)
         window.addFigure(fig)
         window.update()
@@ -162,7 +165,7 @@ def show(hide_window: bool = False):
         # warn about ticks not fitting tick labels
         warnAboutTicks(window.fig)
         # add dragger
-        DragManager(_pylab_helpers.Gcf.figs[figure].canvas.figure)
+        DragManager(_pylab_helpers.Gcf.figs[figure].canvas.figure, no_save_allowed)
         window.update()
         # and show it
         if hide_window is False:
@@ -289,10 +292,11 @@ class PlotWindow(QtWidgets.QWidget):
         self.menuBar = QtWidgets.QMenuBar()
         file_menu = self.menuBar.addMenu("&File")
 
-        open_act = QtWidgets.QAction("&Save", self)
-        open_act.setShortcut("Ctrl+S")
-        open_act.triggered.connect(self.actionSave)
-        file_menu.addAction(open_act)
+        if no_save_allowed is False:
+            open_act = QtWidgets.QAction("&Save", self)
+            open_act.setShortcut("Ctrl+S")
+            open_act.triggered.connect(self.actionSave)
+            file_menu.addAction(open_act)
 
         open_act = QtWidgets.QAction("Save &Image...", self)
         open_act.setShortcut("Ctrl+I")
@@ -528,7 +532,7 @@ class PlotWindow(QtWidgets.QWidget):
 
     def closeEvent(self, event: QtCore.QEvent):
         """ when the window is closed, ask the user to save """
-        if not self.fig.change_tracker.saved:
+        if not self.fig.change_tracker.saved and not no_save_allowed:
             reply = QtWidgets.QMessageBox.question(self, 'Warning - Pylustrator', 'The figure has not been saved. '
                                                                                   'All data will be lost.\nDo you want to save it?',
                                                    QtWidgets.QMessageBox.Cancel | QtWidgets.QMessageBox.No | QtWidgets.QMessageBox.Yes,
