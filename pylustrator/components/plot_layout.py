@@ -1,18 +1,11 @@
 import os
 import numpy as np
+from icecream import ic
 
 from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
 import matplotlib.transforms as transforms
 from matplotlib.figure import Figure
-
-from qtpy import API_NAME as QT_API_NAME
-if QT_API_NAME.startswith("PyQt4"):
-    from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as Canvas
-    from matplotlib.backends.backend_qt4 import NavigationToolbar2QT as NavigationToolbar
-else:
-    from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as Canvas
-    from matplotlib.backends.backend_qt5 import NavigationToolbar2QT as NavigationToolbar
-
+from matplotlib.backends.backend_qtagg import (FigureCanvas as Canvas, NavigationToolbar2QT as NavigationToolbar)
 
 from .matplotlibwidget import MatplotlibWidget
 

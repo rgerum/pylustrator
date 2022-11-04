@@ -154,6 +154,8 @@ class GrabbableRectangleSelection(GrabFunctions):
         self.figure = figure
         self.graphics_scene = graphics_scene
         self.graphics_scene_myparent = QtWidgets.QGraphicsRectItem(0, 0, 0, 0, self.graphics_scene)
+        self.graphics_scene_snapparent = QtWidgets.QGraphicsRectItem(0, 0, 0, 0, self.graphics_scene)
+        figure._pyl_graphics_scene_snapparent = self.graphics_scene_snapparent
 
 
         GrabFunctions.__init__(self, self, DIR_X0 | DIR_X1 | DIR_Y0 | DIR_Y1, no_height=True)

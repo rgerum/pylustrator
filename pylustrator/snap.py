@@ -21,6 +21,7 @@
 
 from typing import List, Tuple, Optional
 from packaging import version
+from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -243,7 +244,7 @@ class TargetWrapper(object):
         return getattr(self.target, "_pylustrator_cached_get_extend")
 
     def do_get_extent(self) -> (int, int, int, int):
-        """ get the extend of the target """
+        """ get the extent of the target """
         points = np.array(self.get_positions())
         return [np.min(points[:, 0]),
                 np.min(points[:, 1]),
@@ -271,9 +272,12 @@ class SnapBase():
         self.ax_target = TargetWrapper(ax_target)
         self.edge = edge
         # initialize a line object for the visualisation of the snap
-        #Line2D.__init__(self, [], [], transform=None, clip_on=False, lw=1, zorder=100, linestyle="dashed",
-        #                color="r", marker="o", ms=1, label="_tmp_snap")
-        #plt.gca().add_artist(self)
+        self.draw_path = QtWidgets.QGraphicsPathItem()
+        parent = ax_source.figure._pyl_graphics_scene_snapparent
+        parent.scene().addItem(self.draw_path)
+        pen1 = QtGui.QPen(QtGui.QColor("red"), 2)
+        pen1.setStyle(QtCore.Qt.DashLine)
+        self.draw_path.setPen(pen1)
 
     def getPosition(self, target: TargetWrapper):
         """ get the position of a target """
@@ -306,18 +310,39 @@ class SnapBase():
         """ Implements a visualisation of the snap, e.g. lines to indicate what objects are snapped to what """
         pass
 
-    def set_data(self, *data):
-        self.data = data
+    def set_data(self, xdata, ydata):
+        painter_path = QtGui.QPainterPath()
+        move = True
+        current_pos = (0, 0)
+        for x, y in zip(xdata, ydata):
+            if np.isnan(x):
+                move = True
+                continue
+            y = self.ax_target.figure.canvas.height() - y
+            if move is True:
+                painter_path.moveTo(x, y)
+                current_pos = (x, y)
+                move = False
+            else:
+                if current_pos[0] > x:
+                    painter_path.moveTo(x, y)
+                    painter_path.lineTo(*current_pos)
+                    current_pos = (x, y)
+                else:
+                    painter_path.lineTo(x, y)
+                    current_pos = (x, y)
+        self.draw_path.setPath(painter_path)
+        self.data = (xdata, ydata)
 
     def hide(self):
         """ Hides the visualisation """
-        self.set_data(())
+        self.set_data((), ())
 
     def remove(self):
         """ Remove the snap and its visualisation """
         self.hide()
         try:
-            pass#self.axes.artists.remove(self)
+            self.draw_path.scene().removeItem(self.draw_path)
         except ValueError:
             pass
 
@@ -487,7 +512,7 @@ class SnapSameBorder(SnapBase):
         x2, y2 = self.getConnection(p2, p3, self.dir2)
         x1.extend(x2)
         y1.extend(y2)
-        self.set_data((x1, y1))
+        self.set_data(x1, y1)
 
 
 class SnapCenterWith(SnapBase):
