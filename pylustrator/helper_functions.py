@@ -590,7 +590,6 @@ def axes_to_grid(axes=None, track_changes=False):
                 new_indices[i] = np.argmin(d)
         axes_indices.append(new_indices)
     # sort the indices
-    pos = np.array(pos)
     for i in [0, 1]:
         sorted_indices = np.argsort(pos[i], axis=0)
         for indices in axes_indices:
