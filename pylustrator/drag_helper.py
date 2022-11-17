@@ -326,9 +326,10 @@ class GrabbableRectangleSelection(GrabFunctions):
                 for i in range(2):
                     rect = self.targets_rects[index * 2 + i]
                     x, y = new_points[0]
-                    rect.setRect(x, y, new_points[1][0] - new_points[0][0], new_points[1][1] - new_points[0][1])
-
-        self.update_extent()
+                    if len(new_points) == 3:
+                        rect.setRect(x, y, new_points[2][0] - new_points[1][0], new_points[2][1] - new_points[1][1])
+                    else:
+                        rect.setRect(x, y, new_points[1][0] - new_points[0][0], new_points[1][1] - new_points[0][1])
 
     def remove_target(self, target: Artist):
         """ remove an artist from the current selection """
