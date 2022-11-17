@@ -416,6 +416,12 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
         self.layout = QtWidgets.QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
 
+        from packaging import version
+        import matplotlib as mpl
+        ncols_name = "ncols"
+        if version.parse(mpl._get_version()) < version.parse("3.6.0"):
+            ncols_name = "ncol"
+
         self.property_names = [
             ("frameon", "frameon", bool, None),
             ("borderpad", "borderpad", float, None),
@@ -424,7 +430,7 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
             ("handletextpad", "handletextpad", float, None),
             ("columnspacing", "columnspacing", float, None),
             ("markerscale", "markerscale", float, None),
-            ("ncol", "_ncol", int, 1),
+            (ncols_name, "_"+ncols_name, int, 1),
             ("title", "title", str, ""),
             ("fontsize", "_fontsize", int, None),
             ("title_fontsize", "title_fontsize", int, None),
