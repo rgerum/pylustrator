@@ -175,6 +175,7 @@ class Linkable:
         new_value = self.getLinkedPropertyAll()
         fig.change_tracker.addEdit([undo, redo, "Change property"])
         fig.canvas.draw()
+        self.element.figure.signals.figure_selection_property_changed.emit()
 
     def set(self, value):
         """ set the value (to be overloaded) """
