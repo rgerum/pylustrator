@@ -37,7 +37,8 @@ class QPosAndSize(QtWidgets.QWidget):
         self.layout.setContentsMargins(10, 0, 10, 0)
 
         self.input_position = DimensionsWidget(self.layout, "X:", "Y:", "cm")
-        self.input_position.valueChanged.connect(self.changePos)
+        self.input_position.valueChangedX.connect(lambda x: self.changePos(x, None))
+        self.input_position.valueChangedY.connect(lambda y: self.changePos(None, y))
 
         self.input_shape = DimensionsWidget(self.layout, "W:", "H:", "cm")
         self.input_shape.valueChanged.connect(self.changeSize)
@@ -79,28 +80,49 @@ class QPosAndSize(QtWidgets.QWidget):
         self.scale_type = ["scale", "bottom right", "top left"].index(name)
         #self.scale_type = state
 
-    def changePos(self, value: list):
+    def changePos(self, value_x: float, value_y: float):
         """ change the position of an axes """
-        pos = self.element.get_position()
-        try:
-            w, h = pos.width, pos.height
-            pos.x0 = value[0]
-            pos.y0 = value[1]
-            pos.x1 = value[0] + w
-            pos.y1 = value[1] + h
+        elements = [self.element]
+        elements += [element.target for element in self.element.figure.selection.targets if
+                     element.target != self.element and isinstance(element.target, Axes)]
 
-            self.fig.change_tracker.addChange(self.element, ".set_position([%f, %f, %f, %f])" % (
-            pos.x0, pos.y0, pos.width, pos.height))
-        except AttributeError:
-            pos = value
-
-            from matplotlib.text import Text
-            if isinstance(self.element, Text):
-                self.fig.change_tracker.addNewTextChange(self.element)
+        old_positions = []
+        new_positions = []
+        for element in elements:
+            old_pos = element.get_position()
+            old_positions.append(old_pos)
+            if getattr(old_pos, "width", None) is not None:
+                pos = [old_pos.x0, old_pos.y0, old_pos.width, old_pos.height]
             else:
-                self.fig.change_tracker.addChange(self.element, ".set_position([%f, %f])" % (pos[0], pos[1]))
+                pos = [old_pos[0], old_pos[1]]
+            if value_x is not None:
+                pos[0] = value_x
+            if value_y is not None:
+                pos[1] = value_y
+            new_positions.append(pos)
 
-        self.element.set_position(pos)
+        fig = self.fig
+
+        def redo():
+            for element, pos in zip(elements, new_positions):
+                element.set_position(pos)
+                if len(pos) == 4:
+                    fig.change_tracker.addChange(element, ".set_position([%f, %f, %f, %f])" % tuple(pos))
+                else:
+                    fig.change_tracker.addChange(element, ".set_position([%f, %f])" % tuple(pos))
+
+        def undo():
+            for element, pos in zip(elements, new_positions):
+                element.set_position(pos)
+                if len(pos) == 4:
+                    fig.change_tracker.addChange(element, ".set_position([%f, %f, %f, %f])" % tuple(pos))
+                else:
+                    fig.change_tracker.addChange(element, ".set_position([%f, %f])" % tuple(pos))
+
+        redo()
+        self.fig.change_tracker.addEdit([undo, redo, "Change size"])
+
+        self.fig.signals.figure_selection_property_changed.emit()
         self.fig.canvas.draw()
 
     def changeSize(self, value: list):
@@ -161,7 +183,7 @@ class QPosAndSize(QtWidgets.QWidget):
 
             redo()
             self.fig.change_tracker.addEdit([undo, redo, "Change size"])
-            self.fig.selection.update_selection_rectangles()
+            self.fig.signals.figure_selection_property_changed.emit()
             self.fig.canvas.draw()
 
 

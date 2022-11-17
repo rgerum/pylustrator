@@ -137,6 +137,7 @@ class TextPropertiesWidget(QtWidgets.QWidget):
                 element.figure.change_tracker.addNewTextChange(element)
 
         self.target.figure.canvas.draw()
+        self.target.figure.signals.figure_selection_property_changed.emit()
         self.setTarget(self.target_list)
 
     def setTarget(self, element: Artist):
@@ -184,6 +185,7 @@ class TextPropertiesWidget(QtWidgets.QWidget):
 
             self.target = element
             self.target.figure.canvas.draw()
+            self.target.figure.signals.figure_selection_property_changed.emit()
 
     def changeStyle(self, checked: bool):
         """ set italic or normal """
@@ -198,6 +200,7 @@ class TextPropertiesWidget(QtWidgets.QWidget):
 
             self.target = element
             self.target.figure.canvas.draw()
+            self.target.figure.signals.figure_selection_property_changed.emit()
 
     def changeColor(self, color: str):
         """ set the text color """
@@ -211,6 +214,7 @@ class TextPropertiesWidget(QtWidgets.QWidget):
 
             self.target = element
             self.target.figure.canvas.draw()
+            self.target.figure.signals.figure_selection_property_changed.emit()
 
     def changeAlign(self, align: str):
         """ set the text algin """
@@ -227,6 +231,7 @@ class TextPropertiesWidget(QtWidgets.QWidget):
 
             self.target = element
             self.target.figure.canvas.draw()
+            self.target.figure.signals.figure_selection_property_changed.emit()
 
     def changeFontSize(self, value: int):
         """ set the font size """
@@ -235,6 +240,7 @@ class TextPropertiesWidget(QtWidgets.QWidget):
                 element.set_fontsize(value)
                 element.figure.change_tracker.addNewTextChange(element)
             self.target.figure.canvas.draw()
+            self.target.figure.signals.figure_selection_property_changed.emit()
 
 
 class TextPropertiesWidget2(QtWidgets.QWidget):
@@ -298,6 +304,7 @@ class TextPropertiesWidget2(QtWidgets.QWidget):
         ]
 
         self.properties = {}
+        self.propertiesChanged.connect(lambda: self.target.figure.signals.figure_selection_property_changed.emit())
 
     def convertMplWeightToQtWeight(self, weight: str) -> int:
         """ convert a font weight string to a weight enumeration of Qt """

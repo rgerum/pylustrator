@@ -260,6 +260,7 @@ class Signals(QtWidgets.QWidget):
     figure_size_changed = QtCore.Signal()
     figure_element_selected = QtCore.Signal(object)
     figure_selection_moved = QtCore.Signal()
+    figure_selection_property_changed = QtCore.Signal()
     figure_selection_update = QtCore.Signal()
     figure_element_child_created = QtCore.Signal(object)
 
@@ -289,6 +290,10 @@ class PlotWindow(QtWidgets.QWidget):
         self.menu_edit.addAction(undo_act)
 
         #self.preview.addFigure(figure)
+
+    def selectionProperyChanged(self):
+        self.fig.selection.update_selection_rectangles()
+        self.fig.selection.update_extent()
 
     def create_menu(self, layout_parent):
         self.menuBar = QtWidgets.QMenuBar()
@@ -349,6 +354,8 @@ class PlotWindow(QtWidgets.QWidget):
 
         self.signals = Signals()
         self.signals.canvas_changed.connect(self.setCanvas)
+        self.signals.figure_selection_property_changed.connect(self.selectionProperyChanged)
+
 
         self.plot_layout = PlotLayout(self.signals)
 

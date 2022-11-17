@@ -239,6 +239,8 @@ class FreeNumberInput(QtWidgets.QLineEdit):
 
 class DimensionsWidget(QtWidgets.QWidget, Linkable):
     valueChanged = QtCore.Signal(tuple)
+    valueChangedX = QtCore.Signal(float)
+    valueChangedY = QtCore.Signal(float)
     transform = None
     noSignal = False
 
@@ -268,7 +270,7 @@ class DimensionsWidget(QtWidgets.QWidget, Linkable):
             self.input1.setMaximum(99999)
             self.input1.setMinimum(-99999)
             self.input1.setMaximumWidth(100)
-        self.input1.valueChanged.connect(self.onValueChanged)
+        self.input1.valueChanged.connect(self.onValueChangedX)
         self.layout.addWidget(self.input1)
 
         self.text2 = QtWidgets.QLabel(join)
@@ -284,7 +286,7 @@ class DimensionsWidget(QtWidgets.QWidget, Linkable):
             self.input2.setMaximum(99999)
             self.input2.setMinimum(-99999)
             self.input2.setMaximumWidth(100)
-        self.input2.valueChanged.connect(self.onValueChanged)
+        self.input2.valueChanged.connect(self.onValueChangedY)
         self.layout.addWidget(self.input2)
 
         self.editingFinished = self.valueChanged
@@ -301,6 +303,18 @@ class DimensionsWidget(QtWidgets.QWidget, Linkable):
     def setTransform(self, transform: mpl.transforms.Transform):
         """ set the transform for the units """
         self.transform = transform
+
+    def onValueChangedX(self):
+        """ called when the value was changed -> emit the value changed signal """
+        if not self.noSignal:
+            self.valueChangedX.emit(self.value()[0])
+            self.valueChanged.emit(tuple(self.value()))
+
+    def onValueChangedY(self):
+        """ called when the value was changed -> emit the value changed signal """
+        if not self.noSignal:
+            self.valueChangedY.emit(self.value()[1])
+            self.valueChanged.emit(tuple(self.value()))
 
     def onValueChanged(self):
         """ called when the value was changed -> emit the value changed signal """
