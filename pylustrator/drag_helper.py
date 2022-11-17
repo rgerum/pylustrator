@@ -227,6 +227,9 @@ class GrabbableRectangleSelection(GrabFunctions):
             else:
                 points = np.concatenate((points, new_points))
 
+        if points is None:
+            return
+
         for grabber in self.grabbers:
             grabber.targets = self.targets
 
@@ -325,13 +328,13 @@ class GrabbableRectangleSelection(GrabFunctions):
         else:
             for index, target in enumerate(self.targets):
                 new_points = np.array(target.get_positions())
+                x0, y0, x1, y1 = np.min(new_points[:, 0]), np.min(new_points[:, 1]), np.max(
+                    new_points[:, 0]), np.max(
+                    new_points[:, 1])
+                w0, h0 = x1 - x0, y1 - y0
                 for i in range(2):
                     rect = self.targets_rects[index * 2 + i]
-                    x, y = new_points[0]
-                    if len(new_points) == 3:
-                        rect.setRect(x, y, new_points[2][0] - new_points[1][0], new_points[2][1] - new_points[1][1])
-                    else:
-                        rect.setRect(x, y, new_points[1][0] - new_points[0][0], new_points[1][1] - new_points[0][1])
+                    rect.setRect(x0, y0, w0, h0)
 
     def remove_target(self, target: Artist):
         """ remove an artist from the current selection """
