@@ -342,8 +342,8 @@ class GrabbableRectangleSelection(GrabFunctions):
         self.targets.pop(index)
         rect1 = self.targets_rects.pop(index*2)
         rect2 = self.targets_rects.pop(index*2)
-        self.graphics_scene.removeItem(rect1)
-        self.graphics_scene.removeItem(rect2)
+        rect1.scene().removeItem(rect1)
+        rect2.scene().removeItem(rect2)
         #self.figure.patches.remove(rect1)
         #self.figure.patches.remove(rect2)
         if len(self.targets) == 0:
