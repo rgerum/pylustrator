@@ -29,6 +29,7 @@ class QPosAndSize(QtWidgets.QWidget):
 
         signals.figure_changed.connect(self.setFigure)
         signals.figure_element_selected.connect(self.select_element)
+        signals.figure_selection_moved.connect(self.selection_moved)
         self.signals = signals
 
         layout.addWidget(self)
@@ -58,6 +59,9 @@ class QPosAndSize(QtWidgets.QWidget):
             self.setElement(self.fig)
         else:
             self.setElement(element)
+
+    def selection_moved(self):
+        self.setElement(self.element)
 
     def changeTransform(self):
         """ change the tranform and the units of the position and size widgets """

@@ -308,6 +308,8 @@ class GrabbableRectangleSelection(GrabFunctions):
         if mode == "distribute_y":
             distribute(1)
 
+        self.figure.signals.figure_selection_moved.emit()
+
     def update_selection_rectangles(self):
         """ update the selection visualisation """
         if len(self.targets) == 0:
@@ -444,6 +446,7 @@ class GrabbableRectangleSelection(GrabFunctions):
 
         self.store_end = self.get_save_point()
         if self.has_moved is True:
+            self.figure.signals.figure_selection_moved.emit()
             self.figure.change_tracker.addEdit([self.store_start, self.store_end, "Move"])
 
     def addOffset(self, pos: Sequence, dir: int, keep_aspect_ratio: bool = True):

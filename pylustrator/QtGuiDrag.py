@@ -259,6 +259,7 @@ class Signals(QtWidgets.QWidget):
     canvas_changed = QtCore.Signal(object)
     figure_size_changed = QtCore.Signal()
     figure_element_selected = QtCore.Signal(object)
+    figure_selection_moved = QtCore.Signal()
     figure_selection_update = QtCore.Signal()
     figure_element_child_created = QtCore.Signal(object)
 
@@ -269,6 +270,7 @@ class PlotWindow(QtWidgets.QWidget):
     def setFigure(self, figure):
         figure.no_figure_dragger_selection_update = False
         self.fig = figure
+        self.fig.signals = self.signals
         self.signals.figure_changed.emit(figure)
 
     def setCanvas(self, canvas):
