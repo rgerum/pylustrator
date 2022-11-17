@@ -543,19 +543,27 @@ class GrabbableRectangleSelection(GrabFunctions):
         if event.key == 'left':
             self.start_move()
             self.addOffset((-1, 0), self.dir)
+            self.has_moved = True
             self.end_move()
+            self.figure.canvas.schedule_draw()
         if event.key == 'right':
             self.start_move()
             self.addOffset((+1, 0), self.dir)
+            self.has_moved = True
             self.end_move()
+            self.figure.canvas.schedule_draw()
         if event.key == 'down':
             self.start_move()
             self.addOffset((0, -1), self.dir)
+            self.has_moved = True
             self.end_move()
+            self.figure.canvas.schedule_draw()
         if event.key == 'up':
             self.start_move()
             self.addOffset((0, +1), self.dir)
+            self.has_moved = True
             self.end_move()
+            self.figure.canvas.schedule_draw()
         if event.key == "delete":
             for target in self.targets[::-1]:
                 self.figure.change_tracker.removeElement(target.target)
