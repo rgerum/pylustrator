@@ -423,22 +423,22 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
             ncols_name = "ncol"
 
         self.property_names = [
-            ("frameon", "frameon", bool, None),
-            ("borderpad", "borderpad", float, None),
-            ("labelspacing", "labelspacing", float, None),
-            ("handlelength", "handlelength", float, None),
-            ("handletextpad", "handletextpad", float, None),
-            ("columnspacing", "columnspacing", float, None),
-            ("markerscale", "markerscale", float, None),
-            (ncols_name, "_"+ncols_name, int, 1),
-            ("title", "title", str, ""),
-            ("fontsize", "_fontsize", int, None),
-            ("title_fontsize", "title_fontsize", int, None),
+            ("frameon", "frameon", bool, None, None),
+            ("borderpad", "borderpad", float, None, "legend_icon_borderpad.png"),
+            ("labelspacing", "labelspacing", float, None, "legend_icon_labelspacing.png"),
+            ("markerscale", "markerscale", float, None, "legend_icon_markerscale.png"),
+            ("handlelength", "handlelength", float, None, "legend_icon_handlelength.png"),
+            ("handletextpad", "handletextpad", float, None, "legend_icon_handletextpad.png"),
+            (ncols_name, "_" + ncols_name, int, 1, None),
+            ("columnspacing", "columnspacing", float, None, "legend_icon_columnspacing.png"),
+            ("fontsize", "_fontsize", int, None, "legend_icon_fontsize.png"),
+            ("title", "title", str, "", None),
+            ("title_fontsize", "title_fontsize", int, None, "legend_icon_title_fontsize.png"),
         ]
         self.properties = {}
 
         self.widgets = {}
-        for index, (name, name2, type_, default_) in enumerate(self.property_names):
+        for index, (name, name2, type_, default_, icon) in enumerate(self.property_names):
             if index % 3 == 0:
                 layout = QtWidgets.QHBoxLayout()
                 layout.setContentsMargins(0, 0, 0, 0)
@@ -459,8 +459,18 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
                     widget.setSingleStep(0.1)
                 elif type_ == int:
                     widget = QtWidgets.QSpinBox()
+                widget.label = label
                 layout.addWidget(widget)
                 widget.valueChanged.connect(lambda x, name=name: self.changePropertiy(name, x))
+
+            if icon is not None and getattr(widget, "label", None):
+                from pathlib import Path
+                pix = QtGui.QPixmap(str(Path(__file__).parent.parent / "icons" / icon))
+                pix = pix.scaledToWidth(28*QtGui.QGuiApplication.primaryScreen().logicalDotsPerInch()/96, QtCore.Qt.SmoothTransformation)
+                widget.setToolTip(name)
+                widget.label.setToolTip(name)
+                widget.label.setPixmap(pix)
+                widget.label.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
             self.widgets[name] = widget
 
     def changePropertiy(self, name: str, value: Any):
@@ -475,7 +485,7 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
         self.target = axes.get_legend()
         fig = self.target.figure
         prop_copy = {}
-        for index, (name, name2, type_, default_) in enumerate(self.property_names):
+        for index, (name, name2, type_, default_, icon) in enumerate(self.property_names):
             value = self.properties[name]
             if default_ is not None and value == default_:
                 continue
@@ -504,7 +514,7 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
             else:
                 self.target_list = [element]
         self.target = None
-        for name, name2, type_, default_ in self.property_names:
+        for name, name2, type_, default_, icon in self.property_names:
             if name2 == "frameon":
                 value = element.get_frame_on()
             elif name2 == "title":
