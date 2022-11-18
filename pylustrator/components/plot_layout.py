@@ -208,7 +208,7 @@ class Canvas(QtWidgets.QWidget):
         dx = 0.1
 
         pix_per_cm = trans.transform((0, 1))[1] - trans.transform((0, 0))[1]
-        big_lines = int(self.fontMetrics().height() * 5 / pix_per_cm)
+        big_lines = int(np.ceil(self.fontMetrics().height() * 5 / pix_per_cm))
         medium_lines = big_lines / 2
         dx = big_lines / 10
 
@@ -243,7 +243,7 @@ class Canvas(QtWidgets.QWidget):
         medium_lines = 0.5
 
         pix_per_cm = trans.transform((0, 1))[1]-trans.transform((0, 0))[1]
-        big_lines = int(self.fontMetrics().height()*5/pix_per_cm)
+        big_lines = int(np.ceil(self.fontMetrics().height()*5/pix_per_cm))
         medium_lines = big_lines / 2
         dy = big_lines / 10
 
@@ -344,6 +344,9 @@ class Canvas(QtWidgets.QWidget):
         """ when the mouse wheel is used to zoom the figure """
         if self.control_modifier:
             new_dpi = self.fig.get_dpi() + 10 * event.step
+            # prevent zoom to be too far out
+            if new_dpi < 0:
+                return
 
             self.fig.figure_dragger.select_element(None)
 
