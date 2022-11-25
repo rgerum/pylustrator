@@ -30,6 +30,7 @@ from matplotlib.figure import Figure
 from matplotlib.text import Text
 from matplotlib.axes import Axes
 from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
+from .helper_functions import main_figure
 
 
 class Linkable:
@@ -64,14 +65,14 @@ class Linkable:
         else:
             def set(v, v_list=None):
                 if v_list is None:
-                    v = [v]+[v]*len(self.element.figure.selection.targets)
+                    v = [v]+[v]*len(main_figure(self.element).selection.targets)
                 else:
                     v = v_list
 
                 # special treatment for the xylabels, as they are not directly the target objects
                 label_object = None
-                if isinstance(self.element, Text) and isinstance(self.element.figure.selection.targets[0].target, Axes):
-                    for elm in self.element.figure.selection.targets:
+                if isinstance(self.element, Text) and isinstance(main_figure(self.element).selection.targets[0].target, Axes):
+                    for elm in main_figure(self.element).selection.targets:
                         elm = elm.target
                         if self.element == getattr(getattr(elm, f"get_xaxis")(), "get_label")():
                             label_object = "x"
@@ -84,7 +85,7 @@ class Linkable:
                 getattr(self.element, "set_" + property_name)(v[0])
                 elements.append(self.element)
                 index = 0
-                for elm in self.element.figure.selection.targets:
+                for elm in main_figure(self.element).selection.targets:
                     elm = elm.target
                     # special treatment for the xylabels, as they are not directly the target objects
                     if label_object is not None:
@@ -101,8 +102,8 @@ class Linkable:
 
             def getAll():
                 label_object = None
-                if isinstance(self.element, Text) and isinstance(self.element.figure.selection.targets[0].target, Axes):
-                    for elm in self.element.figure.selection.targets:
+                if isinstance(self.element, Text) and isinstance(main_figure(self.element).selection.targets[0].target, Axes):
+                    for elm in main_figure(self.element).selection.targets:
                         elm = elm.target
                         if self.element == getattr(getattr(elm, f"get_xaxis")(), "get_label")():
                             label_object = "x"
@@ -112,7 +113,7 @@ class Linkable:
                             break
 
                 values = [(self.element, property_name, getattr(self.element, "get_" + property_name)())]
-                for index, elm in enumerate(self.element.figure.selection.targets):
+                for index, elm in enumerate(main_figure(self.element).selection.targets):
                     elm = elm.target
                     # special treatment for the xylabels, as they are not directly the target objects
                     if label_object is not None:
@@ -165,7 +166,7 @@ class Linkable:
             if isinstance(element, mpl.figure.Figure):
                 fig = element
             else:
-                fig = element.figure
+                fig = main_figure(element)
 
             if isinstance(element, Text):
                 fig.change_tracker.addNewTextChange(element)
@@ -175,7 +176,7 @@ class Linkable:
         new_value = self.getLinkedPropertyAll()
         fig.change_tracker.addEdit([undo, redo, "Change property"])
         fig.canvas.draw()
-        self.element.figure.signals.figure_selection_property_changed.emit()
+        main_figure(self.element).signals.figure_selection_property_changed.emit()
 
     def set(self, value):
         """ set the value (to be overloaded) """

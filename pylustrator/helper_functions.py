@@ -652,3 +652,10 @@ def axes_to_grid(axes=None, track_changes=False):
         if track_changes is True:
             ax.figure.change_tracker.addChange(ax, ".spines['right'].set_visible(False)")
             ax.figure.change_tracker.addChange(ax, ".spines['top'].set_visible(False)")
+
+
+def main_figure(artist):
+    if artist.figure == artist:
+        return artist
+    else:
+        return main_figure(artist.figure)

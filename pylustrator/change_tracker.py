@@ -47,6 +47,7 @@ except:
 
 from .exception_swallower import Dummy
 from .jupyter_cells import open
+from .helper_functions import main_figure
 
 
 """ External overload """
@@ -91,8 +92,8 @@ def getReference(element: Artist, allow_using_variable_names=True):
             return "plt.figure(\"%s\")" % element.number
     # subfigures are only available in matplotlib>=3.4.0
     if version.parse(mpl.__version__) >= version.parse("3.4.0") and isinstance(element, SubFigure):
-        index = element.figure.subfigs.index(element)
-        return getReference(element.figure) + ".subfigs[%d]" % index
+        index = element._parent.subfigs.index(element)
+        return getReference(element._parent) + ".subfigs[%d]" % index
     if isinstance(element, matplotlib.lines.Line2D):
         index = element.axes.lines.index(element)
         return getReference(element.axes) + ".lines[%d]" % index
@@ -248,11 +249,11 @@ class ChangeTracker:
         else:
             transform = getReference(element.figure) + '.transFigure'
         if getattr(element, "is_new_text", False):
-            element.figure.change_tracker.addChange(element.axes or element.figure,
+            main_figure(element).change_tracker.addChange(element.axes or element.figure,
                     f".text({pos[0]}, {pos[1]}, {repr(element.get_text())}, transform={transform}{kwargs})  # id={getReference(element)}.new",
                                                     element, ".new")
         else:
-            element.figure.change_tracker.addChange(element, f".set(position={repr(pos)}, text={repr(element.get_text())}{kwargs})")
+            main_figure(element).change_tracker.addChange(element, f".set(position={repr(pos)}, text={repr(element.get_text())}{kwargs})")
 
     def changeCountChanged(self):
         if self.update_changes_signal is not None:
@@ -320,9 +321,9 @@ class ChangeTracker:
         command_obj_regexes = [getReference(self.figure),
                                r"plt\.figure\([^)]*\)",
                                r"fig",
+                               r"\.subfigs\[\d*\]",
                                r"\.ax_dict\[\"[^\"]*\"\]",
                                r"\.axes\[\d*\]",
-                               r"\.subfigs\[\d*\]",
                                r"\.texts\[\d*\]",
                                r"\.{title|_left_title|_right_title}",
                                r"\.lines\[\d*\]",
@@ -356,12 +357,14 @@ class ChangeTracker:
             # try to identify the command object of the line
             command_obj = ""
             for r in command_obj_regexes:
-                try:
-                    found = r.match(line).group()
-                    line = line[len(found):]
-                    command_obj += found
-                except AttributeError:
-                    pass
+                while True:
+                    try:
+                        found = r.match(line).group()
+                        line = line[len(found):]
+                        command_obj += found
+                    except AttributeError:
+                        pass
+                        break
 
             try:
                 command, parameter = regex.match(line).groups()

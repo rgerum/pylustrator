@@ -32,6 +32,8 @@ from matplotlib.legend import Legend
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle, Ellipse, FancyArrowPatch
 from matplotlib.text import Text
+from .helper_functions import main_figure
+
 
 DIR_X0 = 1
 DIR_Y0 = 2
@@ -273,7 +275,7 @@ class SnapBase():
         self.edge = edge
         # initialize a line object for the visualisation of the snap
         self.draw_path = QtWidgets.QGraphicsPathItem()
-        parent = ax_source.figure._pyl_graphics_scene_snapparent
+        parent = main_figure(ax_source)._pyl_graphics_scene_snapparent
         parent.scene().addItem(self.draw_path)
         pen1 = QtGui.QPen(QtGui.QColor("red"), 2)
         pen1.setStyle(QtCore.Qt.DashLine)

@@ -164,7 +164,7 @@ class MyTreeView(QtWidgets.QTreeView):
 
     def getParentEntry(self, entry: Artist) -> Artist:
         """ get the parent of an item """
-        return entry.tree_parent
+        return getattr(entry, "tree_parent", None)
 
     def getNameOfEntry(self, entry: Artist) -> str:
         """ convert an entry to a string """
