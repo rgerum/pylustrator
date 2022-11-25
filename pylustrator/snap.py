@@ -32,6 +32,10 @@ from matplotlib.legend import Legend
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle, Ellipse, FancyArrowPatch
 from matplotlib.text import Text
+try:
+    from matplotlib.figure import SubFigure  # since matplotlib 3.4.0
+except ImportError:
+    SubFigure = None
 from .helper_functions import main_figure
 
 
@@ -156,6 +160,11 @@ class TargetWrapper(object):
             points[-2:] = self.transform_inverted_points(points[-2:])
         elif isinstance(self.target, Axes):
             p1, p2 = np.array(self.target.get_position())
+            points.append(p1)
+            points.append(p2)
+        elif isinstance(self.target, SubFigure):
+            p1 = [self.target.bbox.x0, self.target.bbox.y0]
+            p2 = [self.target.bbox.x1, self.target.bbox.y1]
             points.append(p1)
             points.append(p2)
         elif isinstance(self.target, Legend):
