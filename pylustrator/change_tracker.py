@@ -342,11 +342,12 @@ class ChangeTracker:
 
         self.get_reference_cached = {}
 
-        block = getTextFromFile(getReference(self.figure), stack_position)
+        block, lineno = getTextFromFile(getReference(self.figure), stack_position)
         if not block:
             block = getTextFromFile(getReference(self.figure, allow_using_variable_names=False), stack_position)
         for line in block:
             line = line.strip()
+            lineno += 1
             if line == "" or line in header or line.startswith("#"):
                 continue
             if re.match(".*\.ax_dict =.*", line):
@@ -387,7 +388,21 @@ class ChangeTracker:
 
             # for new created texts, the reference object is the text and not the axis/figure
             if command == ".text" or command == ".annotate" or command == ".add_patch":
-                reference_obj, _ = re.match(r"(.*)(\..*)", key).groups()
+                # for texts we stored the linenumbers where they were created
+                if command == ".text":
+                    # get the parent object (usually an Axes)
+                    parent = eval(reference_obj)
+                    # iterate over the texts
+                    for t in parent.texts:
+                        # and find if one of the texts was created in the line we are currently looking at
+                        if getattr(t, "_pylustrator_reference", None):
+                            if t._pylustrator_reference["stack_position"].lineno == lineno:
+                                reference_obj = getReference(t)
+                                break
+                    else:
+                        reference_obj, _ = re.match(r"(.*)(\..*)", key).groups()
+                else:
+                    reference_obj, _ = re.match(r"(.*)(\..*)", key).groups()
                 reference_command = ".new"
                 if command == ".text":
                     eval(reference_obj).is_new_text = True
@@ -501,6 +516,8 @@ def getTextFromFile(block_id: str, stack_pos: traceback.FrameSummary):
         if not stack_pos.filename.endswith('.py') and not stack_pos.filename.startswith("<ipython-input-"):
             return []
 
+    start_lineno = -1
+
     with open(stack_pos.filename, 'r', encoding="utf-8") as fp1:
         for lineno, line in enumerate(fp1, start=1):
             # if we are currently reading a pylustrator block
@@ -513,6 +530,7 @@ def getTextFromFile(block_id: str, stack_pos: traceback.FrameSummary):
             # if there is a new pylustrator block
             elif line.strip().startswith(custom_prepend + "#% start:"):
                 block = Block(line)
+                start_lineno = lineno-1
 
             # if we are currently reading a block, continue with the next line
             if block is not None and not block.finished:
@@ -520,9 +538,9 @@ def getTextFromFile(block_id: str, stack_pos: traceback.FrameSummary):
 
             if block is not None and block.finished:
                 if block.id == block_id:
-                    return block
+                    return block, start_lineno
             block = None
-    return []
+    return [], start_lineno
 
 
 class Block:

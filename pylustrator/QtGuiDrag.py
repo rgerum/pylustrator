@@ -71,6 +71,18 @@ def initialize(use_global_variable_names=False, use_exception_silencer=False, di
     """
     global app, keys_for_lines, old_pltshow, old_pltfigure, setting_use_global_variable_names, no_save_allowed
 
+    # remeber linenumbers where texts are created
+    from matplotlib.axes._axes import Axes
+    text = Axes.text
+    def wrapped_text(*args, **kwargs):
+        element = text(*args, **kwargs)
+        from pylustrator.change_tracker import getReference
+        stack_position = traceback.extract_stack()[-2]
+        element._pylustrator_reference = dict(reference=getReference(element), stack_position=stack_position)
+        print(element, getReference(element), stack_position)
+        return element
+    Axes.text = wrapped_text
+
     # store write only attribute
     no_save_allowed = disable_save
 
