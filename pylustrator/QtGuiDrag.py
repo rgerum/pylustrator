@@ -278,11 +278,16 @@ class Signals(QtWidgets.QWidget):
 
 
 class PlotWindow(QtWidgets.QWidget):
+    fig = None
     update_changes_signal = QtCore.Signal(bool, bool, str, str)
 
     def setFigure(self, figure):
+        if self.fig is not None:
+            self.fig.window = None
+            self.fig.signals = None
         figure.no_figure_dragger_selection_update = False
         self.fig = figure
+        self.fig.window = self
         self.fig.signals = self.signals
         self.signals.figure_changed.emit(figure)
 
