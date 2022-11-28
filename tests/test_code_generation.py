@@ -28,10 +28,12 @@ y = 2 * np.sin(np.pi * t)
 a, b = np.random.normal(loc=(5., 3.), scale=(2., 4.), size=(100,2)).T
 b += a
 
-plt.figure(1)
+fig = plt.figure(1)
+plt.clf()
+fig.text(0.5, 0.5, "new", transform=plt.figure(1).transFigure)
 plt.subplot(131)
 plt.plot(t, y)
-plt.text(0.5, 0.5, "new")
+plt.text(0.5, 0.5, "new", transform=plt.figure(1).axes[0].transAxes)
 
 plt.subplot(132)
 plt.plot(a, b, "o")
@@ -43,6 +45,17 @@ plt.bar(1, np.mean(b))
 # show the plot in a pylustrator window
 plt.show(hide_window=True)
     """)
+
+    def get_script_text(self):
+        with open(self.filename, "rb") as fp:
+            text = fp.read()
+        return text
+
+    def run_plot_script(self):
+        text = self.get_script_text()
+        exec(compile(text, self.filename, 'exec'), globals())
+        self.fig = plt.gcf()
+        return plt.gcf(), text
 
     def tearDown(self):
         self.filename.unlink()
@@ -58,7 +71,11 @@ plt.show(hide_window=True)
                 if in_block is True:
                     block += line
                     if line.startswith(line_start):
-                        return line
+                        def grab_args(*args, **kwargs):
+                            return args, kwargs
+
+                        args = re.match(re.escape(line_start)+"(.*)\)", line).groups()[0]
+                        return line, eval(f"grab_args({args})")
                 if line.startswith("#% start: automatic generated code from pylustrator"):
                     in_block = True
                 if line.startswith("#% end: automatic generated code from pylustrator"):
@@ -82,94 +99,176 @@ plt.show(hide_window=True)
         data = [float(s) for s in groups]
         return data
 
+    def move_element(self, element, offset):
+        fig = self.fig
+        # select the text
+        fig.figure_dragger.select_element(element)
+        # don't move it and save the result
+        fig.selection.start_move()
+        fig.selection.addOffset(offset, fig.selection.dir)
+        fig.selection.end_move()
+        fig.change_tracker.save()
+
     def test_moveFigure(self):
-        with open(self.filename, "rb") as fp:
-            text = fp.read()
-        exec(compile(text, self.filename, 'exec'), globals())
-
         # get the figure
-        fig = plt.gcf()
-        ax = fig.axes[0]
-        # and select the axes
-        fig.figure_dragger.select_element(ax)
+        fig, text = self.run_plot_script()
 
-        # move the axes and save
-        fig.selection.start_move()
-        fig.selection.addOffset((-1, 0), fig.selection.dir)
-        fig.selection.end_move()
-        fig.change_tracker.save()
+        # and select and move the axes
+        self.move_element(fig.axes[0], (-1, 0))
 
         # find the saved string and check the numbers
-        line = self.check_line_in_file("plt.figure(1).axes[0].set_position(")
-        data = self.match_numbers(r"plt\.figure\(1\)\.axes\[0\]\.set_position\(\[([\.\d]*), ([\.\d]*), ([\.\d]*), ([\.\d]*)]\)", line)
-        np.testing.assert_almost_equal(data, [0.123438, 0.11, 0.227941, 0.77], 2, "Figure movement not correctly written to file")
+        line, (args, kwargs) = self.check_line_in_file("plt.figure(1).axes[0].set_position(")
+        np.testing.assert_almost_equal(args[0], [0.123438, 0.11, 0.227941, 0.77], 2, "Figure movement not correctly written to file")
 
         # run the file again
-        with open(self.filename, "rb") as fp:
-            text = fp.read()
-        exec(compile(text, self.filename, 'exec'), globals())
+        fig, text = self.run_plot_script()
 
         # test if the axes is at the right position
-        fig = plt.gcf()
-        ax = fig.axes[0]
-        np.testing.assert_almost_equal(np.array(ax.get_position()), np.array([[0.123438, 0.11], [0.351379, 0.88]]), 2, "Saved axes not loaded correctly")
+        np.testing.assert_almost_equal(np.array(fig.axes[0].get_position()), [[0.123438, 0.11], [0.351379, 0.88]], 2, "Saved axes not loaded correctly")
 
-        # select the axes
-        fig.figure_dragger.select_element(ax)
         # don't move it and save the result
-        fig.selection.start_move()
-        fig.selection.addOffset((0, 0), fig.selection.dir)
-        fig.selection.end_move()
-        fig.change_tracker.save()
+        self.move_element(fig.axes[0], (0, 0))
 
         # the output should still be the same
-        with open(self.filename, "rb") as fp:
-            text2 = fp.read()
+        self.assertEqual(text, self.get_script_text(), "Saved differently")
 
-        self.assertEqual(text, text2, "Saved differently")
+    def assertEqualStringOrArray(self, first, second, msg) -> None:
+        if isinstance(first, str) or first is None:
+            self.assertEqual(first, second, msg)
+        else:
+            np.testing.assert_almost_equal(first, second, 2, msg)
 
-    def test_moveText(self):
-        with open(self.filename, "rb") as fp:
-            text = fp.read()
-        exec(compile(text, self.filename, 'exec'), globals())
+    def change_property(self, property_name, value, value2, call, get_obj, line_command, test_run):
+        fig = self.fig
+        obj = get_obj()
+        fig.figure_dragger.select_element(obj)
 
-        # get the figure
-        fig = plt.gcf()
-        t = fig.axes[0].texts[0]
-        # and select the axes
-        fig.figure_dragger.select_element(t)
+        # get current value
+        current_value = getattr(get_obj(), f"get_{property_name}")()
 
-        # move the axes and save
-        fig.selection.start_move()
-        fig.selection.addOffset((-1, 0), fig.selection.dir)
-        fig.selection.end_move()
+        # set the text to bold
+        call(obj)
         fig.change_tracker.save()
+
+        # test if the text has the right weight
+        self.assertEqualStringOrArray(value, getattr(get_obj(), f"get_{property_name}")(), f"Property {property_name} not set correctly. [{test_run}]")
+
+        # test undo and redo
+        #fig.window.undo()
+        #self.assertEqualStringOrArray(current_value, getattr(get_obj(), f"get_{property_name}")(), f"Property {property_name} undo not set correctly. [{test_run}]")
+        #fig.window.redo()
+        #self.assertEqualStringOrArray(value, getattr(get_obj(), f"get_{property_name}")(), f"Property {property_name} redo not set correctly. [{test_run}]")
 
         # find the saved string and check the numbers
-        line = self.check_line_in_file("plt.figure(1).axes[0].texts[0].set(")
-        data = self.match_numbers(r".*set\(.*position=\(([\.\d]*), ([\.\d]*)\)", line)
-        np.testing.assert_almost_equal(data, [0.48, 0.5], 2, "Text movement not correctly written to file")
+        line, (args, kwargs) = self.check_line_in_file(line_command)
+        if line_command.endswith(".text("):
+            if property_name == "position":
+                kwargs["position"] = args[:2]
+            if property_name == "text":
+                kwargs["text"] = args[2]
+        self.assertEqualStringOrArray(value2, kwargs.get(property_name), f"Property {property_name} not saved correctly. [{test_run}]")
 
         # run the file again
-        with open(self.filename, "rb") as fp:
-            text = fp.read()
-        exec(compile(text, self.filename, 'exec'), globals())
+        fig, text = self.run_plot_script()
 
-        # test if the axes is at the right position
-        fig = plt.gcf()
-        t = fig.axes[0].texts[0]
-        np.testing.assert_almost_equal(np.array(t.get_position()), np.array([0.48, 0.5]), 2, "Saved axes not loaded correctly")
+        # test if the text has the right weight
+        self.assertEqualStringOrArray(value, getattr(get_obj(), f"get_{property_name}")(), f"Property {property_name} not restored correctly. [{test_run}]")
 
-        # select the axes
-        fig.figure_dragger.select_element(t)
+        # select the text
+        fig.figure_dragger.select_element(get_obj())
         # don't move it and save the result
-        fig.selection.start_move()
-        fig.selection.addOffset((0, 0), fig.selection.dir)
-        fig.selection.end_move()
-        fig.change_tracker.save()
+        self.move_element(get_obj(), (0, 0))
 
         # the output should still be the same
-        with open(self.filename, "rb") as fp:
-            text2 = fp.read()
+        self.assertEqual(text, self.get_script_text(), f"Saved differently. Property {property_name}. [{test_run}]")
 
-        self.assertEqual(text, text2, "Saved differently")
+    def test_text_properties_existing(self):
+        # get the figure
+        fig, text = self.run_plot_script()
+
+        get_text = lambda: fig.axes[0].texts[0]
+        line_command = "plt.figure(1).axes[0].texts[0].set("
+        test_run = "Change existing text in axes."
+        self.check_text_properties(get_text, line_command, test_run)
+
+    def test_text_properties_existing(self):
+        # get the figure
+        fig, text = self.run_plot_script()
+
+        fig.figure_dragger.select_element(fig.axes[0])
+        fig.window.input_properties.button_add_text.clicked.emit()
+
+        get_text = lambda: fig.axes[0].texts[-1]
+        line_command = "plt.figure(1).axes[0].text("
+        test_run = "Change new text in axes."
+
+        self.check_text_properties(get_text, line_command, test_run)
+
+    def test_text_properties_figure_existing(self):
+        # get the figure
+        fig, text = self.run_plot_script()
+
+        get_text = lambda: fig.texts[-1]
+        line_command = "plt.figure(1).texts[0].set("
+        test_run = "Change existing text in Figure."
+
+        self.check_text_properties(get_text, line_command, test_run)
+
+    def test_text_properties_figure_new(self):
+        # get the figure
+        fig, text = self.run_plot_script()
+
+        fig.figure_dragger.select_element(fig)
+        fig.window.input_properties.button_add_text.clicked.emit()
+
+        get_text = lambda: fig.texts[-1]
+        line_command = "plt.figure(1).text("
+        test_run = "Change new text in Figure."
+
+        self.check_text_properties(get_text, line_command, test_run)
+
+    def test_textProperties(self):
+        # get the figure
+        fig, text = self.run_plot_script()
+
+        for i in [0, 1, 2, 3]:
+            if i == 0:
+                get_text = lambda: fig.axes[0].texts[0]
+                line_command = "plt.figure(1).axes[0].texts[0].set("
+                test_run = "Change existing text in axes."
+            if i == 1:
+                fig.figure_dragger.select_element(fig.axes[0])
+                fig.window.input_properties.button_add_text.clicked.emit()
+                get_text = lambda: fig.axes[0].texts[-1]
+                line_command = "plt.figure(1).axes[0].text("
+                test_run = "Change new text in axes."
+            if i == 2:
+                get_text = lambda: fig.texts[-1]
+                line_command = "plt.figure(1).texts[0].set("
+                test_run = "Change existing text in Figure."
+            if i == 3:
+                fig.figure_dragger.select_element(fig)
+                fig.window.input_properties.button_add_text.clicked.emit()
+                get_text = lambda: fig.texts[-1]
+                line_command = "plt.figure(1).text("
+                test_run = "Change new text in Figure."
+
+    def check_text_properties(self, get_text, line_command, test_run):
+        fig = self.fig
+        self.change_property("position", (0.4849, 0.5), (0.4849, 0.5), lambda obj: self.move_element(obj, (-1, 0)), get_text, line_command, test_run)
+        self.change_property("position", (0.5, 0.5), (0.5, 0.5), lambda obj: self.move_element(obj, (1, 0)), get_text, line_command, test_run)
+        self.change_property("position", (0.5, 0.4881), (0.5, 0.4881), lambda obj: self.move_element(obj, (0, -1)), get_text, line_command, test_run)
+        self.change_property("position", (0.5, 0.5), (0.5, 0.5), lambda obj: self.move_element(obj, (0, 1)), get_text, line_command, test_run)
+        self.change_property("position", (0.2, 0.5), (0.2, 0.5), lambda _: fig.window.input_size.input_position.valueChangedX.emit(0.2), get_text, line_command, test_run)
+        self.change_property("position", (0.2, 0.2), (0.2, 0.2), lambda _: fig.window.input_size.input_position.valueChangedY.emit(0.2), get_text, line_command, test_run)
+        self.change_property("weight", "bold", "bold", lambda _: fig.window.input_properties.input_font_properties.button_bold.clicked.emit(True), get_text, line_command, test_run)
+        self.change_property("weight", "normal", None, lambda _: fig.window.input_properties.input_font_properties.button_bold.clicked.emit(False), get_text, line_command, test_run)
+        self.change_property("style", "italic", "italic", lambda _: fig.window.input_properties.input_font_properties.button_italic.clicked.emit(True), get_text, line_command, test_run)
+        self.change_property("style", "normal", None, lambda _: fig.window.input_properties.input_font_properties.button_italic.clicked.emit(False), get_text, line_command, test_run)
+        self.change_property("ha", "left", None, lambda _: fig.window.input_properties.input_font_properties.buttons_align[0].clicked.emit(True), get_text, line_command, test_run)
+        self.change_property("ha", "center", "center", lambda _: fig.window.input_properties.input_font_properties.buttons_align[1].clicked.emit(True), get_text, line_command, test_run)
+        self.change_property("ha", "right", "right", lambda _: fig.window.input_properties.input_font_properties.buttons_align[2].clicked.emit(True), get_text, line_command, test_run)
+        self.change_property("color", "#FF0000", "#FF0000", lambda _: fig.window.input_properties.input_font_properties.button_color.valueChanged.emit("#FF0000"), get_text, line_command, test_run)
+        self.change_property("fontsize", 8, 8, lambda _: fig.window.input_properties.input_font_properties.font_size.valueChanged.emit(8), get_text, line_command, test_run)
+        self.change_property("text", "update", "update", lambda _: fig.window.input_properties.input_text.setText("update", signal=True), get_text, line_command, test_run)
+

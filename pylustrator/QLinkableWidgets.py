@@ -71,7 +71,7 @@ class Linkable:
 
                 # special treatment for the xylabels, as they are not directly the target objects
                 label_object = None
-                if isinstance(self.element, Text) and isinstance(main_figure(self.element).selection.targets[0].target, Axes):
+                if isinstance(self.element, Text) and len(main_figure(self.element).selection.targets) and isinstance(main_figure(self.element).selection.targets[0].target, Axes):
                     for elm in main_figure(self.element).selection.targets:
                         elm = elm.target
                         if self.element == getattr(getattr(elm, f"get_xaxis")(), "get_label")():
@@ -102,7 +102,7 @@ class Linkable:
 
             def getAll():
                 label_object = None
-                if isinstance(self.element, Text) and isinstance(main_figure(self.element).selection.targets[0].target, Axes):
+                if isinstance(self.element, Text) and len(main_figure(self.element).selection.targets) and isinstance(main_figure(self.element).selection.targets[0].target, Axes):
                     for elm in main_figure(self.element).selection.targets:
                         elm = elm.target
                         if self.element == getattr(getattr(elm, f"get_xaxis")(), "get_label")():
@@ -395,7 +395,7 @@ class TextWidget(QtWidgets.QWidget, Linkable):
         """ set the text of the label """
         self.label.setLabel(text)
 
-    def setText(self, text: str):
+    def setText(self, text: str, signal=False):
         """ set contents of the text input widget """
         self.noSignal = True
         text = text.replace("\n", "\\n")
@@ -405,6 +405,8 @@ class TextWidget(QtWidgets.QWidget, Linkable):
         else:
             self.input1.setText(text)
         self.noSignal = False
+        if signal is True:
+            self.editingFinished.emit()
 
     def text(self) -> str:
         """ return the text """
