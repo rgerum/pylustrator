@@ -474,7 +474,7 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
             if icon is not None and getattr(widget, "label", None):
                 from pathlib import Path
                 pix = QtGui.QPixmap(str(Path(__file__).parent.parent / "icons" / icon))
-                pix = pix.scaledToWidth(28*QtGui.QGuiApplication.primaryScreen().logicalDotsPerInch()/96, QtCore.Qt.SmoothTransformation)
+                pix = pix.scaledToWidth(int(28*QtGui.QGuiApplication.primaryScreen().logicalDotsPerInch()/96), QtCore.Qt.SmoothTransformation)
                 widget.setToolTip(name)
                 widget.label.setToolTip(name)
                 widget.label.setPixmap(pix)
