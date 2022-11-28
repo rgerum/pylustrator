@@ -250,10 +250,10 @@ class ChangeTracker:
             transform = getReference(element.figure) + '.transFigure'
         if getattr(element, "is_new_text", False):
             main_figure(element).change_tracker.addChange(element.axes or element.figure,
-                    f".text({pos[0]}, {pos[1]}, {repr(element.get_text())}, transform={transform}{kwargs})  # id={getReference(element)}.new",
+                    f".text({pos[0]:.4f}, {pos[1]:.4f}, {repr(element.get_text())}, transform={transform}{kwargs})  # id={getReference(element)}.new",
                                                     element, ".new")
         else:
-            main_figure(element).change_tracker.addChange(element, f".set(position={repr(pos)}, text={repr(element.get_text())}{kwargs})")
+            main_figure(element).change_tracker.addChange(element, f".set(position=({pos[0]:.4f}, {pos[1]:.4f}), text={repr(element.get_text())}{kwargs})")
 
     def changeCountChanged(self):
         if self.update_changes_signal is not None:
