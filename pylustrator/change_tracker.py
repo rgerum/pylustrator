@@ -344,13 +344,13 @@ class ChangeTracker:
 
         block, lineno = getTextFromFile(getReference(self.figure), stack_position)
         if not block:
-            block = getTextFromFile(getReference(self.figure, allow_using_variable_names=False), stack_position)
+            block, lineno = getTextFromFile(getReference(self.figure, allow_using_variable_names=False), stack_position)
         for line in block:
             line = line.strip()
             lineno += 1
             if line == "" or line in header or line.startswith("#"):
                 continue
-            if re.match(".*\.ax_dict =.*", line):
+            if re.match(r".*\.ax_dict =.*", line):
                 continue
 
             raw_line = line
@@ -514,7 +514,7 @@ def getTextFromFile(block_id: str, stack_pos: traceback.FrameSummary):
 
     if not custom_stack_position:
         if not stack_pos.filename.endswith('.py') and not stack_pos.filename.startswith("<ipython-input-"):
-            return []
+            return [], -1
 
     start_lineno = -1
 
