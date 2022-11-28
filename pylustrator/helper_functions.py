@@ -655,6 +655,8 @@ def axes_to_grid(axes=None, track_changes=False):
 
 
 def main_figure(artist):
+    if artist is None:
+        return None
     if artist.figure == artist:
         return artist
     else:

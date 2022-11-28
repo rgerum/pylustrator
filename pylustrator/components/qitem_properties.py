@@ -35,6 +35,7 @@ from matplotlib.figure import Figure
 
 from pylustrator.change_tracker import getReference
 from pylustrator.QLinkableWidgets import QColorWidget, CheckWidget, TextWidget, DimensionsWidget, NumberWidget, ComboWidget
+from pylustrator.helper_functions import main_figure
 
 
 class TextPropertiesWidget(QtWidgets.QWidget):
@@ -120,24 +121,24 @@ class TextPropertiesWidget(QtWidgets.QWidget):
 
         for element in self.target_list:
             element.set_fontname(font.family())
-            element.figure.change_tracker.addNewTextChange(element)
+            main_figure(element).change_tracker.addNewTextChange(element)
 
             if font.weight() != font0.weight():
                 weight = self.convertQtWeightToMplWeight(font.weight())
                 element.set_weight(weight)
-                element.figure.change_tracker.addNewTextChange(element)
+                main_figure(element).change_tracker.addNewTextChange(element)
 
             if font.pointSizeF() != font0.pointSizeF():
                 element.set_fontsize(font.pointSizeF())
-                element.figure.change_tracker.addNewTextChange(element)
+                main_figure(element).change_tracker.addNewTextChange(element)
 
             if font.italic() != font0.italic():
                 style = "italic" if font.italic() else "normal"
                 element.set_style(style)
-                element.figure.change_tracker.addNewTextChange(element)
+                main_figure(element).change_tracker.addNewTextChange(element)
 
-        self.target.figure.canvas.draw()
-        self.target.figure.signals.figure_selection_property_changed.emit()
+        main_figure(self.target).canvas.draw()
+        main_figure(self.target).signals.figure_selection_property_changed.emit()
         self.setTarget(self.target_list)
 
     def setTarget(self, element: Artist):
@@ -166,7 +167,7 @@ class TextPropertiesWidget(QtWidgets.QWidget):
     def delete(self):
         """ delete the target text """
         if self.target is not None:
-            fig = self.target.figure
+            fig = main_figure(self.target)
             fig.change_tracker.removeElement(self.target)
             self.target = None
             # self.target.set_visible(False)
@@ -181,11 +182,11 @@ class TextPropertiesWidget(QtWidgets.QWidget):
             for element in self.target_list:
                 element.set_weight("bold" if checked else "normal")
 
-                element.figure.change_tracker.addNewTextChange(element)
+                main_figure(element).change_tracker.addNewTextChange(element)
 
             self.target = element
-            self.target.figure.canvas.draw()
-            self.target.figure.signals.figure_selection_property_changed.emit()
+            main_figure(self.target).canvas.draw()
+            main_figure(self.target).signals.figure_selection_property_changed.emit()
 
     def changeStyle(self, checked: bool):
         """ set italic or normal """
@@ -196,11 +197,11 @@ class TextPropertiesWidget(QtWidgets.QWidget):
             for element in self.target_list:
                 element.set_style("italic" if checked else "normal")
 
-                element.figure.change_tracker.addNewTextChange(element)
+                main_figure(element).change_tracker.addNewTextChange(element)
 
             self.target = element
-            self.target.figure.canvas.draw()
-            self.target.figure.signals.figure_selection_property_changed.emit()
+            main_figure(self.target).canvas.draw()
+            main_figure(self.target).signals.figure_selection_property_changed.emit()
 
     def changeColor(self, color: str):
         """ set the text color """
@@ -210,11 +211,11 @@ class TextPropertiesWidget(QtWidgets.QWidget):
 
             for element in self.target_list:
                 element.set_color(color)
-                element.figure.change_tracker.addNewTextChange(element)
+                main_figure(element).change_tracker.addNewTextChange(element)
 
             self.target = element
-            self.target.figure.canvas.draw()
-            self.target.figure.signals.figure_selection_property_changed.emit()
+            main_figure(self.target).canvas.draw()
+            main_figure(self.target).signals.figure_selection_property_changed.emit()
 
     def changeAlign(self, align: str):
         """ set the text algin """
@@ -227,20 +228,20 @@ class TextPropertiesWidget(QtWidgets.QWidget):
                 for index, button in enumerate(self.buttons_align):
                     button.setChecked(index == index_selected)
                 element.set_ha(align)
-                element.figure.change_tracker.addNewTextChange(element)
+                main_figure(element).change_tracker.addNewTextChange(element)
 
             self.target = element
-            self.target.figure.canvas.draw()
-            self.target.figure.signals.figure_selection_property_changed.emit()
+            main_figure(self.target).canvas.draw()
+            main_figure(self.target).signals.figure_selection_property_changed.emit()
 
     def changeFontSize(self, value: int):
         """ set the font size """
         if self.target:
             for element in self.target_list:
                 element.set_fontsize(value)
-                element.figure.change_tracker.addNewTextChange(element)
-            self.target.figure.canvas.draw()
-            self.target.figure.signals.figure_selection_property_changed.emit()
+                main_figure(element).change_tracker.addNewTextChange(element)
+            main_figure(self.target).canvas.draw()
+            main_figure(self.target).signals.figure_selection_property_changed.emit()
 
 
 class TextPropertiesWidget2(QtWidgets.QWidget):
@@ -304,7 +305,7 @@ class TextPropertiesWidget2(QtWidgets.QWidget):
         ]
 
         self.properties = {}
-        self.propertiesChanged.connect(lambda: self.target.figure.signals.figure_selection_property_changed.emit())
+        self.propertiesChanged.connect(lambda: self.target and main_figure(self.target).signals.figure_selection_property_changed.emit())
 
     def convertMplWeightToQtWeight(self, weight: str) -> int:
         """ convert a font weight string to a weight enumeration of Qt """
@@ -341,7 +342,7 @@ class TextPropertiesWidget2(QtWidgets.QWidget):
             self.properties["fontstyle"] = style
 
         self.propertiesChanged.emit()
-        #self.target.figure.canvas.draw()
+        #main_figure(self.target).canvas.draw()
         self.setTarget(self.target_list)
 
     def setTarget(self, element: Artist):
@@ -376,7 +377,7 @@ class TextPropertiesWidget2(QtWidgets.QWidget):
     def delete(self):
         """ delete the target text """
         if self.target is not None:
-            fig = self.target.figure
+            fig = main_figure(self.target)
             fig.change_tracker.removeElement(self.target)
             self.target = None
             # self.target.set_visible(False)
@@ -490,7 +491,7 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
         axes = self.target.axes
         axes.legend(**self.properties)
         self.target = axes.get_legend()
-        fig = self.target.figure
+        fig = main_figure(self.target)
         prop_copy = {}
         for index, (name, name2, type_, default_, icon) in enumerate(self.property_names):
             value = self.properties[name]
@@ -639,7 +640,7 @@ class QTickEdit(QtWidgets.QWidget):
     def setTarget(self, element: Artist):
         """ set the target Artist for this widget"""
         self.element = element
-        self.fig = element.figure
+        self.fig = main_figure(element)
         min, max = getattr(self.element, "get_" + self.axis + "lim")()
         self.range = [min, max]
 
@@ -676,7 +677,7 @@ class QTickEdit(QtWidgets.QWidget):
         self.input_ticks2.setText(",<br>".join(text))
 
         elements = [self.element]
-        elements += [element.target for element in self.element.figure.selection.targets if
+        elements += [element.target for element in main_figure(self.element).selection.targets if
                      element.target != self.element and isinstance(element.target, Axes)]
         ticks = []
         for element in elements:
@@ -720,7 +721,7 @@ class QTickEdit(QtWidgets.QWidget):
         ticks, labels = self.parseTicks(self.input_ticks2.text())
 
         elements = [self.element]
-        elements += [element.target for element in self.element.figure.selection.targets if
+        elements += [element.target for element in main_figure(self.element).selection.targets if
                      element.target != self.element and isinstance(element.target, Axes)]
 
         for element in elements:
@@ -773,7 +774,7 @@ class QTickEdit(QtWidgets.QWidget):
         ticks, labels = self.parseTicks(self.input_ticks.text())
 
         elements = [self.element]
-        elements += [element.target for element in self.element.figure.selection.targets if
+        elements += [element.target for element in main_figure(self.element).selection.targets if
                      element.target != self.element and isinstance(element.target, Axes)]
 
         for element in elements:
@@ -1124,7 +1125,7 @@ class QItemProperties(QtWidgets.QWidget):
         else:
             commands = [".spines[['right', 'top']].set_visible(False)"]
         for command in commands:
-            elements = [element.target for element in self.element.figure.selection.targets
+            elements = [element.target for element in main_figure(self.element).selection.targets
                         if isinstance(element.target, Axes)]
             for element in elements:
                 eval("element" + command)
@@ -1133,7 +1134,7 @@ class QItemProperties(QtWidgets.QWidget):
 
     def buttonGridClicked(self):
         """ toggle the grid of the target """
-        elements = [element.target for element in self.element.figure.selection.targets
+        elements = [element.target for element in main_figure(self.element).selection.targets
                     if isinstance(element.target, Axes)]
 
         def set_false():
@@ -1208,7 +1209,7 @@ class QItemProperties(QtWidgets.QWidget):
         try:
             self.input_font_properties.show()
             elements = [element]
-            elements += [element.target for element in element.figure.selection.targets if
+            elements += [element.target for element in main_figure(element).selection.targets if
                          element.target != element]
             self.input_font_properties.setTarget(elements)
         except AttributeError:
