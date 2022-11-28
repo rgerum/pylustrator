@@ -74,30 +74,12 @@ plt.show(hide_window=True)
                         def grab_args(*args, **kwargs):
                             return args, kwargs
 
-                        args = re.match(re.escape(line_start)+"(.*)\)", line).groups()[0]
+                        args = re.match(re.escape(line_start)+r"(.*)\)", line).groups()[0]
                         return line, eval(f"grab_args({args})")
                 if line.startswith("#% start: automatic generated code from pylustrator"):
                     in_block = True
                 if line.startswith("#% end: automatic generated code from pylustrator"):
                     in_block = False
-
-    def print_saved_block(self):
-        with self.filename.open("r") as fp:
-            in_block = False
-            block = ""
-            for line in fp:
-                if in_block is True:
-                    block += line
-                if line.startswith("#% start: automatic generated code from pylustrator"):
-                    in_block = True
-                if line.startswith("#% end: automatic generated code from pylustrator"):
-                    in_block = False
-            print(block)
-
-    def match_numbers(self, regex, line):
-        groups = re.match(regex, line).groups()
-        data = [float(s) for s in groups]
-        return data
 
     def move_element(self, element, offset):
         fig = self.fig
@@ -151,13 +133,13 @@ plt.show(hide_window=True)
         fig.change_tracker.save()
 
         # test if the text has the right weight
-        self.assertEqualStringOrArray(value, getattr(get_obj(), f"get_{property_name}")(), f"Property {property_name} not set correctly. [{test_run}]")
+        self.assertEqualStringOrArray(value, getattr(get_obj(), f"get_{property_name}")(), f"Property '{property_name}' not set correctly. [{test_run}]")
 
         # test undo and redo
-        #fig.window.undo()
-        #self.assertEqualStringOrArray(current_value, getattr(get_obj(), f"get_{property_name}")(), f"Property {property_name} undo not set correctly. [{test_run}]")
-        #fig.window.redo()
-        #self.assertEqualStringOrArray(value, getattr(get_obj(), f"get_{property_name}")(), f"Property {property_name} redo not set correctly. [{test_run}]")
+        fig.window.undo()
+        self.assertEqualStringOrArray(current_value, getattr(get_obj(), f"get_{property_name}")(), f"Property '{property_name}' undo failed. [{test_run}]")
+        fig.window.redo()
+        self.assertEqualStringOrArray(value, getattr(get_obj(), f"get_{property_name}")(), f"Property '{property_name}' redo failed. [{test_run}]")
 
         # find the saved string and check the numbers
         line, (args, kwargs) = self.check_line_in_file(line_command)
@@ -166,13 +148,13 @@ plt.show(hide_window=True)
                 kwargs["position"] = args[:2]
             if property_name == "text":
                 kwargs["text"] = args[2]
-        self.assertEqualStringOrArray(value2, kwargs.get(property_name), f"Property {property_name} not saved correctly. [{test_run}]")
+        self.assertEqualStringOrArray(value2, kwargs.get(property_name), f"Property '{property_name}' not saved correctly. [{test_run}]")
 
         # run the file again
         fig, text = self.run_plot_script()
 
         # test if the text has the right weight
-        self.assertEqualStringOrArray(value, getattr(get_obj(), f"get_{property_name}")(), f"Property {property_name} not restored correctly. [{test_run}]")
+        self.assertEqualStringOrArray(value, getattr(get_obj(), f"get_{property_name}")(), f"Property '{property_name}' not restored correctly. [{test_run}]")
 
         # select the text
         fig.figure_dragger.select_element(get_obj())
@@ -180,9 +162,9 @@ plt.show(hide_window=True)
         self.move_element(get_obj(), (0, 0))
 
         # the output should still be the same
-        self.assertEqual(text, self.get_script_text(), f"Saved differently. Property {property_name}. [{test_run}]")
+        self.assertEqual(text, self.get_script_text(), f"Saved differently. Property '{property_name}'. [{test_run}]")
 
-    def test_text_properties_existing(self):
+    def test_text_properties_axes_existing(self):
         # get the figure
         fig, text = self.run_plot_script()
 
@@ -191,7 +173,7 @@ plt.show(hide_window=True)
         test_run = "Change existing text in axes."
         self.check_text_properties(get_text, line_command, test_run)
 
-    def test_text_properties_existing(self):
+    def test_text_properties_axes_new(self):
         # get the figure
         fig, text = self.run_plot_script()
 
@@ -227,32 +209,6 @@ plt.show(hide_window=True)
 
         self.check_text_properties(get_text, line_command, test_run)
 
-    def test_textProperties(self):
-        # get the figure
-        fig, text = self.run_plot_script()
-
-        for i in [0, 1, 2, 3]:
-            if i == 0:
-                get_text = lambda: fig.axes[0].texts[0]
-                line_command = "plt.figure(1).axes[0].texts[0].set("
-                test_run = "Change existing text in axes."
-            if i == 1:
-                fig.figure_dragger.select_element(fig.axes[0])
-                fig.window.input_properties.button_add_text.clicked.emit()
-                get_text = lambda: fig.axes[0].texts[-1]
-                line_command = "plt.figure(1).axes[0].text("
-                test_run = "Change new text in axes."
-            if i == 2:
-                get_text = lambda: fig.texts[-1]
-                line_command = "plt.figure(1).texts[0].set("
-                test_run = "Change existing text in Figure."
-            if i == 3:
-                fig.figure_dragger.select_element(fig)
-                fig.window.input_properties.button_add_text.clicked.emit()
-                get_text = lambda: fig.texts[-1]
-                line_command = "plt.figure(1).text("
-                test_run = "Change new text in Figure."
-
     def check_text_properties(self, get_text, line_command, test_run):
         fig = self.fig
         self.change_property("position", (0.4849, 0.5), (0.4849, 0.5), lambda obj: self.move_element(obj, (-1, 0)), get_text, line_command, test_run)
@@ -271,4 +227,5 @@ plt.show(hide_window=True)
         self.change_property("color", "#FF0000", "#FF0000", lambda _: fig.window.input_properties.input_font_properties.button_color.valueChanged.emit("#FF0000"), get_text, line_command, test_run)
         self.change_property("fontsize", 8, 8, lambda _: fig.window.input_properties.input_font_properties.font_size.valueChanged.emit(8), get_text, line_command, test_run)
         self.change_property("text", "update", "update", lambda _: fig.window.input_properties.input_text.setText("update", signal=True), get_text, line_command, test_run)
+        self.change_property("rotation", 45, 45, lambda _: fig.window.input_properties.input_rotation.setValue(45, signal=True), get_text, line_command, test_run)
 

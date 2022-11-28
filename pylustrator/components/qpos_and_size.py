@@ -9,7 +9,7 @@ from matplotlib.axes._subplots import Axes
 from matplotlib.text import Text
 import matplotlib.transforms as transforms
 
-from pylustrator.helper_functions import changeFigureSize
+from pylustrator.helper_functions import changeFigureSize, main_figure
 from pylustrator.QLinkableWidgets import DimensionsWidget, ComboWidget
 
 
@@ -84,7 +84,7 @@ class QPosAndSize(QtWidgets.QWidget):
     def changePos(self, value_x: float, value_y: float):
         """ change the position of an axes """
         elements = [self.element]
-        elements += [element.target for element in self.element.figure.selection.targets if
+        elements += [element.target for element in main_figure(self.element).selection.targets if
                      element.target != self.element and isinstance(element.target, Axes)]
 
         old_positions = []
@@ -115,7 +115,7 @@ class QPosAndSize(QtWidgets.QWidget):
                     fig.change_tracker.addChange(element, ".set_position([%f, %f])" % tuple(pos))
 
         def undo():
-            for element, pos in zip(elements, new_positions):
+            for element, pos in zip(elements, old_positions):
                 element.set_position(pos)
                 if isinstance(element, Text):
                     fig.change_tracker.addNewTextChange(element)
@@ -125,7 +125,7 @@ class QPosAndSize(QtWidgets.QWidget):
                     fig.change_tracker.addChange(element, ".set_position([%f, %f])" % tuple(pos))
 
         redo()
-        self.fig.change_tracker.addEdit([undo, redo, "Change size"])
+        self.fig.change_tracker.addEdit([undo, redo, "Change position"])
 
         self.fig.signals.figure_selection_property_changed.emit()
         self.fig.canvas.draw()

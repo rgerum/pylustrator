@@ -464,11 +464,13 @@ class NumberWidget(QtWidgets.QWidget, Linkable):
         """ set the text label """
         self.label.setLabel(text)
 
-    def setValue(self, text: float):
+    def setValue(self, text: float, signal=False):
         """ set the value of the spin box """
         self.noSignal = True
         self.input1.setValue(text)
         self.noSignal = False
+        if signal is True:
+            self.editingFinished.emit()
 
     def value(self) -> float:
         """ get the value of the spin box """

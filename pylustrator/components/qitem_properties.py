@@ -119,23 +119,44 @@ class TextPropertiesWidget(QtWidgets.QWidget):
         font0.setPointSizeF(int(self.target.get_fontsize()))
         font, x = QtWidgets.QFontDialog.getFont(font0, self)
 
-        for element in self.target_list:
-            element.set_fontname(font.family())
-            main_figure(element).change_tracker.addNewTextChange(element)
+        elements = list(self.target_list)
+        old_value = [dict(family=elem.get_fontname(),
+                          weight=elem.get_weight(),
+                          fontsize=elem.get_fontsize(),
+                          style=elem.get_fontsize(),
+                          ) for elem in elements]
 
-            if font.weight() != font0.weight():
-                weight = self.convertQtWeightToMplWeight(font.weight())
-                element.set_weight(weight)
+        new_value = dict(family=font.family(),
+                         weight=self.convertQtWeightToMplWeight(font.weight()) if font.weight() != font0.weight() else None,
+                         fontsize=font.pointSizeF() if font.pointSizeF() != font0.pointSizeF() else None,
+                         style=("italic" if font.italic() else "normal") if font.italic() != font0.italic() else None)
+
+        def redo():
+            for element in elements:
+                element.set_fontname(new_value["family"])
+                if new_value["weight"] is not None:
+                    element.set_weight(new_value["weight"])
+                if new_value["fontsize"] is not None:
+                    element.set_fontsize(new_value["fontsize"])
+                if new_value["style"] is not None:
+                    element.set_style(new_value["style"])
+
                 main_figure(element).change_tracker.addNewTextChange(element)
 
-            if font.pointSizeF() != font0.pointSizeF():
-                element.set_fontsize(font.pointSizeF())
+        def undo():
+            for element, value in zip(elements, old_value):
+                element.set_fontname(value["family"])
+                if new_value["weight"] is not None:
+                    element.set_weight(value["weight"])
+                if new_value["fontsize"] is not None:
+                    element.set_fontsize(value["fontsize"])
+                if new_value["style"] is not None:
+                    element.set_style(value["style"])
+
                 main_figure(element).change_tracker.addNewTextChange(element)
 
-            if font.italic() != font0.italic():
-                style = "italic" if font.italic() else "normal"
-                element.set_style(style)
-                main_figure(element).change_tracker.addNewTextChange(element)
+        redo()
+        main_figure(elements[0]).change_tracker.addEdit([undo, redo, "Change font"])
 
         main_figure(self.target).canvas.draw()
         main_figure(self.target).signals.figure_selection_property_changed.emit()
@@ -179,10 +200,23 @@ class TextPropertiesWidget(QtWidgets.QWidget):
             element = self.target
             self.target = None
 
-            for element in self.target_list:
-                element.set_weight("bold" if checked else "normal")
+            elements = list(self.target_list)
+            old_value = [elem.get_weight() for elem in elements]
 
-                main_figure(element).change_tracker.addNewTextChange(element)
+            def redo():
+                for element in elements:
+                    element.set_weight("bold" if checked else "normal")
+
+                    main_figure(element).change_tracker.addNewTextChange(element)
+
+            def undo():
+                for element, value in zip(elements, old_value):
+                    element.set_weight(value)
+
+                    main_figure(element).change_tracker.addNewTextChange(element)
+
+            redo()
+            main_figure(element).change_tracker.addEdit([undo, redo, "Change weight"])
 
             self.target = element
             main_figure(self.target).canvas.draw()
@@ -194,10 +228,23 @@ class TextPropertiesWidget(QtWidgets.QWidget):
             element = self.target
             self.target = None
 
-            for element in self.target_list:
-                element.set_style("italic" if checked else "normal")
+            elements = list(self.target_list)
+            old_value = [elem.get_style() for elem in elements]
 
-                main_figure(element).change_tracker.addNewTextChange(element)
+            def redo():
+                for element in elements:
+                    element.set_style("italic" if checked else "normal")
+
+                    main_figure(element).change_tracker.addNewTextChange(element)
+
+            def undo():
+                for element, value in zip(elements, old_value):
+                    element.set_style(value)
+
+                    main_figure(element).change_tracker.addNewTextChange(element)
+
+            redo()
+            main_figure(element).change_tracker.addEdit([undo, redo, "Change style"])
 
             self.target = element
             main_figure(self.target).canvas.draw()
@@ -209,9 +256,24 @@ class TextPropertiesWidget(QtWidgets.QWidget):
             element = self.target
             self.target = None
 
-            for element in self.target_list:
-                element.set_color(color)
-                main_figure(element).change_tracker.addNewTextChange(element)
+            elements = list(self.target_list)
+            old_value = [elem.get_color() for elem in elements]
+            new_value = color
+
+            def redo():
+                for element in elements:
+                    element.set_color(new_value)
+
+                    main_figure(element).change_tracker.addNewTextChange(element)
+
+            def undo():
+                for element, value in zip(elements, old_value):
+                    element.set_color(value)
+
+                    main_figure(element).change_tracker.addNewTextChange(element)
+
+            redo()
+            main_figure(element).change_tracker.addEdit([undo, redo, "Change weight"])
 
             self.target = element
             main_figure(self.target).canvas.draw()
@@ -223,12 +285,28 @@ class TextPropertiesWidget(QtWidgets.QWidget):
             element = self.target
             self.target = None
 
-            for element in self.target_list:
-                index_selected = self.align_names.index(align)
-                for index, button in enumerate(self.buttons_align):
-                    button.setChecked(index == index_selected)
-                element.set_ha(align)
-                main_figure(element).change_tracker.addNewTextChange(element)
+            index_selected = self.align_names.index(align)
+            for index, button in enumerate(self.buttons_align):
+                button.setChecked(index == index_selected)
+
+            elements = list(self.target_list)
+            old_value = [elem.get_ha() for elem in elements]
+            new_value = align
+
+            def redo():
+                for element in elements:
+                    element.set_ha(new_value)
+
+                    main_figure(element).change_tracker.addNewTextChange(element)
+
+            def undo():
+                for element, value in zip(elements, old_value):
+                    element.set_ha(value)
+
+                    main_figure(element).change_tracker.addNewTextChange(element)
+
+            redo()
+            main_figure(element).change_tracker.addEdit([undo, redo, "Change alignment"])
 
             self.target = element
             main_figure(self.target).canvas.draw()
@@ -237,9 +315,25 @@ class TextPropertiesWidget(QtWidgets.QWidget):
     def changeFontSize(self, value: int):
         """ set the font size """
         if self.target:
-            for element in self.target_list:
-                element.set_fontsize(value)
-                main_figure(element).change_tracker.addNewTextChange(element)
+            element = self.target
+            elements = list(self.target_list)
+            old_value = [elem.get_fontsize() for elem in elements]
+
+            def redo():
+                for element in elements:
+                    element.set_fontsize(value)
+
+                    main_figure(element).change_tracker.addNewTextChange(element)
+
+            def undo():
+                for element, value in zip(elements, old_value):
+                    element.set_fontsize(value)
+
+                    main_figure(element).change_tracker.addNewTextChange(element)
+
+            redo()
+            main_figure(element).change_tracker.addEdit([undo, redo, "Change weight"])
+
             main_figure(self.target).canvas.draw()
             main_figure(self.target).signals.figure_selection_property_changed.emit()
 
