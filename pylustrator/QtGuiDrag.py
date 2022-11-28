@@ -79,7 +79,6 @@ def initialize(use_global_variable_names=False, use_exception_silencer=False, di
         from pylustrator.change_tracker import getReference
         stack_position = traceback.extract_stack()[-2]
         element._pylustrator_reference = dict(reference=getReference(element), stack_position=stack_position)
-        print(element, getReference(element), stack_position)
         return element
     Axes.text = wrapped_text
 

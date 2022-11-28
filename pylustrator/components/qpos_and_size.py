@@ -6,6 +6,7 @@ import matplotlib.transforms as transforms
 from matplotlib.figure import Figure
 from matplotlib.artist import Artist
 from matplotlib.axes._subplots import Axes
+from matplotlib.text import Text
 import matplotlib.transforms as transforms
 
 from pylustrator.helper_functions import changeFigureSize
@@ -106,7 +107,9 @@ class QPosAndSize(QtWidgets.QWidget):
         def redo():
             for element, pos in zip(elements, new_positions):
                 element.set_position(pos)
-                if len(pos) == 4:
+                if isinstance(element, Text):
+                    fig.change_tracker.addNewTextChange(element)
+                elif len(pos) == 4:
                     fig.change_tracker.addChange(element, ".set_position([%f, %f, %f, %f])" % tuple(pos))
                 else:
                     fig.change_tracker.addChange(element, ".set_position([%f, %f])" % tuple(pos))
@@ -114,7 +117,9 @@ class QPosAndSize(QtWidgets.QWidget):
         def undo():
             for element, pos in zip(elements, new_positions):
                 element.set_position(pos)
-                if len(pos) == 4:
+                if isinstance(element, Text):
+                    fig.change_tracker.addNewTextChange(element)
+                elif len(pos) == 4:
                     fig.change_tracker.addChange(element, ".set_position([%f, %f, %f, %f])" % tuple(pos))
                 else:
                     fig.change_tracker.addChange(element, ".set_position([%f, %f])" % tuple(pos))
