@@ -258,6 +258,7 @@ class GrabbableRectangleSelection(GrabFunctions):
             return axes_to_grid([target.target for target in self.targets], track_changes=True)
 
         def align(y: int, func: callable):
+            self.start_move()
             centers = []
             for target in self.targets:
                 new_points = np.array(target.get_positions())
@@ -268,8 +269,11 @@ class GrabbableRectangleSelection(GrabFunctions):
                 new_points[:, y] += new_center - centers[index]
                 target.set_positions(new_points)
             self.update_extent()
+            self.has_moved = True
+            self.end_move()
 
         def distribute(y: int):
+            self.start_move()
             sizes = []
             positions = []
             for target in self.targets:
@@ -286,6 +290,8 @@ class GrabbableRectangleSelection(GrabFunctions):
                 new_points[:, y] += pos - np.min(new_points[:, y])
                 target.set_positions(new_points)
                 pos += sizes[index] + spaces
+            self.has_moved = True
+            self.end_move()
 
         if mode == "center_x":
             align(0, np.mean)
