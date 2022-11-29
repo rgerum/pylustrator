@@ -84,14 +84,16 @@ class QPosAndSize(QtWidgets.QWidget):
     def changePos(self, value_x: float, value_y: float):
         """ change the position of an axes """
         elements = [self.element]
-        elements += [element.target for element in main_figure(self.element).selection.targets if
-                     element.target != self.element and isinstance(element.target, Axes)]
+        elements += [element.target for element in main_figure(self.element).selection.targets]
 
         old_positions = []
         new_positions = []
         for element in elements:
             old_pos = element.get_position()
-            old_positions.append(old_pos)
+            try:
+                old_positions.append([old_pos.x0, old_pos.y0, old_pos.width, old_pos.height])
+            except AttributeError:
+                old_positions.append(old_pos)
             if getattr(old_pos, "width", None) is not None:
                 pos = [old_pos.x0, old_pos.y0, old_pos.width, old_pos.height]
             else:
