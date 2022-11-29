@@ -73,14 +73,16 @@ def initialize(use_global_variable_names=False, use_exception_silencer=False, di
 
     # remeber linenumbers where texts are created
     from matplotlib.axes._axes import Axes
-    text = Axes.text
-    def wrapped_text(*args, **kwargs):
-        element = text(*args, **kwargs)
-        from pylustrator.change_tracker import getReference
-        stack_position = traceback.extract_stack()[-2]
-        element._pylustrator_reference = dict(reference=getReference(element), stack_position=stack_position)
-        return element
-    Axes.text = wrapped_text
+    def wrap_text_function(text):
+        def wrapped_text(*args, **kwargs):
+            element = text(*args, **kwargs)
+            from pylustrator.change_tracker import getReference
+            stack_position = traceback.extract_stack()[-2]
+            element._pylustrator_reference = dict(reference=getReference(element), stack_position=stack_position)
+            return element
+        return wrapped_text
+    Axes.text = wrap_text_function(Axes.text)
+    Figure.text = wrap_text_function(Figure.text)
 
     # store write only attribute
     no_save_allowed = disable_save

@@ -77,6 +77,23 @@ def unescape_string(str):
         str = str.replace(pair[1], pair[0])
     return str
 
+class UndoRedo:
+    def __init__(self, elements, name):
+        self.elements = list(elements)
+        self.name = name
+        self.figure = main_figure(elements[0])
+        self.change_tracker = self.figure.change_tracker
+
+    def __enter__(self):
+        self.undo = self.change_tracker.get_element_restore_function(self.elements)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.redo = self.change_tracker.get_element_restore_function(self.elements)
+        self.redo()
+        self.figure.canvas.draw()
+        self.figure.signals.figure_selection_property_changed.emit()
+        self.change_tracker.addEdit([self.undo, self.redo, self.name])
+
 def getReference(element: Artist, allow_using_variable_names=True):
     """ get the code string that represents the given Artist. """
     if element is None:
@@ -220,40 +237,72 @@ class ChangeTracker:
         self.saved = False
         self.changeCountChanged()
 
+    def get_element_restore_function(self, elements):
+        description_strings = [self.get_describtion_string(element, exclude_default=False) for element in elements]
+        def restore():
+            for element, string in description_strings:
+                #function, arguments = re.match(r"\.([^(]*)\((.*)\)", string)
+                print(f"{getReference(element)}{string}")
+                eval(f"{getReference(element)}{string}")
+                if isinstance(element, Text):
+                    self.addNewTextChange(element)
+                #getattr(element, function)(eval(arg))
+        return restore
+
+    def get_describtion_string(self, element, exclude_default=True):
+        if isinstance(element, Text):
+            # if the text is deleted we do not need to store all properties
+            if not element.get_visible():
+                if getattr(element, "is_new_text", False):
+                    return element.axes or element.figure, f".text(0, 0, "", visible=False)"
+                else:
+                    return element, f".set(visible=False)"
+
+            # properties to store
+            properties = ["ha", "va", "fontsize", "color", "style", "weight", "fontname", "rotation"]
+            # get default values
+            if self.text_properties_defaults is None:
+                self.text_properties_defaults = {}
+                if element.axes:
+                    text = element.axes.text(0.5, 0.5, "text")
+                else:
+                    text = element.figure.text(0.5, 0.5, "text")
+                for prop in properties:
+                    self.text_properties_defaults[prop] = getattr(text, f"get_{prop}")()
+                text.remove()
+
+            # get current property values
+            kwargs = ""
+            for prop in properties:
+                value = getattr(element, f"get_{prop}")()
+                if self.text_properties_defaults[prop] != value or not exclude_default:
+                    kwargs += f", {prop}={repr(value)}"
+
+            # get position and transformation
+            pos = element.get_position()
+            if element.axes:
+                transform = getReference(element.axes) + '.transAxes'
+            else:
+                transform = getReference(element.figure) + '.transFigure'
+
+            # compose text
+            if getattr(element, "is_new_text", False) and exclude_default:
+                return element.axes or element.figure, f".text({pos[0]:.4f}, {pos[1]:.4f}, {repr(element.get_text())}, transform={transform}{kwargs})"
+            else:
+                return element, f".set(position=({pos[0]:.4f}, {pos[1]:.4f}), text={repr(element.get_text())}{kwargs})"
+
     text_properties_defaults = None
     def addNewTextChange(self, element):
+        command_parent, command = self.get_describtion_string(element)
+
         # make sure there are no old changes to this element
         keys = [k for k in self.changes]
         for reference_obj, reference_command in keys:
             if reference_obj == element:
                 del self.changes[reference_obj, reference_command]
 
-        properties = ["ha", "va", "fontsize", "color", "style", "weight", "fontname", "rotation"]
-        if self.text_properties_defaults is None:
-            self.text_properties_defaults = {}
-            if element.axes:
-                text = element.axes.text(0.5, 0.5, "text")
-            else:
-                text = element.figure.text(0.5, 0.5, "text")
-            for prop in properties:
-                self.text_properties_defaults[prop] = getattr(text, f"get_{prop}")()
-            text.remove()
-        kwargs = ""
-        for prop in properties:
-            value = getattr(element, f"get_{prop}")()
-            if self.text_properties_defaults[prop] != value:
-                kwargs += f", {prop}={repr(value)}"
-        pos = element.get_position()
-        if element.axes:
-            transform = getReference(element.axes) + '.transAxes'
-        else:
-            transform = getReference(element.figure) + '.transFigure'
-        if getattr(element, "is_new_text", False):
-            main_figure(element).change_tracker.addChange(element.axes or element.figure,
-                    f".text({pos[0]:.4f}, {pos[1]:.4f}, {repr(element.get_text())}, transform={transform}{kwargs})  # id={getReference(element)}.new",
-                                                    element, ".new")
-        else:
-            main_figure(element).change_tracker.addChange(element, f".set(position=({pos[0]:.4f}, {pos[1]:.4f}), text={repr(element.get_text())}{kwargs})")
+        # store the changes
+        main_figure(element).change_tracker.addChange(command_parent, command)
 
     def changeCountChanged(self):
         if self.update_changes_signal is not None:
@@ -275,8 +324,22 @@ class ChangeTracker:
             if reference_obj == element:
                 del self.changes[reference_obj, reference_command]
         if not created_by_pylustrator:
-            self.addChange(element, ".set_visible(False)")
-            element.set_visible(False)
+            def redo():
+                element.set_visible(False)
+                if isinstance(element, Text):
+                    main_figure(element).change_tracker.addNewTextChange(element)
+                else:
+                    self.addChange(element, ".set(visible=False)")
+
+            def undo():
+                element.set_visible(True)
+                if isinstance(element, Text):
+                    main_figure(element).change_tracker.addNewTextChange(element)
+                else:
+                    self.addChange(element, ".set(visible=True)")
+
+            redo()
+            main_figure(element).change_tracker.addEdit([undo, redo, "Delete Text"])
         else:
             element.remove()
         self.figure.selection.remove_target(element)
