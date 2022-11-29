@@ -3,7 +3,7 @@ import numpy as np
 import re
 from pathlib import Path
 import matplotlib.pyplot as plt
-from matplotlib.backend_bases import MouseEvent
+from matplotlib.backend_bases import MouseEvent, KeyEvent
 from typing import Any
 
 
@@ -163,7 +163,16 @@ plt.show(hide_window=True)
                                       f"Property '{property_name}' redo failed. [{test_run}]")
 
         # find the saved string and check the numbers
-        line, (args, kwargs) = self.check_line_in_file(line_command)
+        try:
+            line, (args, kwargs) = self.check_line_in_file(line_command)
+            # if the task is to delete then it is now allowed to find the text
+            if property_name == "visible" and line_command.endswith(".text("):
+                raise TypeError
+        except TypeError as err:
+            if property_name == "visible" and line_command.endswith(".text("):
+                kwargs = dict(visible=False)
+            else:
+                raise err
         if line_command.endswith(".text("):
             if property_name == "position":
                 kwargs["position"] = args[:2]
@@ -176,13 +185,23 @@ plt.show(hide_window=True)
         fig, text = self.run_plot_script()
 
         # test if the text has the right weight
-        self.assertEqualStringOrArray(value, getattr(get_obj(), f"get_{property_name}")(),
-                                      f"Property '{property_name}' not restored correctly. [{test_run}]")
+        try:
+            self.assertEqualStringOrArray(value, getattr(get_obj(), f"get_{property_name}")(),
+                                          f"Property '{property_name}' not restored correctly. [{test_run}]")
+            # when the task is to delete then finding it is an error
+            if property_name == "visible" and line_command.endswith(".text("):
+                raise IndexError
 
-        # select the text
-        fig.figure_dragger.select_element(get_obj())
-        # don't move it and save the result
-        self.move_element((0, 0), get_obj())
+            # select the text
+            fig.figure_dragger.select_element(get_obj())
+            # don't move it and save the result
+            self.move_element((0, 0), get_obj())
+        except IndexError as err:
+            #  ... and not finding it is good
+            if property_name == "visible" and line_command.endswith(".text("):
+                pass
+            else:
+                raise err
 
         # the output should still be the same
         self.assertEqual(text, self.get_script_text(), f"Saved differently. Property '{property_name}'. [{test_run}]")
@@ -312,7 +331,7 @@ plt.show(hide_window=True)
 
         get_text = [lambda: fig.axes[0].texts[0], lambda: fig.axes[0].texts[-1]]
         line_command = ["plt.figure(1).axes[0].texts[0].set(", "plt.figure(1).axes[0].text("]
-        test_run = "Change new text in axes."
+        test_run = "Change two texts together in axes."
 
         self.check_text_properties(get_text, line_command, test_run, 0.493, 0.497)
 
@@ -325,7 +344,7 @@ plt.show(hide_window=True)
 
         get_text = [lambda: fig.axes[0].texts[0], lambda: fig.axes[0].texts[1]]
         line_command = ["plt.figure(1).axes[0].texts[0].set(", "plt.figure(1).axes[0].text("]
-        test_run = "Change new text in axes."
+        test_run = "Align texts in axes."
 
         # align left
         fig.axes[0].texts[0].set_position([0.2, 0.2])
@@ -387,7 +406,7 @@ plt.show(hide_window=True)
 
         get_text = [lambda: fig.axes[0].texts[0], lambda: fig.axes[0].texts[1]]
         line_command = ["plt.figure(1).axes[0].texts[0].set(", "plt.figure(1).axes[0].text(", "plt.figure(1).axes[0].text("]
-        test_run = "Change new text in axes."
+        test_run = "Distribute texts in axes."
 
         # distribute X
         fig.axes[0].texts[0].set_position([0.2, 0.2])
@@ -406,6 +425,31 @@ plt.show(hide_window=True)
         self.change_property2("position", [(0.2, 0.2), (0.6, 0.6460), (0.5, 0.5)],
                               lambda _: fig.window.input_align.buttons[7].clicked.emit(0), get_text, line_command,
                               test_run)
+
+    def test_text_delete(self):
+        # get the figure
+        fig, text = self.run_plot_script()
+
+        # create two additional text so that we have 3 in total
+        fig.figure_dragger.select_element(fig.axes[0])
+        fig.window.input_properties.button_add_text.clicked.emit()
+
+        get_text = lambda: fig.axes[0].texts[0]
+        line_command = "plt.figure(1).axes[0].texts[0].set("
+        test_run = "Delete text in axes."
+
+        self.change_property("visible", False,
+                              lambda _: fig.figure_dragger.selection.keyPressEvent(KeyEvent('delete', fig.canvas, "delete")), get_text, line_command,
+                              test_run)
+
+        get_text = lambda: fig.axes[0].texts[1]
+        line_command = "plt.figure(1).axes[0].text("
+        test_run = "Delete new text in axes."
+
+        self.change_property("visible", False,
+                             lambda _: fig.figure_dragger.selection.keyPressEvent(
+                                 KeyEvent('delete', fig.canvas, "delete")), get_text, line_command,
+                             test_run)
 
     def check_text_properties(self, get_text, line_command, test_run, x, y):
         fig = self.fig

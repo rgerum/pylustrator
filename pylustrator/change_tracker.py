@@ -190,7 +190,7 @@ def setFigureVariableNames(figure: Figure):
         for name, val in calling_globals.items()
         if isinstance(val, mpl.figure.Figure) and hash(val) == hash(mpl_figure)
     ]
-    print("fig_names", fig_names)
+    #print("fig_names", fig_names)
     if len(fig_names):
         globals()[fig_names[0]] = mpl_figure
         setattr(mpl_figure, "_variable_name", fig_names[0])
@@ -242,10 +242,11 @@ class ChangeTracker:
         def restore():
             for element, string in description_strings:
                 #function, arguments = re.match(r"\.([^(]*)\((.*)\)", string)
-                print(f"{getReference(element)}{string}")
                 eval(f"{getReference(element)}{string}")
                 if isinstance(element, Text):
                     self.addNewTextChange(element)
+                else:
+                    raise NotImplementedError
                 #getattr(element, function)(eval(arg))
         return restore
 
@@ -302,7 +303,12 @@ class ChangeTracker:
                 del self.changes[reference_obj, reference_command]
 
         # store the changes
-        main_figure(element).change_tracker.addChange(command_parent, command)
+        if not element.get_visible() and getattr(element, "is_new_text", False):
+            return
+        if getattr(element, "is_new_text", False):
+            main_figure(element).change_tracker.addChange(command_parent, command, element, ".new")
+        else:
+            main_figure(element).change_tracker.addChange(command_parent, command)
 
     def changeCountChanged(self):
         if self.update_changes_signal is not None:
@@ -323,7 +329,7 @@ class ChangeTracker:
         for reference_obj, reference_command in keys:
             if reference_obj == element:
                 del self.changes[reference_obj, reference_command]
-        if not created_by_pylustrator:
+        if not created_by_pylustrator or isinstance(element, Text):
             def redo():
                 element.set_visible(False)
                 if isinstance(element, Text):
@@ -351,31 +357,31 @@ class ChangeTracker:
         self.edits.append(edit)
         self.last_edit = len(self.edits) - 1
         self.last_edit = len(self.edits) - 1
-        print("addEdit", len(self.edits), self.last_edit)
+        #print("addEdit", len(self.edits), self.last_edit)
         self.changeCountChanged()
 
     def backEdit(self):
         """ undo an edit in the list """
         if self.last_edit < 0:
-            print("no backEdit", len(self.edits), self.last_edit)
+            #print("no backEdit", len(self.edits), self.last_edit)
             return
         edit = self.edits[self.last_edit]
         edit[0]()
         self.last_edit -= 1
         self.figure.canvas.draw()
-        print("backEdit", len(self.edits), self.last_edit)
+        #print("backEdit", len(self.edits), self.last_edit)
         self.changeCountChanged()
 
     def forwardEdit(self):
         """ redo an edit """
         if self.last_edit >= len(self.edits) - 1:
-            print("no forwardEdit", len(self.edits), self.last_edit)
+            #print("no forwardEdit", len(self.edits), self.last_edit)
             return
         edit = self.edits[self.last_edit + 1]
         edit[1]()
         self.last_edit += 1
         self.figure.canvas.draw()
-        print("forwardEdit", len(self.edits), self.last_edit)
+        #print("forwardEdit", len(self.edits), self.last_edit)
         self.changeCountChanged()
 
     def load(self):
