@@ -186,8 +186,13 @@ class GrabbableRectangleSelection(GrabFunctions):
 
         self.targets.append(target)
 
-        x0, y0, x1, y1 = np.min(new_points[:, 0]), np.min(new_points[:, 1]), np.max(new_points[:, 0]), np.max(
-            new_points[:, 1])
+        if new_points.shape[0] == 3:
+            x0, y0, x1, y1 = np.min(new_points[1:, 0]), np.min(new_points[1:, 1]), np.max(
+                new_points[1:, 0]), np.max(
+                new_points[1:, 1])
+        else:
+            x0, y0, x1, y1 = np.min(new_points[:, 0]), np.min(new_points[:, 1]), np.max(new_points[:, 0]), np.max(
+                new_points[:, 1])
         if 0:
 
             rect1 = Rectangle((x0, y0), x1 - x0, y1 - y0, picker=False, figure=self.figure, linestyle="-", edgecolor="w",
@@ -334,9 +339,16 @@ class GrabbableRectangleSelection(GrabFunctions):
         else:
             for index, target in enumerate(self.targets):
                 new_points = np.array(target.get_positions())
-                x0, y0, x1, y1 = np.min(new_points[:, 0]), np.min(new_points[:, 1]), np.max(
-                    new_points[:, 0]), np.max(
-                    new_points[:, 1])
+                print(new_points.shape)
+                if new_points.shape[0] == 3:
+                    x0, y0, x1, y1 = np.min(new_points[1:, 0]), np.min(new_points[1:, 1]), np.max(
+                        new_points[1:, 0]), np.max(
+                        new_points[1:, 1])
+                else:
+                    raise
+                    x0, y0, x1, y1 = np.min(new_points[:, 0]), np.min(new_points[:, 1]), np.max(
+                        new_points[:, 0]), np.max(
+                        new_points[:, 1])
                 w0, h0 = x1 - x0, y1 - y0
                 for i in range(2):
                     rect = self.targets_rects[index * 2 + i]
