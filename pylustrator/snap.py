@@ -127,7 +127,7 @@ class TargetWrapper(object):
             self.get_transform = self.target.get_transform
             self.do_scale = False
 
-    def get_positions(self) -> (int, int, int, int):
+    def get_positions(self, use_previous_offset=False, update_offset=False) -> (int, int, int, int):
         """ get the current position of the target Artist """
         points = []
         if isinstance(self.target, Rectangle):
@@ -158,6 +158,12 @@ class TargetWrapper(object):
                 points.append(
                     bbox.get_transform().transform((bbox.get_x() + bbox.get_width(), bbox.get_y() + bbox.get_height())))
             points[-2:] = self.transform_inverted_points(points[-2:])
+            if use_previous_offset is True:
+                points[2] = points[0] + self.target._pylustrator_offset + points[2] - points[1]
+                points[1] = points[0] + self.target._pylustrator_offset
+            else:
+                if getattr(self.target, "_pylustrator_offset", None) is None or update_offset:
+                    self.target._pylustrator_offset = points[1] - points[0]
         elif isinstance(self.target, Axes):
             p1, p2 = np.array(self.target.get_position())
             points.append(p1)
@@ -176,6 +182,12 @@ class TargetWrapper(object):
             # add points to span bounding box around the frame
             points.append([bbox.x0, bbox.y0])
             points.append([bbox.x1, bbox.y1])
+            if use_previous_offset is True:
+                points[2] = points[0] + self.target._pylustrator_offset + points[2] - points[1]
+                points[1] = points[0] + self.target._pylustrator_offset
+            else:
+                if getattr(self.target, "_pylustrator_offset", None) is None or update_offset:
+                    self.target._pylustrator_offset = points[1] - points[0]
         return self.transform_points(points)
 
     def set_positions(self, points: (int, int)):

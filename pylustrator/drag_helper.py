@@ -277,6 +277,9 @@ class GrabbableRectangleSelection(GrabFunctions):
             self.has_moved = True
             self.end_move()
 
+            self.figure.canvas.draw()
+            self.update_selection_rectangles()
+
         def distribute(y: int):
             self.start_move()
             sizes = []
@@ -297,6 +300,9 @@ class GrabbableRectangleSelection(GrabFunctions):
                 pos += sizes[index] + spaces
             self.has_moved = True
             self.end_move()
+
+            self.figure.canvas.draw()
+            self.update_selection_rectangles()
 
         if mode == "center_x":
             align(0, np.mean)
@@ -324,7 +330,7 @@ class GrabbableRectangleSelection(GrabFunctions):
 
         self.figure.signals.figure_selection_moved.emit()
 
-    def update_selection_rectangles(self):
+    def update_selection_rectangles(self, use_previous_offset=False):
         """ update the selection visualisation """
         if len(self.targets) == 0:
             return
@@ -338,14 +344,12 @@ class GrabbableRectangleSelection(GrabFunctions):
                     rect.set_height(new_points[1][1] - new_points[0][1])
         else:
             for index, target in enumerate(self.targets):
-                new_points = np.array(target.get_positions())
-                print(new_points.shape)
+                new_points = np.array(target.get_positions(use_previous_offset, update_offset=True))
                 if new_points.shape[0] == 3:
                     x0, y0, x1, y1 = np.min(new_points[1:, 0]), np.min(new_points[1:, 1]), np.max(
                         new_points[1:, 0]), np.max(
                         new_points[1:, 1])
                 else:
-                    raise
                     x0, y0, x1, y1 = np.min(new_points[:, 0]), np.min(new_points[:, 1]), np.max(
                         new_points[:, 0]), np.max(
                         new_points[:, 1])
@@ -520,7 +524,7 @@ class GrabbableRectangleSelection(GrabFunctions):
         for target in self.targets:
             self.transform_target(transform, target)
 
-        self.update_selection_rectangles()
+        self.update_selection_rectangles(True)
         #for rect in self.targets_rects:
         #    self.transform_target(transform, TargetWrapper(rect))
 
