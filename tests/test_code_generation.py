@@ -323,17 +323,19 @@ plt.show(hide_window=True)
         fig.figure_dragger.select_element(fig.axes[0])
         fig.window.input_properties.button_add_text.clicked.emit()
 
-        fig.axes[0].texts[0].set_position([0.2, 0.2])
-        fig.axes[0].texts[1].set_position([0.6, 0.6])
-
         get_text = [lambda: fig.axes[0].texts[0], lambda: fig.axes[0].texts[1]]
         line_command = ["plt.figure(1).axes[0].texts[0].set(", "plt.figure(1).axes[0].text("]
         test_run = "Change new text in axes."
+
+        # align left
+        fig.axes[0].texts[0].set_position([0.2, 0.2])
+        fig.axes[0].texts[1].set_position([0.6, 0.6])
 
         self.change_property2("position", [(0.2, 0.2), (0.2, 0.6)],
                               lambda _: fig.window.input_align.buttons[0].clicked.emit(0), get_text, line_command,
                               test_run)
 
+        # align center
         fig.axes[0].texts[0].set_position([0.2, 0.2])
         fig.axes[0].texts[1].set_position([0.6, 0.6])
 
@@ -341,6 +343,7 @@ plt.show(hide_window=True)
                               lambda _: fig.window.input_align.buttons[1].clicked.emit(0), get_text, line_command,
                               test_run)
 
+        # align right
         fig.axes[0].texts[0].set_position([0.2, 0.2])
         fig.axes[0].texts[1].set_position([0.6, 0.6])
 
@@ -348,6 +351,7 @@ plt.show(hide_window=True)
                               lambda _: fig.window.input_align.buttons[2].clicked.emit(0), get_text, line_command,
                               test_run)
 
+        # align top
         fig.axes[0].texts[0].set_position([0.2, 0.2])
         fig.axes[0].texts[1].set_position([0.6, 0.6])
 
@@ -355,6 +359,7 @@ plt.show(hide_window=True)
                               lambda _: fig.window.input_align.buttons[4].clicked.emit(0), get_text, line_command,
                               test_run)
 
+        # align center
         fig.axes[0].texts[0].set_position([0.2, 0.2])
         fig.axes[0].texts[1].set_position([0.6, 0.6])
 
@@ -362,11 +367,44 @@ plt.show(hide_window=True)
                               lambda _: fig.window.input_align.buttons[5].clicked.emit(0), get_text, line_command,
                               test_run)
 
+        # align bottom
         fig.axes[0].texts[0].set_position([0.2, 0.2])
         fig.axes[0].texts[1].set_position([0.6, 0.6])
 
         self.change_property2("position", [(0.2, 0.2), (0.6, 0.2)],
                               lambda _: fig.window.input_align.buttons[6].clicked.emit(0), get_text, line_command,
+                              test_run)
+
+    def test_text_distribute(self):
+        # get the figure
+        fig, text = self.run_plot_script()
+
+        # create two additional text so that we have 3 in total
+        fig.figure_dragger.select_element(fig.axes[0])
+        fig.window.input_properties.button_add_text.clicked.emit()
+        fig.figure_dragger.select_element(fig.axes[0])
+        fig.window.input_properties.button_add_text.clicked.emit()
+
+        get_text = [lambda: fig.axes[0].texts[0], lambda: fig.axes[0].texts[1]]
+        line_command = ["plt.figure(1).axes[0].texts[0].set(", "plt.figure(1).axes[0].text(", "plt.figure(1).axes[0].text("]
+        test_run = "Change new text in axes."
+
+        # distribute X
+        fig.axes[0].texts[0].set_position([0.2, 0.2])
+        fig.axes[0].texts[1].set_position([0.6, 0.6])
+        fig.axes[0].texts[2].set_position([0.5, 0.5])
+
+        self.change_property2("position", [(0.2, 0.2), (1.0301, 0.6), (0.5, 0.5)],
+                              lambda _: fig.window.input_align.buttons[3].clicked.emit(0), get_text, line_command,
+                              test_run)
+
+        # distribute Y
+        fig.axes[0].texts[0].set_position([0.2, 0.2])
+        fig.axes[0].texts[1].set_position([0.6, 0.6])
+        fig.axes[0].texts[2].set_position([0.5, 0.5])
+
+        self.change_property2("position", [(0.2, 0.2), (0.6, 0.6460), (0.5, 0.5)],
+                              lambda _: fig.window.input_align.buttons[7].clicked.emit(0), get_text, line_command,
                               test_run)
 
     def check_text_properties(self, get_text, line_command, test_run, x, y):
