@@ -2,7 +2,7 @@ import numpy as np
 from base_test_class import BaseTest
 
 
-class TestFits(BaseTest):
+class TestAxes(BaseTest):
 
     def test_move_axes(self):
         # get the figure

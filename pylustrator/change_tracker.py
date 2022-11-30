@@ -40,6 +40,7 @@ except ImportError:
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
 from matplotlib.text import Text
+from matplotlib.legend import Legend
 try:
     from natsort import natsorted
 except:
@@ -291,6 +292,38 @@ class ChangeTracker:
                 return element.axes or element.figure, f".text({pos[0]:.4f}, {pos[1]:.4f}, {repr(element.get_text())}, transform={transform}{kwargs})"
             else:
                 return element, f".set(position=({pos[0]:.4f}, {pos[1]:.4f}), text={repr(element.get_text())}{kwargs})"
+        elif isinstance(element, Legend):
+            ncols_name = "ncols"
+            if version.parse(mpl._get_version()) < version.parse("3.6.0"):
+                ncols_name = "ncol"
+
+            property_names = [
+                ("frameon", lambda x: x.get_frame_on()),
+                ("borderpad", lambda x: x.borderpad),
+                ("labelspacing", lambda x: x.labelspacing),
+                ("markerscale", lambda x: x.markerscale),
+                ("handlelength", lambda x: x.handlelength),
+                ("handletextpad", lambda x: x.handletextpad),
+                (ncols_name, lambda x: getattr(x, "_" + ncols_name)),
+                ("columnspacing", lambda x: x.columnspacing),
+                ("fontsize", lambda x: x._fontsize),
+                ("title", lambda x: x.get_title().get_text()),
+                ("title_fontsize", lambda x: x.get_title().get_fontsize()),
+            ]
+
+            # get current property values
+            kwargs = ""
+            for prop, func in property_names:
+                value = func(element)
+                try:
+                    default = plt.rcParams["legend." + prop]
+                except KeyError:
+                    default = None
+                    pass
+                if value != default or not exclude_default:
+                    kwargs += f", {prop}={repr(value)}"
+
+            return element.axes, f".legend(loc={repr(element._loc)}{kwargs})"
 
     text_properties_defaults = None
     def addNewTextChange(self, element):
@@ -309,6 +342,20 @@ class ChangeTracker:
             main_figure(element).change_tracker.addChange(command_parent, command, element, ".new")
         else:
             main_figure(element).change_tracker.addChange(command_parent, command)
+
+    def addNewLegendChange(self, element):
+        command_parent, command = self.get_describtion_string(element)
+
+        # make sure there are no old changes to this element
+        keys = [k for k in self.changes]
+        for reference_obj, reference_command in keys:
+            if reference_obj == element:
+                del self.changes[reference_obj, reference_command]
+
+        # store the changes
+        #if not element.get_visible() and getattr(element, "is_new_text", False):
+        #    return
+        main_figure(element).change_tracker.addChange(command_parent, command)
 
     def changeCountChanged(self):
         if self.update_changes_signal is not None:

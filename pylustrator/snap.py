@@ -248,7 +248,8 @@ class TargetWrapper(object):
         elif isinstance(self.target, Legend):
             point = self.target.axes.transAxes.inverted().transform(self.transform_inverted_points(points)[0])
             self.target._loc = tuple(point)
-            change_tracker.addChange(self.target, "._set_loc((%f, %f))" % tuple(point))
+            change_tracker.addNewLegendChange(self.target)
+            #change_tracker.addChange(self.target, "._set_loc((%f, %f))" % tuple(point))
         elif isinstance(self.target, Axes):
             position = np.array([points[0], points[1] - points[0]]).flatten()
             if self.fixed_aspect:

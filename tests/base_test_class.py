@@ -47,8 +47,8 @@ plt.subplot(132)
 plt.plot(a, b, "o")
 
 plt.subplot(133)
-plt.bar(0, np.mean(a))
-plt.bar(1, np.mean(b))
+plt.bar(0, np.mean(a), label="a")
+plt.bar(1, np.mean(b), label="b")
 
 # show the plot in a pylustrator window
 plt.show(hide_window=True)
@@ -108,33 +108,37 @@ plt.show(hide_window=True)
         else:
             np.testing.assert_almost_equal(first, second, 3, msg)
 
-    def change_property(self, property_name, value, call, get_obj, line_command, test_run, value2: Any = "undefined"):
+    def change_property(self, property_name, value, call, get_obj, line_command, test_run, value2: Any = "undefined", get_function=None):
         if value2 == "undefined":
             value2 = value
         if isinstance(get_obj, list):
             return self.change_property2(property_name, value, call, get_obj, line_command, test_run,
                                          value2_list=value2)
+
+        if get_function is None:
+            get_function = getattr(get_obj(), f"get_{property_name}")
+
         fig = self.fig
         obj = get_obj()
         fig.figure_dragger.select_element(obj)
 
         # get current value
-        current_value = getattr(get_obj(), f"get_{property_name}")()
+        current_value = get_function()
 
         # set the text to bold
         call(obj)
         fig.change_tracker.save()
 
         # test if the text has the right weight
-        self.assertEqualStringOrArray(value, getattr(get_obj(), f"get_{property_name}")(),
+        self.assertEqualStringOrArray(value, get_function(),
                                       f"Property '{property_name}' not set correctly. [{test_run}]")
 
         # test undo and redo
         fig.window.undo()
-        self.assertEqualStringOrArray(current_value, getattr(get_obj(), f"get_{property_name}")(),
+        self.assertEqualStringOrArray(current_value, get_function(),
                                       f"Property '{property_name}' undo failed. [{test_run}]")
         fig.window.redo()
-        self.assertEqualStringOrArray(value, getattr(get_obj(), f"get_{property_name}")(),
+        self.assertEqualStringOrArray(value, get_function(),
                                       f"Property '{property_name}' redo failed. [{test_run}]")
 
         # find the saved string and check the numbers
@@ -161,7 +165,7 @@ plt.show(hide_window=True)
 
         # test if the text has the right weight
         try:
-            self.assertEqualStringOrArray(value, getattr(get_obj(), f"get_{property_name}")(),
+            self.assertEqualStringOrArray(value, get_function(),
                                           f"Property '{property_name}' not restored correctly. [{test_run}]")
             # when the task is to delete then finding it is an error
             if property_name == "visible" and line_command.endswith(".text("):

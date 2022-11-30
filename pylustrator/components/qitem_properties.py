@@ -448,19 +448,8 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
         axes.legend(**self.properties)
         self.target = axes.get_legend()
         fig = main_figure(self.target)
-        prop_copy = {}
-        for index, (name, name2, type_, default_, icon) in enumerate(self.property_names):
-            value = self.properties[name]
-            if default_ is not None and value == default_:
-                continue
-            if default_ is None and value == plt.rcParams["legend." + name]:
-                continue
-            if type_ == str:
-                prop_copy[name] = '"' + value + '"'
-            else:
-                prop_copy[name] = value
-        fig.change_tracker.addChange(axes, ".legend(%s)" % (", ".join("%s=%s" % (k, v) for k, v in prop_copy.items())))
         self.target._set_loc(tuple(self.target.axes.transAxes.inverted().transform(tuple([bbox.x0, bbox.y0]))))
+        fig.change_tracker.addNewLegendChange(self.target)
         fig.figure_dragger.make_dragable(self.target)
         fig.figure_dragger.select_element(self.target)
         fig.canvas.draw()

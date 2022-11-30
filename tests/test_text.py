@@ -2,7 +2,7 @@ from matplotlib.backend_bases import KeyEvent
 from base_test_class import BaseTest
 
 
-class TestFits(BaseTest):
+class TestText(BaseTest):
 
     def test_text_properties_axes_existing(self):
         # get the figure
