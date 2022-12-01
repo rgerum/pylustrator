@@ -697,11 +697,11 @@ class QTickEdit(QtWidgets.QWidget):
 
             # self.setTarget(element)
             self.fig.change_tracker.addChange(element,
-                                              ".set_" + self.axis + "ticks([%s], minor=True)" % ", ".join(
-                                                  self.str(t) for t in ticks), element,
-                                              ".set_" + self.axis + "ticks_minor")
-            self.fig.change_tracker.addChange(element, ".set_" + self.axis + "ticklabels([%s], minor=True)" % ", ".join(
-                '"' + l + '"' for l in labels), element, ".set_" + self.axis + "labels_minor")
+                                              ".set_" + self.axis + "ticks([%s], [%s], minor=True)" % (
+                                                  ", ".join(self.str(t) for t in ticks),
+                                                  ", ".join('"' + l + '"' for l in labels)),
+                                              element, ".set_" + self.axis + "ticks_minor")
+            self.fig.change_tracker.get_describtion_string(element)
         self.fig.canvas.draw()
 
     def getFontProperties(self):
@@ -749,10 +749,8 @@ class QTickEdit(QtWidgets.QWidget):
                                                   str(self.range[0]), str(self.range[1])))
 
             # self.setTarget(self.element)
-            self.fig.change_tracker.addChange(element, ".set_" + self.axis + "ticks([%s])" % ", ".join(
-                self.str(t) for t in ticks))
-            self.fig.change_tracker.addChange(element, ".set_" + self.axis + "ticklabels([%s], %s)" % (", ".join(
-                '"' + l + '"' for l in labels), self.getFontProperties()[0]))
+            self.fig.change_tracker.addChange(element, ".set_" + self.axis + "ticks([%s], [%s], %s)" % (", ".join(
+                self.str(t) for t in ticks), ", ".join('"' + l + '"' for l in labels), self.getFontProperties()[0]))
         self.fig.canvas.draw()
 
 

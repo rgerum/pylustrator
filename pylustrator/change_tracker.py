@@ -341,6 +341,25 @@ class ChangeTracker:
                 loc = tuple(np.round(s, 5) for s in loc)
 
             return element.axes, f".legend(loc={repr(loc)}{kwargs})"
+        elif isinstance(element, Axes):
+            properties = ["position",
+                          "xlim", "xlabel", "xticks", "xticklabels",
+                          "ylim", "ylabel", "yticks", "yticklabels",
+                          ]
+            # get current property values
+            kwargs = {}
+            for prop in properties:
+                value = getattr(element, f"get_{prop}")()
+                #if self.text_properties_defaults[prop] != value or not exclude_default:
+                kwargs[prop] = value
+
+            pos = element.get_position()
+            kwargs["position"] = [pos.x0, pos.y0, pos.width, pos.height]
+            kwargs["xticks"] = list(kwargs["xticks"])
+            kwargs["yticks"] = list(kwargs["yticks"])
+            kwargs["xticklabels"] = [t.get_text() for t in kwargs["xticklabels"]]
+            kwargs["yticklabels"] = [t.get_text() for t in kwargs["yticklabels"]]
+            return element, f".set({', '.join(f'{k}={v}' for k, v in kwargs.items())})"
 
     text_properties_defaults = None
     def addNewTextChange(self, element):

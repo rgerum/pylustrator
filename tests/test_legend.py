@@ -12,21 +12,21 @@ class TestLegend(BaseTest):
         fig.figure_dragger.select_element(fig.axes[2])
         fig.window.input_properties.button_legend.clicked.emit()
 
-        get_text = lambda: fig.axes[2].get_legend()
+        get_legend = lambda: fig.axes[2].get_legend()
         line_command = "plt.figure(1).axes[2].legend("
-        test_run = "Change existing text in axes."
+        test_run = "Change legend in axes."
         x = 0.041
         y = 0.854
 
         #self.check_text_properties(get_text, line_command, test_run, 0.4931, 0.4979)
-        self.change_property("loc", (x, 0.857), lambda _: self.move_element((-1, 0)), get_text, line_command,
-                             test_run, get_function=lambda: get_text()._loc)
-        self.change_property("loc", (0.048, 0.857), lambda _: self.move_element((1, 0)), get_text, line_command,
-                             test_run, get_function=lambda: get_text()._loc)
-        self.change_property("loc", (0.048, y), lambda _: self.move_element((0, -1)), get_text, line_command,
-                             test_run, get_function=lambda: get_text()._loc)
-        self.change_property("loc", (0.048, 0.857), lambda _: self.move_element((0, 1)), get_text, line_command,
-                             test_run, get_function=lambda: get_text()._loc)
+        self.change_property("loc", (x, 0.857), lambda _: self.move_element((-1, 0)), get_legend, line_command,
+                             test_run, get_function=lambda: get_legend()._loc)
+        self.change_property("loc", (0.048, 0.857), lambda _: self.move_element((1, 0)), get_legend, line_command,
+                             test_run, get_function=lambda: get_legend()._loc)
+        self.change_property("loc", (0.048, y), lambda _: self.move_element((0, -1)), get_legend, line_command,
+                             test_run, get_function=lambda: get_legend()._loc)
+        self.change_property("loc", (0.048, 0.857), lambda _: self.move_element((0, 1)), get_legend, line_command,
+                             test_run, get_function=lambda: get_legend()._loc)
         #self.change_property("loc", (0.2, 0.5),
         #                     lambda _: fig.window.input_size.input_position.valueChangedX.emit(0.2), get_text,
         #                     line_command, test_run, get_function=lambda: get_text()._loc)
@@ -37,61 +37,61 @@ class TestLegend(BaseTest):
         self.change_property("frameon", False,
                              lambda _: fig.window.input_properties.input_legend_properties.widgets[
                                  "frameon"].setChecked(False, signal=True),
-                             get_text, line_command, test_run, get_function=lambda: get_text().get_frame_on())
+                             get_legend, line_command, test_run, get_function=lambda: get_legend().get_frame_on())
 
         self.change_property("borderpad", 0.2,
                              lambda _: fig.window.input_properties.input_legend_properties.widgets[
                                  "borderpad"].setValue(0.2),
-                             get_text, line_command, test_run, get_function=lambda: get_text().borderpad)
+                             get_legend, line_command, test_run, get_function=lambda: get_legend().borderpad)
 
         self.change_property("labelspacing", 1.3,
                              lambda _: fig.window.input_properties.input_legend_properties.widgets[
                                  "labelspacing"].setValue(1.3),
-                             get_text, line_command, test_run, get_function=lambda: get_text().labelspacing)
+                             get_legend, line_command, test_run, get_function=lambda: get_legend().labelspacing)
 
         self.change_property("markerscale", 3,
                              lambda _: fig.window.input_properties.input_legend_properties.widgets[
                                  "markerscale"].setValue(3),
-                             get_text, line_command, test_run, get_function=lambda: get_text().markerscale)
+                             get_legend, line_command, test_run, get_function=lambda: get_legend().markerscale)
 
         self.change_property("handlelength", 3,
                              lambda _: fig.window.input_properties.input_legend_properties.widgets[
                                  "handlelength"].setValue(3),
-                             get_text, line_command, test_run, get_function=lambda: get_text().handlelength)
+                             get_legend, line_command, test_run, get_function=lambda: get_legend().handlelength)
 
         self.change_property("handletextpad", 2,
                              lambda _: fig.window.input_properties.input_legend_properties.widgets[
                                  "handletextpad"].setValue(2),
-                             get_text, line_command, test_run, get_function=lambda: get_text().handletextpad)
+                             get_legend, line_command, test_run, get_function=lambda: get_legend().handletextpad)
 
         self.change_property("ncols", 2,
                              lambda _: fig.window.input_properties.input_legend_properties.widgets[
                                  "ncols"].setValue(2),
-                             get_text, line_command, test_run, get_function=lambda: get_text()._ncols)
+                             get_legend, line_command, test_run, get_function=lambda: get_legend()._ncols)
 
         self.change_property("columnspacing", 2.3,
                              lambda _: fig.window.input_properties.input_legend_properties.widgets[
                                  "columnspacing"].setValue(2.3),
-                             get_text, line_command, test_run, get_function=lambda: get_text().columnspacing)
+                             get_legend, line_command, test_run, get_function=lambda: get_legend().columnspacing)
 
         self.change_property("columnspacing", 2.3,
                              lambda _: fig.window.input_properties.input_legend_properties.widgets[
                                  "columnspacing"].setValue(2.3),
-                             get_text, line_command, test_run, get_function=lambda: get_text().columnspacing)
+                             get_legend, line_command, test_run, get_function=lambda: get_legend().columnspacing)
 
         self.change_property("fontsize", 15,
                              lambda _: fig.window.input_properties.input_legend_properties.widgets[
                                  "fontsize"].setValue(15),
-                             get_text, line_command, test_run, get_function=lambda: get_text()._fontsize)
+                             get_legend, line_command, test_run, get_function=lambda: get_legend()._fontsize)
 
         self.change_property("title", "new",
                              lambda _: fig.window.input_properties.input_legend_properties.widgets[
                                  "title"].setText("new", signal=True),
-                             get_text, line_command, test_run, get_function=lambda: get_text().get_title().get_text())
+                             get_legend, line_command, test_run, get_function=lambda: get_legend().get_title().get_text())
 
         self.change_property("title_fontsize", 23,
                              lambda _: fig.window.input_properties.input_legend_properties.widgets[
                                  "title_fontsize"].setValue(23),
-                             get_text, line_command, test_run, get_function=lambda: get_text().get_title().get_fontsize())
+                             get_legend, line_command, test_run, get_function=lambda: get_legend().get_title().get_fontsize())
 
 
