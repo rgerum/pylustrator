@@ -1076,10 +1076,18 @@ class QItemProperties(QtWidgets.QWidget):
     def buttonDespineClicked(self):
         """ despine the target """
 
-        if version.parse(mpl.__version__) < version.parse("3.4.0"):
-            commands = [".spines['right'].set_visible(False)", ".spines['top'].set_visible(False)"]
+        if self.element.spines['right'].get_visible() and self.element.spines['top'].get_visible():
+            if version.parse(mpl.__version__) < version.parse("3.4.0"):
+                commands = [".spines['right'].set_visible(False)", ".spines['top'].set_visible(False)"]
+            else:
+                commands = [".spines[['right', 'top']].set_visible(False)"]
         else:
-            commands = [".spines[['right', 'top']].set_visible(False)"]
+            if version.parse(mpl.__version__) < version.parse("3.4.0"):
+                commands = [".spines['right'].set_visible(True)", ".spines['top'].set_visible(True)"]
+            else:
+                commands = [".spines[['right', 'top']].set_visible(True)"]
+
+        targets = main_figure(self.element).selection.targets
         for command in commands:
             elements = [element.target for element in main_figure(self.element).selection.targets
                         if isinstance(element.target, Axes)]
