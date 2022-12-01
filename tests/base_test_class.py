@@ -157,12 +157,20 @@ plt.show(hide_window=True)
                 kwargs["position"] = args[:2]
             if property_name == "text":
                 kwargs["text"] = args[2]
+        if property_name == "xlim":
+            kwargs["xlim"] = args[:2]
+        if property_name == "ylim":
+            kwargs["ylim"] = args[:2]
+        if property_name == "xlabel":
+            kwargs["xlabel"] = kwargs["text"]
+        if property_name == "ylabel":
+            kwargs["ylabel"] = kwargs["text"]
         self.assertEqualStringOrArray(value2, kwargs.get(property_name),
                                       f"Property '{property_name}' not saved correctly. [{test_run}]")
 
         # run the file again
         fig, text = self.run_plot_script()
-
+        print(fig.axes[0].get_xlim())
         # test if the text has the right weight
         try:
             self.assertEqualStringOrArray(value, get_function(),

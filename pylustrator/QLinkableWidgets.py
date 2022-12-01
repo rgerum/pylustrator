@@ -323,7 +323,7 @@ class DimensionsWidget(QtWidgets.QWidget, Linkable):
         if not self.noSignal:
             self.valueChanged.emit(tuple(self.value()))
 
-    def setValue(self, values: tuple):
+    def setValue(self, values: tuple, signal=False):
         """ set the two values """
         self.noSignal = True
         if self.transform:
@@ -331,6 +331,8 @@ class DimensionsWidget(QtWidgets.QWidget, Linkable):
         self.input1.setValue(values[0])
         self.input2.setValue(values[1])
         self.noSignal = False
+        if signal is True:
+            self.onValueChanged()
 
     def value(self):
         """ get the value """

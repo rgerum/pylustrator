@@ -29,3 +29,33 @@ class TestAxes(BaseTest):
         # the output should still be the same
         self.assertEqual(text, self.get_script_text(), "Saved differently")
 
+    def test_axis_limits(self):
+        # get the figure
+        fig, text = self.run_plot_script()
+
+        get_axes = lambda: fig.axes[0]
+        line_command = "plt.figure(1).axes[0].set_xlim("
+        test_run = "Change axes limits."
+
+        self.move_element((0, 0), fig.axes[0])
+
+        self.change_property("xlim", (0, 10), lambda _: self.fig.window.input_properties.input_xaxis.input_lim.setValue((0, 10), signal=True), get_axes, line_command,
+                             test_run, get_function=lambda: get_axes().get_xlim())
+
+        line_command = "plt.figure(1).axes[0].set_ylim("
+        self.change_property("ylim", (-5, 8), lambda _: self.fig.window.input_properties.input_yaxis.input_lim.setValue((-5, 8), signal=True), get_axes, line_command,
+                             test_run, get_function=lambda: get_axes().get_ylim())
+
+        line_command = "plt.figure(1).axes[0].get_xaxis().get_label().set("
+        self.change_property("xlabel", "label",
+                             lambda _: self.fig.window.input_properties.input_xaxis.input_label.setText("label",
+                                                                                                       signal=True),
+                             get_axes, line_command,
+                             test_run, get_function=lambda: get_axes().get_xlabel())
+
+        line_command = "plt.figure(1).axes[0].get_yaxis().get_label().set("
+        self.change_property("ylabel", "label",
+                             lambda _: self.fig.window.input_properties.input_yaxis.input_label.setText("label",
+                                                                                                        signal=True),
+                             get_axes, line_command,
+                             test_run, get_function=lambda: get_axes().get_ylabel())
