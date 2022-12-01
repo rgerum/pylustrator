@@ -165,6 +165,8 @@ plt.show(hide_window=True)
             kwargs["xlabel"] = kwargs["text"]
         if property_name == "ylabel":
             kwargs["ylabel"] = kwargs["text"]
+        if property_name == "grid":
+            kwargs["grid"] = args[0]
         self.assertEqualStringOrArray(value2, kwargs.get(property_name),
                                       f"Property '{property_name}' not saved correctly. [{test_run}]")
 
