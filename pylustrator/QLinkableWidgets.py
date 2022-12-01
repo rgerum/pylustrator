@@ -582,11 +582,14 @@ class CheckWidget(QtWidgets.QWidget, Linkable):
             self.stateChanged.emit(self.input1.isChecked())
             self.editingFinished.emit()
 
-    def setChecked(self, state: bool):
+    def setChecked(self, state: bool, signal=False):
         """ set the value of the check box """
         self.noSignal = True
         self.input1.setChecked(state)
         self.noSignal = False
+        if signal:
+            self.stateChanged.emit(self.input1.isChecked())
+            self.editingFinished.emit()
 
     def isChecked(self) -> bool:
         """ get the value of the checkbox """

@@ -25,6 +25,7 @@ import traceback
 from typing import IO
 from packaging import version
 
+import numpy as np
 import matplotlib
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -246,6 +247,8 @@ class ChangeTracker:
                 eval(f"{getReference(element)}{string}")
                 if isinstance(element, Text):
                     self.addNewTextChange(element)
+                elif isinstance(element, Axes) and string.startswith(".legend("):
+                    self.addNewLegendChange(element.get_legend())
                 else:
                     raise NotImplementedError
                 #getattr(element, function)(eval(arg))
@@ -318,12 +321,26 @@ class ChangeTracker:
                 try:
                     default = plt.rcParams["legend." + prop]
                 except KeyError:
-                    default = None
+                    if prop == "title":
+                        default = ""
+                    elif prop == ncols_name:
+                        default = 1
+                    else:
+                        default = None
                     pass
+                if (prop == "fontsize" or prop == "title_fontsize") and (default == "medium" or default == None):
+                    if value == plt.rcParams["font.size"]:
+                        continue
+                if prop == "title_fontsize" and "title" not in kwargs:
+                    continue
                 if value != default or not exclude_default:
                     kwargs += f", {prop}={repr(value)}"
 
-            return element.axes, f".legend(loc={repr(element._loc)}{kwargs})"
+            loc = element._loc
+            if isinstance(loc, tuple):
+                loc = tuple(np.round(s, 5) for s in loc)
+
+            return element.axes, f".legend(loc={repr(loc)}{kwargs})"
 
     text_properties_defaults = None
     def addNewTextChange(self, element):

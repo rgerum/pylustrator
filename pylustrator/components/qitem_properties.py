@@ -442,19 +442,32 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
         if self.target is None:
             return
 
-        bbox = self.target.get_frame().get_bbox()
+        old_properties = self.properties.copy()
         self.properties[name] = value
-        axes = self.target.axes
-        axes.legend(**self.properties)
-        self.target = axes.get_legend()
-        fig = main_figure(self.target)
-        self.target._set_loc(tuple(self.target.axes.transAxes.inverted().transform(tuple([bbox.x0, bbox.y0]))))
-        fig.change_tracker.addNewLegendChange(self.target)
-        fig.figure_dragger.make_dragable(self.target)
-        fig.figure_dragger.select_element(self.target)
-        fig.canvas.draw()
-        fig.selection.update_selection_rectangles()
-        fig.canvas.draw()
+        new_properties = self.properties.copy()
+        target = self.target
+        def setProperties(properties):
+            nonlocal target
+            bbox = target.get_frame().get_bbox()
+            axes = target.axes
+            axes.legend(**properties)
+            target = axes.get_legend()
+            fig = main_figure(target)
+            target._set_loc(tuple(target.axes.transAxes.inverted().transform(tuple([bbox.x0, bbox.y0]))))
+            fig.change_tracker.addNewLegendChange(target)
+            fig.figure_dragger.make_dragable(target)
+            fig.figure_dragger.select_element(target)
+            fig.canvas.draw()
+            fig.selection.update_selection_rectangles()
+
+        def undo():
+            setProperties(old_properties)
+
+        def redo():
+            setProperties(new_properties)
+
+        redo()
+        main_figure(target).change_tracker.addEdit([undo, redo, f"Legend {name}"])
 
     def setTarget(self, element: Artist):
         """ set the target artist for this widget """
