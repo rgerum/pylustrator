@@ -72,3 +72,16 @@ class TestAxes(BaseTest):
 
         self.change_property("grid", True, lambda _: self.fig.window.input_properties.button_grid.clicked.emit(True), get_axes, line_command,
                              test_run, get_function=lambda: getattr(get_axes(), "_gridOnMajor", False) or getattr(get_axes().xaxis, "_major_tick_kw", {"gridOn": False})['gridOn'])
+
+    def test_axis_despine(self):
+        # get the figure
+        fig, text = self.run_plot_script()
+
+        get_axes = lambda: fig.axes[0]
+        line_command = "plt.figure(1).axes[0].spines[['right', 'top']].set_visible("
+        test_run = "Change axes despine."
+
+        self.move_element((0, 0), fig.axes[0])
+
+        self.change_property("despine", False, lambda _: self.fig.window.input_properties.button_despine.clicked.emit(True), get_axes, line_command,
+                             test_run, get_function=lambda: get_axes().spines['right'].get_visible() and get_axes().spines['top'].get_visible())

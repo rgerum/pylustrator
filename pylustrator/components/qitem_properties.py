@@ -1076,24 +1076,39 @@ class QItemProperties(QtWidgets.QWidget):
     def buttonDespineClicked(self):
         """ despine the target """
 
-        if self.element.spines['right'].get_visible() and self.element.spines['top'].get_visible():
-            if version.parse(mpl.__version__) < version.parse("3.4.0"):
-                commands = [".spines['right'].set_visible(False)", ".spines['top'].set_visible(False)"]
-            else:
-                commands = [".spines[['right', 'top']].set_visible(False)"]
-        else:
-            if version.parse(mpl.__version__) < version.parse("3.4.0"):
-                commands = [".spines['right'].set_visible(True)", ".spines['top'].set_visible(True)"]
-            else:
-                commands = [".spines[['right', 'top']].set_visible(True)"]
+        elements = [element.target for element in main_figure(self.element).selection.targets if isinstance(element.target, Axes)]
+        def is_despined(elem):
+            return elem.spines['right'].get_visible() and elem.spines['top'].get_visible()
+        despined = [is_despined(elem) for elem in elements]
+        new_value = not is_despined(self.element)
+        fig = main_figure(self.element)
 
-        targets = main_figure(self.element).selection.targets
-        for command in commands:
-            elements = [element.target for element in main_figure(self.element).selection.targets
-                        if isinstance(element.target, Axes)]
+        def set_despined(elem, value):
+            if value is False:
+                if version.parse(mpl.__version__) < version.parse("3.4.0"):
+                    commands = [".spines['right'].set_visible(False)", ".spines['top'].set_visible(False)"]
+                else:
+                    commands = [".spines[['right', 'top']].set_visible(False)"]
+            else:
+                if version.parse(mpl.__version__) < version.parse("3.4.0"):
+                    commands = [".spines['right'].set_visible(True)", ".spines['top'].set_visible(True)"]
+                else:
+                    commands = [".spines[['right', 'top']].set_visible(True)"]
+
+            for command in commands:
+                eval("elem" + command)
+                fig.change_tracker.addChange(elem, command)
+
+        def undo():
+            for element, value in zip(elements, despined):
+                set_despined(element, value)
+
+        def redo():
             for element in elements:
-                eval("element" + command)
-                self.fig.change_tracker.addChange(element, command)
+                set_despined(element, new_value)
+
+        redo()
+        fig.change_tracker.addEdit([undo, redo, "Change despine"])
         self.fig.canvas.draw()
 
     def buttonGridClicked(self):
