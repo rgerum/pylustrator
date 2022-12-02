@@ -105,42 +105,12 @@ plt.show(hide_window=True)
     def assertEqualStringOrArray(self, first, second, msg) -> None:
         if isinstance(first, str) or first is None:
             self.assertEqual(first, second, msg)
+        elif isinstance(first, list) and isinstance(first[0], str):
+            self.assertEqual(first, second)
         else:
             np.testing.assert_almost_equal(first, second, 3, msg)
 
-    def change_property(self, property_name, value, call, get_obj, line_command, test_run, value2: Any = "undefined", get_function=None):
-        if value2 == "undefined":
-            value2 = value
-        if isinstance(get_obj, list):
-            return self.change_property2(property_name, value, call, get_obj, line_command, test_run,
-                                         value2_list=value2)
-
-        if get_function is None:
-            get_function = lambda: getattr(get_obj(), f"get_{property_name}")()
-
-        fig = self.fig
-        obj = get_obj()
-        fig.figure_dragger.select_element(obj)
-
-        # get current value
-        current_value = get_function()
-
-        # set the text to bold
-        call(obj)
-        fig.change_tracker.save()
-
-        # test if the text has the right weight
-        self.assertEqualStringOrArray(value, get_function(),
-                                      f"Property '{property_name}' not set correctly. [{test_run}]")
-
-        # test undo and redo
-        fig.window.undo()
-        self.assertEqualStringOrArray(current_value, get_function(),
-                                      f"Property '{property_name}' undo failed. [{test_run}]")
-        fig.window.redo()
-        self.assertEqualStringOrArray(value, get_function(),
-                                      f"Property '{property_name}' redo failed. [{test_run}]")
-
+    def check_saved_property(self, property_name, line_command, value2, test_run=""):
         # find the saved string and check the numbers
         try:
             line, (args, kwargs) = self.check_line_in_file(line_command)
@@ -175,6 +145,45 @@ plt.show(hide_window=True)
             kwargs["yticks"] = args[0]
         self.assertEqualStringOrArray(value2, kwargs.get(property_name),
                                       f"Property '{property_name}' not saved correctly. [{test_run}]")
+
+    def change_property(self, property_name, value, call, get_obj, line_command, test_run, value2: Any = "undefined", get_function=None, test_saved_value=None):
+        if value2 == "undefined":
+            value2 = value
+        if isinstance(get_obj, list):
+            return self.change_property2(property_name, value, call, get_obj, line_command, test_run,
+                                         value2_list=value2)
+
+        if get_function is None:
+            get_function = lambda: getattr(get_obj(), f"get_{property_name}")()
+
+        fig = self.fig
+        obj = get_obj()
+        fig.figure_dragger.select_element(obj)
+
+        # get current value
+        current_value = get_function()
+
+        # set the text to bold
+        call(obj)
+        fig.change_tracker.save()
+
+        # test if the text has the right weight
+        self.assertEqualStringOrArray(value, get_function(),
+                                      f"Property '{property_name}' not set correctly. [{test_run}]")
+
+        # test undo and redo
+        fig.window.undo()
+        self.assertEqualStringOrArray(current_value, get_function(),
+                                      f"Property '{property_name}' undo failed. [{test_run}]")
+        fig.window.redo()
+        self.assertEqualStringOrArray(value, get_function(),
+                                      f"Property '{property_name}' redo failed. [{test_run}]")
+
+        # find the saved string and check the numbers
+        if test_saved_value is None:
+            self.check_saved_property(property_name, line_command, value2, test_run)
+        else:
+            test_saved_value()
 
         # run the file again
         fig, text = self.run_plot_script()
