@@ -32,6 +32,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.artist import Artist
 from matplotlib.figure import Figure
+from matplotlib.ticker import AutoLocator
 
 from pylustrator.change_tracker import getReference
 from pylustrator.QLinkableWidgets import QColorWidget, CheckWidget, TextWidget, DimensionsWidget, NumberWidget, ComboWidget
@@ -303,32 +304,35 @@ class TextPropertiesWidget2(QtWidgets.QWidget):
 
     def setTarget(self, element: Artist):
         """ set the target artist for this widget """
-        if len(element) == 0:
-            return
-        if isinstance(element, list):
-            self.target_list = element
-            element = element[0]
-        else:
-            if element is None:
-                self.target_list = []
+        self.noSignal = True
+        try:
+            if len(element) == 0:
+                return
+            if isinstance(element, list):
+                self.target_list = element
+                element = element[0]
             else:
-                self.target_list = [element]
-        self.target = None
-        self.font_size.setValue(int(element.get_fontsize()))
+                if element is None:
+                    self.target_list = []
+                else:
+                    self.target_list = [element]
+            self.target = None
+            self.font_size.setValue(int(element.get_fontsize()))
+            index_selected = self.align_names.index(element.get_ha())
+            for index, button in enumerate(self.buttons_align):
+                button.setChecked(index == index_selected)
 
-        index_selected = self.align_names.index(element.get_ha())
-        for index, button in enumerate(self.buttons_align):
-            button.setChecked(index == index_selected)
+            self.button_bold.setChecked(element.get_weight() == "bold")
+            self.button_italic.setChecked(element.get_style() == "italic")
+            self.button_color.setColor(element.get_color())
 
-        self.button_bold.setChecked(element.get_weight() == "bold")
-        self.button_italic.setChecked(element.get_style() == "italic")
-        self.button_color.setColor(element.get_color())
+            for name, name2, type_, default_ in self.property_names:
+                value = getattr(element, "get_"+name2)()
+                self.properties[name] = value
 
-        for name, name2, type_, default_ in self.property_names:
-            value = getattr(element, "get_"+name2)()
-            self.properties[name] = value
-
-        self.target = element
+            self.target = element
+        finally:
+            self.noSignal = False
 
     def delete(self):
         """ delete the target text """
@@ -361,8 +365,11 @@ class TextPropertiesWidget2(QtWidgets.QWidget):
 
     def changeFontSize(self, value: int):
         """ set the font size """
+        if self.noSignal:
+            return
         self.properties["fontsize"] = value
         self.propertiesChanged.emit()
+
 
 class LegendPropertiesWidget(QtWidgets.QWidget):
     stateChanged = QtCore.Signal(int, str)
@@ -735,22 +742,63 @@ class QTickEdit(QtWidgets.QWidget):
         elements += [element.target for element in main_figure(self.element).selection.targets if
                      element.target != self.element and isinstance(element.target, Axes)]
 
-        for element in elements:
-            getattr(element, "set_" + self.axis + "lim")(self.range)
-            getattr(element, "set_" + self.axis + "ticks")(ticks)
-            getattr(element, "set_" + self.axis + "ticklabels")(labels, **self.getFontProperties()[1])
-            min, max = getattr(element, "get_" + self.axis + "lim")()
-            if min != self.range[0] or max != self.range[1]:
-                self.fig.change_tracker.addChange(element,
-                                                  ".set_" + self.axis + "lim(%s, %s)" % (str(min), str(max)))
-            else:
-                self.fig.change_tracker.addChange(element,
-                                                  ".set_" + self.axis + "lim(%s, %s)" % (
-                                                  str(self.range[0]), str(self.range[1])))
+        changed = False
+        for elem in elements:
+            current_ticks = getattr(elem, "get_" + self.axis + "ticks")()
+            if len(current_ticks) != len(ticks) or (current_ticks != ticks).any():
+                changed = True
+        if changed is False:
+            return
 
-            # self.setTarget(self.element)
-            self.fig.change_tracker.addChange(element, ".set_" + self.axis + "ticks([%s], [%s], %s)" % (", ".join(
-                self.str(t) for t in ticks), ", ".join('"' + l + '"' for l in labels), self.getFontProperties()[0]))
+        fig = self.fig
+        old_properties = []
+        for element in elements:
+            axis = getattr(element, "get_" + self.axis + "axis")()
+            locator = axis.major.locator
+            formatter = axis.major.formatter
+            lim = getattr(element, "get_" + self.axis + "lim")()
+            ticks2 = getattr(element, "get_" + self.axis + "ticks")()
+            ticklabels = [t.get_text() for t in getattr(element, "get_" + self.axis + "ticklabels")()]
+            old_properties.append([locator, formatter, lim, ticks2, ticklabels])
+
+        def undo():
+            for element, (locator, formator, lim, ticks, labels) in zip(elements, old_properties):
+                axis = getattr(element, "get_" + self.axis + "axis")()
+                axis.set_major_locator(locator)
+                axis.set_major_formatter(formator)
+                getattr(element, "set_" + self.axis + "lim")(lim)
+                if isinstance(locator, AutoLocator):
+                    # make sure there are no old changes to this element
+                    keys = [k for k in fig.change_tracker.changes]
+                    for reference_obj, reference_command in keys:
+                        if reference_obj == element and reference_command == ".set_" + self.axis + "ticks":
+                            del fig.change_tracker.changes[reference_obj, reference_command]
+                else:
+                    self.fig.change_tracker.addChange(element,
+                                                      ".set_" + self.axis + "ticks([%s], [%s], %s)" % (", ".join(
+                                                          self.str(t) for t in ticks), ", ".join(
+                                                          '"' + l + '"' for l in labels), self.getFontProperties()[0]))
+
+        def redo():
+            for element in elements:
+                getattr(element, "set_" + self.axis + "lim")(self.range)
+                getattr(element, "set_" + self.axis + "ticks")(ticks)
+                getattr(element, "set_" + self.axis + "ticklabels")(labels, **self.getFontProperties()[1])
+                min, max = getattr(element, "get_" + self.axis + "lim")()
+                if min != self.range[0] or max != self.range[1]:
+                    self.fig.change_tracker.addChange(element,
+                                                      ".set_" + self.axis + "lim(%s, %s)" % (str(min), str(max)))
+                else:
+                    self.fig.change_tracker.addChange(element,
+                                                      ".set_" + self.axis + "lim(%s, %s)" % (
+                                                      str(self.range[0]), str(self.range[1])))
+
+                # self.setTarget(self.element)
+                self.fig.change_tracker.addChange(element, ".set_" + self.axis + "ticks([%s], [%s], %s)" % (", ".join(
+                    self.str(t) for t in ticks), ", ".join('"' + l + '"' for l in labels), self.getFontProperties()[0]))
+
+        self.fig.change_tracker.addEdit([undo, redo, "ticks"])
+        redo()
         self.fig.canvas.draw()
 
 
@@ -811,8 +859,6 @@ class QAxesProperties(QtWidgets.QWidget):
             self.show()
         else:
             self.hide()
-
-
 
 
 class QItemProperties(QtWidgets.QWidget):

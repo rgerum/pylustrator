@@ -40,25 +40,25 @@ class TestAxes(BaseTest):
         self.move_element((0, 0), fig.axes[0])
 
         self.change_property("xlim", (0, 10), lambda _: self.fig.window.input_properties.input_xaxis.input_lim.setValue((0, 10), signal=True), get_axes, line_command,
-                             test_run, get_function=lambda: get_axes().get_xlim())
+                             test_run)
 
         line_command = "plt.figure(1).axes[0].set_ylim("
         self.change_property("ylim", (-5, 8), lambda _: self.fig.window.input_properties.input_yaxis.input_lim.setValue((-5, 8), signal=True), get_axes, line_command,
-                             test_run, get_function=lambda: get_axes().get_ylim())
+                             test_run)
 
         line_command = "plt.figure(1).axes[0].get_xaxis().get_label().set("
         self.change_property("xlabel", "label",
                              lambda _: self.fig.window.input_properties.input_xaxis.input_label.setText("label",
                                                                                                        signal=True),
                              get_axes, line_command,
-                             test_run, get_function=lambda: get_axes().get_xlabel())
+                             test_run)
 
         line_command = "plt.figure(1).axes[0].get_yaxis().get_label().set("
         self.change_property("ylabel", "label",
                              lambda _: self.fig.window.input_properties.input_yaxis.input_label.setText("label",
                                                                                                         signal=True),
                              get_axes, line_command,
-                             test_run, get_function=lambda: get_axes().get_ylabel())
+                             test_run)
 
     def test_axis_grid(self):
         # get the figure
@@ -85,3 +85,27 @@ class TestAxes(BaseTest):
 
         self.change_property("despine", False, lambda _: self.fig.window.input_properties.button_despine.clicked.emit(True), get_axes, line_command,
                              test_run, get_function=lambda: get_axes().spines['right'].get_visible() and get_axes().spines['top'].get_visible())
+
+    def test_axis_ticks(self):
+        # get the figure
+        fig, text = self.run_plot_script()
+
+        get_axes = lambda: fig.axes[0]
+        line_command = "plt.figure(1).axes[0].set_xticks("
+        test_run = "Change axes ticks."
+
+        self.move_element((0, 0), fig.axes[0])
+
+        def set_ticks(_):
+            self.fig.window.input_properties.input_xaxis.tick_edit.setTarget(get_axes())
+            self.fig.window.input_properties.input_xaxis.tick_edit.input_ticks.setText("1\n2\n3\n5", signal=True)
+
+        self.change_property("xticks", [1., 2., 3., 5.], set_ticks, get_axes, line_command, test_run)
+
+        line_command = "plt.figure(1).axes[0].set_yticks("
+
+        def set_ticks(_):
+            self.fig.window.input_properties.input_yaxis.tick_edit.setTarget(get_axes())
+            self.fig.window.input_properties.input_yaxis.tick_edit.input_ticks.setText("1\n2\n3\n5", signal=True)
+
+        self.change_property("yticks", [1., 2., 3., 5.], set_ticks, get_axes, line_command, test_run)

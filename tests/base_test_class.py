@@ -116,7 +116,7 @@ plt.show(hide_window=True)
                                          value2_list=value2)
 
         if get_function is None:
-            get_function = getattr(get_obj(), f"get_{property_name}")
+            get_function = lambda: getattr(get_obj(), f"get_{property_name}")()
 
         fig = self.fig
         obj = get_obj()
@@ -169,6 +169,10 @@ plt.show(hide_window=True)
             kwargs["grid"] = args[0]
         if property_name == "despine":
             kwargs["despine"] = args[0]
+        if property_name == "xticks":
+            kwargs["xticks"] = args[0]
+        if property_name == "yticks":
+            kwargs["yticks"] = args[0]
         self.assertEqualStringOrArray(value2, kwargs.get(property_name),
                                       f"Property '{property_name}' not saved correctly. [{test_run}]")
 
