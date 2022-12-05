@@ -152,17 +152,15 @@ class Linkable:
     def updateLink(self):
         """ update the linked property """
         old_value = self.getLinkedPropertyAll()
-        def undo():
-            for elem, property_name, value in old_value:
-                getattr(elem, "set_" + property_name, None)(value)
-        def redo():
-            for elem, property_name, value in new_value:
-                getattr(elem, "set_" + property_name, None)(value)
+
         try:
             elements = self.setLinkedProperty(self.get())
         except AttributeError:
             return
-        for element in elements:
+
+        new_value = self.getLinkedPropertyAll()
+
+        def save_change(element):
             if isinstance(element, mpl.figure.Figure):
                 fig = element
             else:
@@ -173,7 +171,21 @@ class Linkable:
             else:
                 fig.change_tracker.addChange(element, self.serializeLinkedProperty(self.getSerialized()))
 
-        new_value = self.getLinkedPropertyAll()
+        def undo():
+            for elem, property_name, value in old_value:
+                getattr(elem, "set_" + property_name, None)(value)
+                save_change(elem)
+        def redo():
+            for elem, property_name, value in new_value:
+                getattr(elem, "set_" + property_name, None)(value)
+                save_change(elem)
+
+        element = elements[0]
+        if isinstance(element, mpl.figure.Figure):
+            fig = element
+        else:
+            fig = main_figure(element)
+
         fig.change_tracker.addEdit([undo, redo, "Change property"])
         fig.canvas.draw()
         main_figure(self.element).signals.figure_selection_property_changed.emit()
