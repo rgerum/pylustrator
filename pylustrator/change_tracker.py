@@ -292,7 +292,7 @@ class ChangeTracker:
 
             # compose text
             if getattr(element, "is_new_text", False) and exclude_default:
-                return element.axes or element.figure, f".text({pos[0]:.4f}, {pos[1]:.4f}, {repr(element.get_text())}, transform={transform}{kwargs})"
+                return element.axes or element.figure, f".text({pos[0]:.4f}, {pos[1]:.4f}, {repr(element.get_text())}, transform={transform}{kwargs})  # id={getReference(element)}.new"
             else:
                 return element, f".set(position=({pos[0]:.4f}, {pos[1]:.4f}), text={repr(element.get_text())}{kwargs})"
         elif isinstance(element, Legend):

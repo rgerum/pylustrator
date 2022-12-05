@@ -1040,16 +1040,14 @@ class QItemProperties(QtWidgets.QWidget):
         """ when the button 'add text' is clicked """
         if isinstance(self.element, Axes):
             text = self.element.text(0.5, 0.5, "New Text", transform=self.element.transAxes)
-            self.fig.change_tracker.addChange(self.element,
-                                              ".text(0.5, 0.5, 'New Text', transform=%s.transAxes)  # id=%s.new" % (
-                                                  getReference(self.element), getReference(text)), text, ".new")
             text.is_new_text = True
+            self.fig.change_tracker.addNewTextChange(text)
+
         if isinstance(self.element, Figure):
             text = self.element.text(0.5, 0.5, "New Text", transform=self.element.transFigure)
-            self.fig.change_tracker.addChange(self.element,
-                                              ".text(0.5, 0.5, 'New Text', transform=%s.transFigure)  # id=%s.new" % (
-                                                  getReference(self.element), getReference(text)), text, ".new")
             text.is_new_text = True
+            self.fig.change_tracker.addNewTextChange(text)
+
         self.signals.figure_element_child_created.emit(self.element)
         self.fig.figure_dragger.make_dragable(text)
         self.fig.canvas.draw()
