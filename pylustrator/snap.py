@@ -236,6 +236,7 @@ class TargetWrapper(object):
                 self.target.set_position(points[0])
                 self.label_x = points[0][0]
             else:
+                change_tracker.get_describtion_string(self.target)
                 self.target.set_position(points[0])
                 if isinstance(self.target, Text):
                     change_tracker.addNewTextChange(self.target)

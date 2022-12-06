@@ -27,6 +27,8 @@ import os
 import qtawesome as qta
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
+from matplotlib.axes._axes import Axes
+from matplotlib.text import Text
 from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
 
 
@@ -71,18 +73,50 @@ def initialize(use_global_variable_names=False, use_exception_silencer=False, di
     """
     global app, keys_for_lines, old_pltshow, old_pltfigure, setting_use_global_variable_names, no_save_allowed
 
-    # remeber linenumbers where texts are created
-    from matplotlib.axes._axes import Axes
+    # remember line-numbers where texts are created
     def wrap_text_function(text):
         def wrapped_text(*args, **kwargs):
-            element = text(*args, **kwargs)
+            element = text(*args, fontdict=kwargs["fontdict"] if "fontdict" in kwargs else None)
             from pylustrator.change_tracker import getReference
             stack_position = traceback.extract_stack()[-2]
             element._pylustrator_reference = dict(reference=getReference(element), stack_position=stack_position)
+            old_args = {}
+            properties_to_save = ["position", "text", "ha", "va", "fontsize", "color", "style", "weight", "fontname", "rotation"]
+            for name in properties_to_save:
+                try:
+                    old_args[name] = getattr(element, f"get_{name}")()
+                except AttributeError:
+                    continue
+            old_args["position"] = None
+            old_args["text"] = None
+            old_values = getattr(element, "_pylustrator_old_values", [])
+            old_values.append(dict(stack_position=stack_position, old_args=old_args))
+            element._pylustrator_old_values = old_values
+
+            if "fontdict" in kwargs:
+                del kwargs["fontdict"]
+            element.set(**kwargs)
             return element
         return wrapped_text
     Axes.text = wrap_text_function(Axes.text)
     Figure.text = wrap_text_function(Figure.text)
+
+    def wrap_remember_defaults(set, properties_to_save):
+        def wrapped_set(self, *args, **kwargs):
+            old_values = getattr(self, "_pylustrator_old_values", [])
+            stack_position = traceback.extract_stack()[-2]
+            old_args = {}
+            for name in properties_to_save:
+                try:
+                    old_args[name] = getattr(self, f"get_{name}")()
+                except AttributeError:
+                    continue
+            old_values.append(dict(stack_position=stack_position, old_args=old_args))
+            self._pylustrator_old_values = old_values
+            return set(self, *args, **kwargs)
+        return wrapped_set
+
+    Text.set = wrap_remember_defaults(Text.set, ["position", "text", "ha", "va", "fontsize", "color", "style", "weight", "fontname", "rotation"])
 
     # store write only attribute
     no_save_allowed = disable_save

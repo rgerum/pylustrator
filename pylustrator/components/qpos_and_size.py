@@ -105,6 +105,7 @@ class QPosAndSize(QtWidgets.QWidget):
             new_positions.append(pos)
 
         fig = self.fig
+        [fig.change_tracker.get_describtion_string(elem) for elem in elements]
 
         def redo():
             for element, pos in zip(elements, new_positions):

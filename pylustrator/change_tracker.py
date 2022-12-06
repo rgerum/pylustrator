@@ -257,31 +257,38 @@ class ChangeTracker:
     def get_describtion_string(self, element, exclude_default=True):
         if isinstance(element, Text):
             # if the text is deleted we do not need to store all properties
-            if not element.get_visible():
+            if not element.get_visible() or element.get_text() == "":
                 if getattr(element, "is_new_text", False):
                     return element.axes or element.figure, f".text(0, 0, "", visible=False)"
                 else:
                     return element, f".set(visible=False)"
 
             # properties to store
-            properties = ["ha", "va", "fontsize", "color", "style", "weight", "fontname", "rotation"]
-            # get default values
-            if self.text_properties_defaults is None:
-                self.text_properties_defaults = {}
-                if element.axes:
-                    text = element.axes.text(0.5, 0.5, "text")
-                else:
-                    text = element.figure.text(0.5, 0.5, "text")
-                for prop in properties:
-                    self.text_properties_defaults[prop] = getattr(text, f"get_{prop}")()
-                text.remove()
+            properties = ["position", "text", "ha", "va", "fontsize", "color", "style", "weight", "fontname", "rotation"]
+
+            # if the default properties are not set, aquire them
+            if getattr(element, "_pylustrator_old_args", None) is None:
+                old_args = {}
+                for name in properties:
+                    try:
+                        old_args[name] = getattr(element, f"get_{name}")()
+                    except AttributeError:
+                        continue
+                if getattr(element, "is_new_text", False):
+                    old_args["position"] = None
+                    old_args["text"] = None
+                element._pylustrator_old_args = old_args
 
             # get current property values
-            kwargs = ""
+            kwargs = {}
             for prop in properties:
                 value = getattr(element, f"get_{prop}")()
-                if self.text_properties_defaults[prop] != value or not exclude_default:
-                    kwargs += f", {prop}={repr(value)}"
+                default = element._pylustrator_old_args[prop]
+                if prop == "position":
+                    if default is None or not np.allclose(np.round(default, 4), np.round(value, 4)) or not exclude_default:
+                        kwargs[prop] = value
+                elif default != value or not exclude_default:
+                    kwargs[prop] = value
 
             # get position and transformation
             pos = element.get_position()
@@ -292,9 +299,17 @@ class ChangeTracker:
 
             # compose text
             if getattr(element, "is_new_text", False) and exclude_default:
-                return element.axes or element.figure, f".text({pos[0]:.4f}, {pos[1]:.4f}, {repr(element.get_text())}, transform={transform}{kwargs})  # id={getReference(element)}.new"
+                text = kwargs["text"]
+                del kwargs["text"]
+                position = kwargs["position"]
+                del kwargs["position"]
+                kwargs = ', '.join(f'{k}={repr(v)}' for k, v in kwargs.items())
+                return element.axes or element.figure, f".text({position[0]:.4f}, {position[1]:.4f}, {repr(text)}, transform={transform}, {kwargs})  # id={getReference(element)}.new"
             else:
-                return element, f".set(position=({pos[0]:.4f}, {pos[1]:.4f}), text={repr(element.get_text())}{kwargs})"
+                if "position" in kwargs:
+                    kwargs["position"] = tuple(np.round(kwargs['position'], 4))
+                kwargs = ', '.join(f'{k}={repr(v)}' for k, v in kwargs.items())
+                return element, f".set({kwargs})"
         elif isinstance(element, Legend):
             ncols_name = "ncols"
             if version.parse(mpl._get_version()) < version.parse("3.6.0"):
@@ -372,11 +387,13 @@ class ChangeTracker:
                 del self.changes[reference_obj, reference_command]
 
         # store the changes
-        if not element.get_visible() and getattr(element, "is_new_text", False):
-            return
         if getattr(element, "is_new_text", False):
+            if not element.get_visible() or element.get_text() == "":
+                return
             main_figure(element).change_tracker.addChange(command_parent, command, element, ".new")
         else:
+            if command.endswith(".set()"):
+                return
             main_figure(element).change_tracker.addChange(command_parent, command)
 
     def addNewLegendChange(self, element):
@@ -562,6 +579,13 @@ class ChangeTracker:
             command_obj = eval(command_obj)
             reference_obj_str = reference_obj
             reference_obj = eval(reference_obj)
+
+            # if values where saved during the pylustrator saved code
+            for change in getattr(reference_obj, "_pylustrator_old_values", []):
+                if change["stack_position"].lineno == lineno:
+                    old_values = change["old_args"].copy()
+                    old_values.update(getattr(reference_obj, "_pylustrator_old_args", {}))
+                    reference_obj._pylustrator_old_args = old_values
 
             # if the reference object is just a dummy, we ignore it
             if isinstance(reference_obj, Dummy):
