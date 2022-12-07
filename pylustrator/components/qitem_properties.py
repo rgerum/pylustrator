@@ -537,7 +537,8 @@ class QTickEdit(QtWidgets.QWidget):
         self.input_ticks2.editingFinished.connect(self.ticksChanged2)
 
         self.input_scale = ComboWidget(self.layout, axis + "-Scale", ["linear", "log", "symlog", "logit"])
-        self.input_scale.link(axis + "scale", signal_target_changed)
+        self.input_scale.editingFinished.connect(self.ticksChanged)
+        #self.input_scale.link(axis + "scale", signal_target_changed)
 
         self.input_font = TextPropertiesWidget2(self.layout)
         self.input_font.propertiesChanged.connect(self.fontStateChanged)
@@ -747,6 +748,7 @@ class QTickEdit(QtWidgets.QWidget):
                 kwargs[f"{self.axis}ticks"] = ticks
                 kwargs[f"{self.axis}ticklabels"] = labels
                 kwargs[f"{self.axis}lim"] = self.range
+                kwargs[f"{self.axis}scale"] = self.input_scale.text()
                 element.set(**kwargs)
 
         return

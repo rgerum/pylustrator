@@ -134,8 +134,8 @@ def add_text_default(element):
 
 def add_axes_default(element):
     properties = ["position",
-                  "xlim", "xlabel", "xticks", "xticklabels",
-                  "ylim", "ylabel", "yticks", "yticklabels",
+                  "xlim", "xlabel", "xticks", "xticklabels", "xscale",
+                  "ylim", "ylabel", "yticks", "yticklabels", "yscale",
                   "zorder"
                   ]
     if getattr(element, "_pylustrator_old_args", None) is None:
@@ -410,8 +410,8 @@ class ChangeTracker:
             return element.axes, f".legend(loc={repr(loc)}{kwargs})"
         elif isinstance(element, Axes):
             properties = ["position",
-                          "xlabel", "xticks", "xticklabels", "xlim",
-                          "ylabel", "yticks", "yticklabels", "ylim",
+                          "xlabel", "xticks", "xticklabels", "xscale", "xlim",
+                          "ylabel", "yticks", "yticklabels", "yscale", "ylim",
                           "zorder"
                           ]
 
