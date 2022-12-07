@@ -66,7 +66,7 @@ class QPosAndSize(QtWidgets.QWidget):
         self.setElement(self.element)
 
     def changeTransform(self):
-        """ change the tranform and the units of the position and size widgets """
+        """ change the transform and the units of the position and size widgets """
         name = self.input_transform.text()
         self.transform_index = ["cm", "in", "px", "none"].index(name)#transform_index
         if name == "none":
@@ -111,6 +111,8 @@ class QPosAndSize(QtWidgets.QWidget):
                 element.set_position(pos)
                 if isinstance(element, Text):
                     fig.change_tracker.addNewTextChange(element)
+                elif isinstance(element, Axes):
+                    fig.change_tracker.addNewAxesChange(element)
                 elif len(pos) == 4:
                     fig.change_tracker.addChange(element, ".set_position([%f, %f, %f, %f])" % tuple(pos))
                 else:
@@ -121,6 +123,8 @@ class QPosAndSize(QtWidgets.QWidget):
                 element.set_position(pos)
                 if isinstance(element, Text):
                     fig.change_tracker.addNewTextChange(element)
+                elif isinstance(element, Axes):
+                    fig.change_tracker.addNewAxesChange(element)
                 elif len(pos) == 4:
                     fig.change_tracker.addChange(element, ".set_position([%f, %f, %f, %f])" % tuple(pos))
                 else:
@@ -181,12 +185,18 @@ class QPosAndSize(QtWidgets.QWidget):
             def redo():
                 for element, pos in zip(elements, new_positions):
                     element.set_position(pos)
-                    fig.change_tracker.addChange(element, ".set_position([%f, %f, %f, %f])" % tuple(pos))
+                    if isinstance(element, Axes):
+                        fig.change_tracker.addNewAxesChange(element)
+                    else:
+                        fig.change_tracker.addChange(element, ".set_position([%f, %f, %f, %f])" % tuple(pos))
 
             def undo():
                 for element, pos in zip(elements, new_positions):
                     element.set_position(pos)
-                    fig.change_tracker.addChange(element, ".set_position([%f, %f, %f, %f])" % tuple(pos))
+                    if isinstance(element, Axes):
+                        fig.change_tracker.addNewAxesChange(element)
+                    else:
+                        fig.change_tracker.addChange(element, ".set_position([%f, %f, %f, %f])" % tuple(pos))
 
             redo()
             self.fig.change_tracker.addEdit([undo, redo, "Change size"])
