@@ -410,8 +410,8 @@ class ChangeTracker:
             return element.axes, f".legend(loc={repr(loc)}{kwargs})"
         elif isinstance(element, Axes):
             properties = ["position",
-                          "xlabel", "xticks", "xticklabels", "xscale", "xlim",
-                          "ylabel", "yticks", "yticklabels", "yscale", "ylim",
+                          "xscale", "xlabel", "xticks", "xticklabels", "xlim",
+                          "yscale", "ylabel", "yticks", "yticklabels", "ylim",
                           "zorder"
                           ]
 

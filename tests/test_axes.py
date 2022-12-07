@@ -148,3 +148,15 @@ class TestAxes(BaseTest):
 
         self.change_property("yticks", [1., 2., 3., 5., 10], set_ticks, get_axes, line_command, test_run,
                              test_saved_value=check_saved_property("y"))
+
+        def set_xlog(_):
+            self.fig.window.input_properties.input_xaxis.tick_edit.setTarget(get_axes())
+            self.fig.window.input_properties.input_xaxis.tick_edit.input_scale.setText("log", signal=True)
+
+        self.change_property("xscale", "log", set_xlog, get_axes, line_command, test_run)
+
+        def set_ylog(_):
+            self.fig.window.input_properties.input_yaxis.tick_edit.setTarget(get_axes())
+            self.fig.window.input_properties.input_yaxis.tick_edit.input_scale.setText("log", signal=True)
+
+        self.change_property("yscale", "log", set_ylog, get_axes, line_command, test_run)

@@ -537,7 +537,7 @@ class QTickEdit(QtWidgets.QWidget):
         self.input_ticks2.editingFinished.connect(self.ticksChanged2)
 
         self.input_scale = ComboWidget(self.layout, axis + "-Scale", ["linear", "log", "symlog", "logit"])
-        self.input_scale.editingFinished.connect(self.ticksChanged)
+        self.input_scale.editingFinished.connect(self.scaleChanged)
         #self.input_scale.link(axis + "scale", signal_target_changed)
 
         self.input_font = TextPropertiesWidget2(self.layout)
@@ -733,6 +733,17 @@ class QTickEdit(QtWidgets.QWidget):
         self.ticksChanged()
         #fig.change_tracker.addChange(axes, ".legend(%s)" % (", ".join("%s=%s" % (k, v) for k, v in prop_copy.items())))
 
+    def scaleChanged(self):
+        """ when the scale changed """
+        elements = [self.element]
+        elements += [element.target for element in main_figure(self.element).selection.targets if
+                     element.target != self.element and isinstance(element.target, Axes)]
+
+        with UndoRedo(elements, "Axes Scale"):
+            for element in elements:
+                kwargs = {}
+                kwargs[f"{self.axis}scale"] = self.input_scale.text()
+                element.set(**kwargs)
 
     def ticksChanged(self):
         """ when the major ticks changed """
@@ -748,7 +759,6 @@ class QTickEdit(QtWidgets.QWidget):
                 kwargs[f"{self.axis}ticks"] = ticks
                 kwargs[f"{self.axis}ticklabels"] = labels
                 kwargs[f"{self.axis}lim"] = self.range
-                kwargs[f"{self.axis}scale"] = self.input_scale.text()
                 element.set(**kwargs)
 
         return

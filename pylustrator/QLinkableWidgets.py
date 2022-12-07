@@ -541,12 +541,14 @@ class ComboWidget(QtWidgets.QWidget, Linkable):
         """ set the text of the label """
         self.label.setLabel(text)
 
-    def setText(self, text: str):
+    def setText(self, text: str, signal=False):
         """ set the value of the combo box """
         self.noSignal = True
         index = self.values.index(text)
         self.input1.setCurrentIndex(index)
         self.noSignal = False
+        if signal is True:
+            self.editingFinished.emit()
 
     def text(self) -> str:
         """ get the value of the combo box """
