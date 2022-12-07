@@ -741,6 +741,20 @@ class QTickEdit(QtWidgets.QWidget):
         elements += [element.target for element in main_figure(self.element).selection.targets if
                      element.target != self.element and isinstance(element.target, Axes)]
 
+        with UndoRedo(elements, "Axes Ticks"):
+            for element in elements:
+                kwargs = {}
+                kwargs[f"{self.axis}ticks"] = ticks
+                kwargs[f"{self.axis}ticklabels"] = labels
+                kwargs[f"{self.axis}lim"] = self.range
+                element.set(**kwargs)
+
+        return
+        if 0:
+            getattr(element, "set_" + self.axis + "lim")(self.range)
+            getattr(element, "set_" + self.axis + "ticks")(ticks)
+            getattr(element, "set_" + self.axis + "ticklabels")(labels, **self.getFontProperties()[1])
+
         changed = False
         for elem in elements:
             current_ticks = getattr(elem, "get_" + self.axis + "ticks")()

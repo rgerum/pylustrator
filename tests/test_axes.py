@@ -100,40 +100,39 @@ class TestAxes(BaseTest):
 
         self.move_element((0, 0), fig.axes[0])
 
-        line_command = "plt.figure(1).axes[0].set_xticks("
+        line_command = "plt.figure(1).axes[0].set("
 
-        def check_saved_property():
-            # find the saved string and check the numbers
-            line, (args, kwargs) = self.check_line_in_file(line_command)
-            self.assertEqualStringOrArray([1., 2.2, 3., 5.], args[0],
-                                          f"Property 'ticks' not saved correctly. [{test_run}]")
-            self.assertEqualStringOrArray(["1", "2.2", "3", "5"], args[1],
-                                          f"Property 'ticks' not saved correctly. [{test_run}]")
+        def check_saved_property(xy):
+            def check():
+                # find the saved string and check the numbers
+                line, (args, kwargs) = self.check_line_in_file(line_command)
+                self.assertEqualStringOrArray([1., 2.2, 3., 5.], kwargs[f"{xy}ticks"],
+                                              f"Property 'ticks' not saved correctly. [{test_run}]")
+                self.assertEqualStringOrArray(["1", "2.2", "3", "5"], kwargs[f"{xy}ticklabels"],
+                                              f"Property 'ticks' not saved correctly. [{test_run}]")
+            return check
 
         # test_saved_value
         def set_ticks(_):
             self.fig.window.input_properties.input_xaxis.tick_edit.setTarget(get_axes())
             self.fig.window.input_properties.input_xaxis.tick_edit.input_ticks.setText("1\n2.2\n3\n5", signal=True)
 
-        self.change_property("xticks", [1., 2.2, 3., 5.], set_ticks, get_axes, line_command, test_run, test_saved_value=check_saved_property)
-
-        line_command = "plt.figure(1).axes[0].set_yticks("
+        self.change_property("xticks", [1., 2.2, 3., 5.], set_ticks, get_axes, line_command, test_run, test_saved_value=check_saved_property("x"))
 
         def set_ticks(_):
             self.fig.window.input_properties.input_yaxis.tick_edit.setTarget(get_axes())
             self.fig.window.input_properties.input_yaxis.tick_edit.input_ticks.setText("1\n2.2\n3\n5", signal=True)
 
-        self.change_property("yticks", [1., 2.2, 3., 5.], set_ticks, get_axes, line_command, test_run, test_saved_value=check_saved_property)
+        self.change_property("yticks", [1., 2.2, 3., 5.], set_ticks, get_axes, line_command, test_run, test_saved_value=check_saved_property("y"))
 
-        line_command = "plt.figure(1).axes[0].set_xticks("
-
-        def check_saved_property():
-            # find the saved string and check the numbers
-            line, (args, kwargs) = self.check_line_in_file(line_command)
-            self.assertEqualStringOrArray([1., 2., 3., 5., 10], args[0],
-                                          f"Property 'ticks' not saved correctly. [{test_run}]")
-            self.assertEqualStringOrArray(["a", "b", "c", "5", r'$\mathdefault{10^{1}}$'], args[1],
-                                          f"Property 'ticks' not saved correctly. [{test_run}]")
+        def check_saved_property(xy):
+            def check():
+                # find the saved string and check the numbers
+                line, (args, kwargs) = self.check_line_in_file(line_command)
+                self.assertEqualStringOrArray([1., 2., 3., 5., 10], kwargs[f"{xy}ticks"],
+                                              f"Property 'ticks' not saved correctly. [{test_run}]")
+                self.assertEqualStringOrArray(["a", "b", "c", "5", r'$\mathdefault{10^{1}}$'], kwargs[f"{xy}ticklabels"],
+                                              f"Property 'ticks' not saved correctly. [{test_run}]")
 
         # test_saved_value
         def set_ticks(_):
@@ -141,13 +140,11 @@ class TestAxes(BaseTest):
             self.fig.window.input_properties.input_xaxis.tick_edit.input_ticks.setText('1 "a"\n2 "b\n3 c\n5\n10^1', signal=True)
 
         self.change_property("xticks", [1., 2., 3., 5., 10], set_ticks, get_axes, line_command, test_run,
-                             test_saved_value=check_saved_property)
-
-        line_command = "plt.figure(1).axes[0].set_yticks("
+                             test_saved_value=check_saved_property("x"))
 
         def set_ticks(_):
             self.fig.window.input_properties.input_yaxis.tick_edit.setTarget(get_axes())
             self.fig.window.input_properties.input_yaxis.tick_edit.input_ticks.setText('1 "a"\n2 "b\n3 c\n5\n10^1', signal=True)
 
         self.change_property("yticks", [1., 2., 3., 5., 10], set_ticks, get_axes, line_command, test_run,
-                             test_saved_value=check_saved_property)
+                             test_saved_value=check_saved_property("y"))
