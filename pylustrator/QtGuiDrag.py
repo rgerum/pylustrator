@@ -43,6 +43,7 @@ from .components.align import Align
 from .components.plot_layout import PlotLayout
 from .components.info_dialog import InfoDialog
 from .components.qpos_and_size import QPosAndSize
+from .change_tracker import init_figure
 
 
 def my_excepthook(type, value, tback):
@@ -101,22 +102,7 @@ def initialize(use_global_variable_names=False, use_exception_silencer=False, di
     Axes.text = wrap_text_function(Axes.text)
     Figure.text = wrap_text_function(Figure.text)
 
-    def wrap_remember_defaults(set, properties_to_save):
-        def wrapped_set(self, *args, **kwargs):
-            old_values = getattr(self, "_pylustrator_old_values", [])
-            stack_position = traceback.extract_stack()[-2]
-            old_args = {}
-            for name in properties_to_save:
-                try:
-                    old_args[name] = getattr(self, f"get_{name}")()
-                except AttributeError:
-                    continue
-            old_values.append(dict(stack_position=stack_position, old_args=old_args))
-            self._pylustrator_old_values = old_values
-            return set(self, *args, **kwargs)
-        return wrapped_set
-
-    Text.set = wrap_remember_defaults(Text.set, ["position", "text", "ha", "va", "fontsize", "color", "style", "weight", "fontname", "rotation"])
+    setattr(Figure, '_pylustrator_init', init_figure)
 
     # store write only attribute
     no_save_allowed = disable_save
@@ -213,6 +199,7 @@ def show(hide_window: bool = False):
         warnAboutTicks(window.fig)
         # add dragger
         DragManager(_pylab_helpers.Gcf.figs[figure].canvas.figure, no_save_allowed)
+        init_figure(_pylab_helpers.Gcf.figs[figure].canvas.figure)
         window.update()
         # and show it
         if hide_window is False:

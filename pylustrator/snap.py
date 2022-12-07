@@ -236,7 +236,6 @@ class TargetWrapper(object):
                 self.target.set_position(points[0])
                 self.label_x = points[0][0]
             else:
-                change_tracker.get_describtion_string(self.target)
                 self.target.set_position(points[0])
                 if isinstance(self.target, Text):
                     change_tracker.addNewTextChange(self.target)
@@ -256,8 +255,9 @@ class TargetWrapper(object):
             if self.fixed_aspect:
                 position[3] = position[2] * self.target.get_position().height / self.target.get_position().width
             self.target.set_position(position)
-            change_tracker.addChange(self.target, ".set_position([%f, %f, %f, %f])" % tuple(
-                np.array([points[0], points[1] - points[0]]).flatten()))
+            change_tracker.addNewAxesChange(self.target)
+            #change_tracker.addChange(self.target, ".set_position([%f, %f, %f, %f])" % tuple(
+            #    np.array([points[0], points[1] - points[0]]).flatten()))
         setattr(self.target, "_pylustrator_cached_get_extend", None)
 
     def get_extent(self):

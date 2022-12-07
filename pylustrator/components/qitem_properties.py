@@ -37,7 +37,7 @@ from matplotlib.ticker import AutoLocator
 from pylustrator.change_tracker import getReference
 from pylustrator.QLinkableWidgets import QColorWidget, CheckWidget, TextWidget, DimensionsWidget, NumberWidget, ComboWidget
 from pylustrator.helper_functions import main_figure
-from pylustrator.change_tracker import UndoRedo
+from pylustrator.change_tracker import UndoRedo, add_text_default
 
 
 class TextPropertiesWidget(QtWidgets.QWidget):
@@ -708,7 +708,6 @@ class QTickEdit(QtWidgets.QWidget):
                                                   ", ".join(self.str(t) for t in ticks),
                                                   ", ".join('"' + l + '"' for l in labels)),
                                               element, ".set_" + self.axis + "ticks_minor")
-            self.fig.change_tracker.get_describtion_string(element)
         self.fig.canvas.draw()
 
     def getFontProperties(self):
@@ -860,6 +859,68 @@ class QAxesProperties(QtWidgets.QWidget):
         else:
             self.hide()
 
+
+class QAxesProperties(QtWidgets.QWidget):
+    targetChanged_wrapped = QtCore.Signal(object)
+
+    def __init__(self, layout: QtWidgets.QLayout, axis: str, signal_target_changed: QtCore.Signal):
+        """ a widget to change the properties of an axes (label, limits)
+
+        Args:
+            layout: the layout to which to add this widget
+            axis: whether to use "x" or the "y" axis
+            signal_target_changed: the signal when a target changed
+        """
+        QtWidgets.QWidget.__init__(self)
+        layout.addWidget(self)
+        self.axis = axis
+        self.layout = QtWidgets.QHBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+
+        self.targetChanged = signal_target_changed
+        self.targetChanged.connect(self.setTarget)
+
+        self.input_label = TextWidget(self.layout, axis + "-Label:")
+        self.input_label.editingFinished.connect(self.saveLabel)
+        self.input_lim = DimensionsWidget(self.layout, axis + "-Lim:", "-", "", free=True)
+        self.input_lim.editingFinished.connect(self.saveLim)
+        if axis == "x":
+            self.button_ticks = QtWidgets.QPushButton(
+                QtGui.QIcon(os.path.join(os.path.dirname(__file__), "../icons", "ticks.ico")), "")
+        else:
+            self.button_ticks = QtWidgets.QPushButton(
+                QtGui.QIcon(os.path.join(os.path.dirname(__file__), "../icons", "ticks_y.ico")), "")
+        self.button_ticks.clicked.connect(self.showTickWidget)
+        self.layout.addWidget(self.button_ticks)
+
+        self.tick_edit = QTickEdit(axis, signal_target_changed)
+
+    def showTickWidget(self):
+        """ open the tick edit dialog """
+        self.tick_edit.setTarget(self.element)
+        self.tick_edit.show()
+
+    def setTarget(self, element: Artist):
+        """ set the target Artist of this widget """
+        self.element = element
+
+        if isinstance(element, Axes):
+            self.input_label.setText(getattr(element, f"get_{self.axis}label")())
+            self.input_lim.setValue(getattr(element, f"get_{self.axis}lim")())
+            self.show()
+        else:
+            self.hide()
+
+    def saveLabel(self):
+        text = self.input_label.text()
+        with UndoRedo([self.element], f"Set axes {self.axis}-label"):
+            self.element.set(**{f"{self.axis}label": text})
+
+    def saveLim(self):
+        limits = self.input_lim.value()
+        with UndoRedo([self.element], f"Set axes {self.axis}-lim"):
+            print("save lim", self.element, {f"{self.axis}lim": limits})
+            self.element.set(**{f"{self.axis}lim": limits})
 
 class QItemProperties(QtWidgets.QWidget):
     targetChanged = QtCore.Signal(object)
@@ -1041,11 +1102,13 @@ class QItemProperties(QtWidgets.QWidget):
         if isinstance(self.element, Axes):
             text = self.element.text(0.5, 0.5, "New Text", transform=self.element.transAxes)
             text.is_new_text = True
+            add_text_default(text)
             self.fig.change_tracker.addNewTextChange(text)
 
         if isinstance(self.element, Figure):
             text = self.element.text(0.5, 0.5, "New Text", transform=self.element.transFigure)
             text.is_new_text = True
+            add_text_default(text)
             self.fig.change_tracker.addNewTextChange(text)
 
         self.signals.figure_element_child_created.emit(self.element)
@@ -1127,54 +1190,36 @@ class QItemProperties(QtWidgets.QWidget):
         new_value = not is_despined(self.element)
         fig = main_figure(self.element)
 
-        def set_despined(elem, value):
-            if value is False:
-                if version.parse(mpl.__version__) < version.parse("3.4.0"):
-                    commands = [".spines['right'].set_visible(False)", ".spines['top'].set_visible(False)"]
-                else:
-                    commands = [".spines[['right', 'top']].set_visible(False)"]
-            else:
-                if version.parse(mpl.__version__) < version.parse("3.4.0"):
-                    commands = [".spines['right'].set_visible(True)", ".spines['top'].set_visible(True)"]
-                else:
-                    commands = [".spines[['right', 'top']].set_visible(True)"]
-
-            for command in commands:
-                eval("elem" + command)
-                fig.change_tracker.addChange(elem, command)
-
-        def undo():
-            for element, value in zip(elements, despined):
-                set_despined(element, value)
-
-        def redo():
+        with UndoRedo(elements, "Despine"):
             for element in elements:
-                set_despined(element, new_value)
-
-        redo()
-        fig.change_tracker.addEdit([undo, redo, "Change despine"])
-        self.fig.canvas.draw()
+                for spine in ["right", "top"]:
+                    element.spines[spine].set_visible(new_value)
 
     def buttonGridClicked(self):
         """ toggle the grid of the target """
         elements = [element.target for element in main_figure(self.element).selection.targets
                     if isinstance(element.target, Axes)]
+        has_grid = getattr(self.element.xaxis, "_gridOnMajor", False) or getattr(self.element.xaxis, "_major_tick_kw", {"gridOn": False})['gridOn']
 
-        def set_false():
+        with UndoRedo(elements, "Toggle Grid"):
             for element in elements:
-                element.grid(False)
-                self.fig.change_tracker.addChange(element, ".grid(False)")
-        def set_true():
-            for element in elements:
-                element.grid(True)
-                self.fig.change_tracker.addChange(element, ".grid(True)")
+                element.grid(not has_grid)
+        if 0:
+            def set_false():
+                for element in elements:
+                    element.grid(False)
+                    self.fig.change_tracker.addChange(element, ".grid(False)")
+            def set_true():
+                for element in elements:
+                    element.grid(True)
+                    self.fig.change_tracker.addChange(element, ".grid(True)")
 
-        if getattr(self.element.xaxis, "_gridOnMajor", False) or getattr(self.element.xaxis, "_major_tick_kw", {"gridOn": False})['gridOn']:
-            set_false()
-            self.fig.change_tracker.addEdit([set_true, set_false, "Grid off"])
-        else:
-            set_true()
-            self.fig.change_tracker.addEdit([set_false, set_true, "Grid on"])
+            if getattr(self.element.xaxis, "_gridOnMajor", False) or getattr(self.element.xaxis, "_major_tick_kw", {"gridOn": False})['gridOn']:
+                set_false()
+                self.fig.change_tracker.addEdit([set_true, set_false, "Grid off"])
+            else:
+                set_true()
+                self.fig.change_tracker.addEdit([set_false, set_true, "Grid on"])
         self.fig.canvas.draw()
 
     def buttonLegendClicked(self):

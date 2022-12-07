@@ -18,6 +18,8 @@ class TestLegend(BaseTest):
         x = 0.041
         y = 0.854
 
+        self.move_element((0, 0), get_legend)
+
         #self.check_text_properties(get_text, line_command, test_run, 0.4931, 0.4979)
         self.change_property("loc", (x, 0.857), lambda _: self.move_element((-1, 0)), get_legend, line_command,
                              test_run, get_function=lambda: get_legend()._loc)

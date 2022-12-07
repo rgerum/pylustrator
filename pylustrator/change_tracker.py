@@ -79,6 +79,17 @@ def unescape_string(str):
         str = str.replace(pair[1], pair[0])
     return str
 
+def to_str(v):
+    if isinstance(v, list) and isinstance(v[0], float):
+        return "["+", ".join(np.format_float_positional(a, 4, fractional=False) for a in v)+"]"
+    elif isinstance(v, tuple) and isinstance(v[0], float):
+        return "("+", ".join(np.format_float_positional(a, 4, fractional=False) for a in v)+")"
+    elif isinstance(v, float):
+        return np.format_float_positional(v, 4, fractional=False)
+    return repr(v)
+def kwargs_to_string(kwargs):
+    return ', '.join(f'{k}={to_str(v)}' for k, v in kwargs.items())
+
 class UndoRedo:
     def __init__(self, elements, name):
         self.elements = list(elements)
@@ -95,6 +106,54 @@ class UndoRedo:
         self.figure.canvas.draw()
         self.figure.signals.figure_selection_property_changed.emit()
         self.change_tracker.addEdit([self.undo, self.redo, self.name])
+
+def init_figure(fig):
+    for axes in fig.axes:
+        add_axes_default(axes)
+        for text in axes.texts:
+            add_text_default(text)
+    for text in fig.texts:
+        add_text_default(text)
+
+def add_text_default(element):
+    # properties to store
+    properties = ["position", "text", "ha", "va", "fontsize", "color", "style", "weight", "fontname", "rotation"]
+
+    # if the default properties are not set, aquire them
+    if getattr(element, "_pylustrator_old_args", None) is None:
+        old_args = {}
+        for name in properties:
+            try:
+                old_args[name] = getattr(element, f"get_{name}")()
+            except AttributeError:
+                continue
+        if getattr(element, "is_new_text", False):
+            old_args["position"] = None
+            old_args["text"] = None
+        element._pylustrator_old_args = old_args
+
+def add_axes_default(element):
+    properties = ["position",
+                  "xlim", "xlabel", "xticks", "xticklabels",
+                  "ylim", "ylabel", "yticks", "yticklabels",
+                  "zorder"
+                  ]
+    if getattr(element, "_pylustrator_old_args", None) is None:
+        old_args = {}
+        for name in properties:
+            try:
+                old_args[name] = getattr(element, f"get_{name}")()
+            except AttributeError:
+                continue
+        pos = element.get_position()
+        old_args["position"] = [pos.x0, pos.y0, pos.width, pos.height]
+        old_args["xticks"] = list(old_args["xticks"])
+        old_args["xticklabels"] = [t.get_text() for t in old_args["xticklabels"]]
+        old_args["yticks"] = list(old_args["yticks"])
+        old_args["yticklabels"] = [t.get_text() for t in old_args["yticklabels"]]
+        old_args["grid"] = getattr(element.xaxis, "_gridOnMajor", False) or getattr(element.xaxis, "_major_tick_kw", {"gridOn": False})['gridOn']
+        old_args["spines"] = {s: v.get_visible() for s,v in element.spines.items()}
+        element._pylustrator_old_args = old_args
 
 def getReference(element: Artist, allow_using_variable_names=True):
     """ get the code string that represents the given Artist. """
@@ -240,15 +299,24 @@ class ChangeTracker:
         self.changeCountChanged()
 
     def get_element_restore_function(self, elements):
-        description_strings = [self.get_describtion_string(element, exclude_default=False) for element in elements]
+        description_strings = []
+        for element in elements:
+            desc = self.get_describtion_string(element, exclude_default=False)
+            if isinstance(desc, list):
+                description_strings.extend(desc)
+            else:
+                description_strings.append(desc)
         def restore():
             for element, string in description_strings:
                 #function, arguments = re.match(r"\.([^(]*)\((.*)\)", string)
+                print(f"eval {getReference(element)}{string}")
                 eval(f"{getReference(element)}{string}")
                 if isinstance(element, Text):
                     self.addNewTextChange(element)
                 elif isinstance(element, Axes) and string.startswith(".legend("):
                     self.addNewLegendChange(element.get_legend())
+                elif isinstance(element, Axes):
+                    self.addNewAxesChange(element)
                 else:
                     raise NotImplementedError
                 #getattr(element, function)(eval(arg))
@@ -266,28 +334,12 @@ class ChangeTracker:
             # properties to store
             properties = ["position", "text", "ha", "va", "fontsize", "color", "style", "weight", "fontname", "rotation"]
 
-            # if the default properties are not set, aquire them
-            if getattr(element, "_pylustrator_old_args", None) is None:
-                old_args = {}
-                for name in properties:
-                    try:
-                        old_args[name] = getattr(element, f"get_{name}")()
-                    except AttributeError:
-                        continue
-                if getattr(element, "is_new_text", False):
-                    old_args["position"] = None
-                    old_args["text"] = None
-                element._pylustrator_old_args = old_args
-
             # get current property values
             kwargs = {}
             for prop in properties:
                 value = getattr(element, f"get_{prop}")()
                 default = element._pylustrator_old_args[prop]
-                if prop == "position":
-                    if default is None or not np.allclose(np.round(default, 4), np.round(value, 4)) or not exclude_default:
-                        kwargs[prop] = value
-                elif default != value or not exclude_default:
+                if to_str(default) != to_str(value) or not exclude_default:
                     kwargs[prop] = value
 
             # get position and transformation
@@ -303,12 +355,12 @@ class ChangeTracker:
                 del kwargs["text"]
                 position = kwargs["position"]
                 del kwargs["position"]
-                kwargs = ', '.join(f'{k}={repr(v)}' for k, v in kwargs.items())
+                kwargs = kwargs_to_string(kwargs)
                 return element.axes or element.figure, f".text({position[0]:.4f}, {position[1]:.4f}, {repr(text)}, transform={transform}, {kwargs})  # id={getReference(element)}.new"
             else:
                 if "position" in kwargs:
                     kwargs["position"] = tuple(np.round(kwargs['position'], 4))
-                kwargs = ', '.join(f'{k}={repr(v)}' for k, v in kwargs.items())
+                kwargs = kwargs_to_string(kwargs)
                 return element, f".set({kwargs})"
         elif isinstance(element, Legend):
             ncols_name = "ncols"
@@ -358,9 +410,11 @@ class ChangeTracker:
             return element.axes, f".legend(loc={repr(loc)}{kwargs})"
         elif isinstance(element, Axes):
             properties = ["position",
-                          "xlim", "xlabel", "xticks", "xticklabels",
-                          "ylim", "ylabel", "yticks", "yticklabels",
+                          "xlabel", "xticks", "xticklabels", "xlim",
+                          "ylabel", "yticks", "yticklabels", "ylim",
+                          "zorder"
                           ]
+
             # get current property values
             kwargs = {}
             for prop in properties:
@@ -371,10 +425,56 @@ class ChangeTracker:
             pos = element.get_position()
             kwargs["position"] = [pos.x0, pos.y0, pos.width, pos.height]
             kwargs["xticks"] = list(kwargs["xticks"])
-            kwargs["yticks"] = list(kwargs["yticks"])
             kwargs["xticklabels"] = [t.get_text() for t in kwargs["xticklabels"]]
+            kwargs["yticks"] = list(kwargs["yticks"])
             kwargs["yticklabels"] = [t.get_text() for t in kwargs["yticklabels"]]
-            return element, f".set({', '.join(f'{k}={v}' for k, v in kwargs.items())})"
+            from matplotlib.ticker import AutoLocator
+            if 0:
+                if element.get_autoscale_on():
+                    del kwargs["xlim"]
+                    del kwargs["ylim"]
+                if isinstance(element.get_xaxis().major.locator, AutoLocator):
+                    del kwargs["xticks"]
+                    del kwargs["xticklabels"]
+                if isinstance(element.get_xaxis().major.locator, AutoLocator):
+                    del kwargs["yticks"]
+                    del kwargs["yticklabels"]
+
+            # get current property values
+            for prop in list(kwargs.keys()):
+                value = kwargs[prop]
+                default = element._pylustrator_old_args[prop]
+                if to_str(default) == to_str(value) and exclude_default:
+                    del kwargs[prop]
+
+            desc_strings = [(element, f".set({kwargs_to_string(kwargs)})")]
+            has_grid = getattr(element.xaxis, "_gridOnMajor", False) or \
+                               getattr(element.xaxis, "_major_tick_kw", {"gridOn": False})['gridOn']
+            if has_grid != element._pylustrator_old_args["grid"] or not exclude_default:
+                desc_strings.append([element, f".grid({has_grid})"])
+
+            visible = []
+            hidden = []
+            for name, spine in element.spines.items():
+                if spine.get_visible() != element._pylustrator_old_args["spines"][name] or not exclude_default:
+                    if spine.get_visible():
+                        visible.append(name)
+                    else:
+                        hidden.append(name)
+            if len(visible):
+                if version.parse(mpl.__version__) < version.parse("3.4.0"):
+                    for name in visible:
+                        desc_strings.append([element, f".spines[{name}].set_visible(True)"])
+                else:
+                    desc_strings.append([element, f".spines[{visible}].set_visible(True)"])
+            if len(hidden):
+                if version.parse(mpl.__version__) < version.parse("3.4.0"):
+                    for name in hidden:
+                        desc_strings.append([element, f".spines[{name}].set_visible(False)"])
+                else:
+                    desc_strings.append([element, f".spines[{hidden}].set_visible(False)"])
+
+            return desc_strings
 
     text_properties_defaults = None
     def addNewTextChange(self, element):
@@ -409,6 +509,23 @@ class ChangeTracker:
         #if not element.get_visible() and getattr(element, "is_new_text", False):
         #    return
         main_figure(element).change_tracker.addChange(command_parent, command)
+
+    def addNewAxesChange(self, element):
+        desc_strings = self.get_describtion_string(element)
+
+        # make sure there are no old changes to this element
+        keys = [k for k in self.changes]
+        for reference_obj, reference_command in keys:
+            if reference_obj == element:
+                del self.changes[reference_obj, reference_command]
+
+        # store the changes
+        #if not element.get_visible() and getattr(element, "is_new_text", False):
+        #    return
+        for command_parent, command in desc_strings:
+            if command.endswith(".set()"):
+                continue
+            main_figure(element).change_tracker.addChange(command_parent, command)
 
     def changeCountChanged(self):
         if self.update_changes_signal is not None:
@@ -653,8 +770,11 @@ class ChangeTracker:
         # if saving is disabled
         if self.no_save is True:
             return
-        header = [getReference(self.figure) + ".ax_dict = {ax.get_label(): ax for ax in " + getReference(
-            self.figure) + ".axes}", "import matplotlib as mpl"]
+        header = [
+            getReference(self.figure) + ".ax_dict = {ax.get_label(): ax for ax in " + getReference(self.figure) + ".axes}",
+            "import matplotlib as mpl",
+            f"getattr({getReference(self.figure)}, '_pylustrator_init', lambda: ...)()",
+        ]
 
         # block = getTextFromFile(header[0], self.stack_position)
         output = [custom_prepend + "#% start: automatic generated code from pylustrator"]
