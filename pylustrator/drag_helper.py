@@ -31,6 +31,7 @@ from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
 
 from .snap import TargetWrapper, getSnaps, checkSnaps, checkSnapsActive, SnapBase
 from .change_tracker import ChangeTracker
+from pylustrator.change_tracker import UndoRedo
 import time
 
 DIR_X0 = 1
@@ -260,7 +261,9 @@ class GrabbableRectangleSelection(GrabFunctions):
 
         if mode == "group":
             from pylustrator.helper_functions import axes_to_grid
-            return axes_to_grid([target.target for target in self.targets], track_changes=True)
+            #return axes_to_grid([target.target for target in self.targets], track_changes=True)
+            with UndoRedo([target.target for target in self.targets], "Grid Align"):
+                axes_to_grid([target.target for target in self.targets], track_changes=False)
 
         def align(y: int, func: callable):
             self.start_move()

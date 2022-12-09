@@ -281,7 +281,7 @@ class TestAxes(BaseTest):
                               lambda _: fig.window.input_align.buttons[6].clicked.emit(0), get_text, line_command,
                               test_run, value2_list=[[0.2, 0.1, 0.4, 0.4], [0.6, 0.1, 0.3, 0.3]])
 
-    def test_text_distribute(self):
+    def test_axes_distribute(self):
         # get the figure
         fig, text = self.run_plot_script()
 
@@ -318,3 +318,28 @@ class TestAxes(BaseTest):
                                            [[0.5, 0.4], [0.9, 0.8]]],
                               lambda _: fig.window.input_align.buttons[7].clicked.emit(0), get_text, line_command,
                               test_run, value2_list=[[0.2, 0.2, 0.3, 0.3], [0.6, 0.7, 0.2, 0.2], [0.5, 0.4, 0.4, 0.4]])
+
+    def test_axes_grid(self):
+        # get the figure
+        fig, text = self.run_plot_script()
+
+        get_text = [lambda: fig.axes[0], lambda: fig.axes[1], lambda: fig.axes[2]]
+        line_command = ["plt.figure(1).axes[0].set(", "plt.figure(1).axes[1].set(", "plt.figure(1).axes[2].set("]
+        test_run = "Distribute axes."
+
+        # distribute X
+        fig.axes[0].set_position([0.2, 0.2, 0.3, 0.3])
+        fig.axes[1].set_position([0.2, 0.6, 0.2, 0.2])
+        fig.axes[2].set_position([0.5, 0.21, 0.25, 0.25])
+
+        fig.change_tracker.addNewAxesChange(fig.axes[0])
+        fig.change_tracker.addNewAxesChange(fig.axes[1])
+        fig.change_tracker.addNewAxesChange(fig.axes[2])
+
+        self.change_property2("position", [[[0.2, 0.2], [0.45, 0.45]],
+                                           [[0.2, 0.55], [0.45, 0.8]],
+                                           [[0.5, 0.2], [0.75, 0.45]]],
+                              lambda _: fig.window.input_align.buttons[8].clicked.emit(0), get_text, line_command,
+                              test_run, value2_list=[[0.2, 0.2, 0.25, 0.25],
+                                                     [0.2, 0.55, 0.25, 0.25],
+                                                     [0.5, 0.2, 0.25, 0.25]])
