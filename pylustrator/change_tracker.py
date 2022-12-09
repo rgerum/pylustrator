@@ -159,6 +159,8 @@ def add_axes_default(element):
         old_args["yticks-minor"] = list(element.get_yticks(minor=True))
         old_args["yticklabels-minor"] = [t.get_text() for t in element.get_yticklabels(minor=True)]
         element._pylustrator_old_args = old_args
+    add_text_default(element.get_xaxis().get_label())
+    add_text_default(element.get_yaxis().get_label())
 
 def getReference(element: Artist, allow_using_variable_names=True):
     """ get the code string that represents the given Artist. """
