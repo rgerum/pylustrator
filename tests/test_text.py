@@ -11,7 +11,7 @@ class TestText(BaseTest):
         get_text = lambda: fig.axes[0].texts[0]
         line_command = "plt.figure(1).axes[0].texts[0].set("
         test_run = "Change existing text in axes."
-        self.check_text_properties(get_text, line_command, test_run, 0.4931, 0.4979)
+        self.check_text_properties(get_text, line_command, test_run, 0.4931, 0.497294)
 
     def test_text_properties_axes_new(self):
         # get the figure
@@ -24,7 +24,7 @@ class TestText(BaseTest):
         line_command = "plt.figure(1).axes[0].text("
         test_run = "Change new text in axes."
 
-        self.check_text_properties(get_text, line_command, test_run, 0.4931, 0.4979)
+        self.check_text_properties(get_text, line_command, test_run, 0.4931, 0.497294)
 
     def test_text_properties_figure_existing(self):
         # get the figure

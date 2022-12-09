@@ -138,7 +138,7 @@ plt.show(hide_window=True)
         elif isinstance(first, list) and isinstance(first[0], str):
             self.assertEqual(first, second)
         else:
-            np.testing.assert_allclose(np.asarray(first), np.asarray(second), rtol=1e-3, err_msg=msg)
+            np.testing.assert_allclose(np.asarray(second), np.asarray(first), rtol=1e-3, err_msg=msg)
 
     def check_saved_property(self, property_name, line_command, value2, test_run=""):
         # find the saved string and check the numbers

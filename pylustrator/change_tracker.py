@@ -148,8 +148,10 @@ def add_axes_default(element):
         pos = element.get_position()
         old_args["position"] = [pos.x0, pos.y0, pos.width, pos.height]
         old_args["xticks"] = list(old_args["xticks"])
+        old_args["xticks-locator"] = element.get_xaxis().major.locator
         old_args["xticklabels"] = [t.get_text() for t in old_args["xticklabels"]]
         old_args["yticks"] = list(old_args["yticks"])
+        old_args["yticks-locator"] = element.get_yaxis().major.locator
         old_args["yticklabels"] = [t.get_text() for t in old_args["yticklabels"]]
         old_args["grid"] = getattr(element.xaxis, "_gridOnMajor", False) or getattr(element.xaxis, "_major_tick_kw", {"gridOn": False})['gridOn']
         old_args["spines"] = {s: v.get_visible() for s,v in element.spines.items()}
@@ -443,9 +445,12 @@ class ChangeTracker:
                 if isinstance(element.get_xaxis().major.locator, AutoLocator):
                     del kwargs["xticks"]
                     del kwargs["xticklabels"]
-                if isinstance(element.get_xaxis().major.locator, AutoLocator):
-                    del kwargs["yticks"]
-                    del kwargs["yticklabels"]
+            if isinstance(element.get_xaxis().major.locator, AutoLocator) and element._pylustrator_old_args["xticks-locator"]:
+                del kwargs["xticks"]
+                del kwargs["xticklabels"]
+            if isinstance(element.get_yaxis().major.locator, AutoLocator) and element._pylustrator_old_args["yticks-locator"]:
+                del kwargs["yticks"]
+                del kwargs["yticklabels"]
 
             # get current property values
             for prop in list(kwargs.keys()):
