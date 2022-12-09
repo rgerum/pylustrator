@@ -94,18 +94,21 @@ class UndoRedo:
     def __init__(self, elements, name):
         self.elements = list(elements)
         self.name = name
-        self.figure = main_figure(elements[0])
-        self.change_tracker = self.figure.change_tracker
+        if len(elements):
+            self.figure = main_figure(elements[0])
+            self.change_tracker = self.figure.change_tracker
 
     def __enter__(self):
-        self.undo = self.change_tracker.get_element_restore_function(self.elements)
+        if len(self.elements):
+            self.undo = self.change_tracker.get_element_restore_function(self.elements)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.redo = self.change_tracker.get_element_restore_function(self.elements)
-        self.redo()
-        self.figure.canvas.draw()
-        self.figure.signals.figure_selection_property_changed.emit()
-        self.change_tracker.addEdit([self.undo, self.redo, self.name])
+        if len(self.elements):
+            self.redo = self.change_tracker.get_element_restore_function(self.elements)
+            self.redo()
+            self.figure.canvas.draw()
+            self.figure.signals.figure_selection_property_changed.emit()
+            self.change_tracker.addEdit([self.undo, self.redo, self.name])
 
 def init_figure(fig):
     for axes in fig.axes:

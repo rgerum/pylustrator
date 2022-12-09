@@ -569,6 +569,8 @@ def axes_to_grid(axes=None, track_changes=False):
     if axes is None:
         fig = plt.gcf()
         axes = fig.axes
+    if len(axes) == 0:
+        return
 
     # get width and heights
     width = np.mean([ax.get_position().width for ax in axes])
