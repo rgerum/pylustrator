@@ -254,9 +254,12 @@ plt.show(hide_window=True)
             self.assertEqualStringOrArray(current_value, getattr(get_obj(), f"get_{property_name}")(),
                                           desc)
 
+    def compare_list(self, get_obj_list, current_values, target_values, desc):
+        for get_obj, target_value, current_value in zip(get_obj_list, target_values, current_values):
+            self.assertEqualStringOrArray(target_value, current_value, desc)
 
     def change_property2(self, property_name_list, value_list, call, get_obj_list, line_command_list,
-                         test_run, value2_list="undefined", show=False, delete=False):
+                         test_run, value2_list="undefined", show=False, get_function=None, delete=False, test_saved_value=None):
         if value2_list == "undefined":
             value2_list = value_list
         get_obj_list = ensure_list(get_obj_list)
@@ -264,6 +267,10 @@ plt.show(hide_window=True)
         value_list = ensure_list(value_list, len(get_obj_list))
         value2_list = ensure_list(value2_list, len(get_obj_list))
         line_command_list = ensure_list(line_command_list, len(get_obj_list))
+
+        if get_function is None:
+            get_function = lambda: [getattr(get_obj(), f"get_{property_name}")()
+                                    for get_obj, property_name in zip(get_obj_list, property_name_list)]
 
         fig = self.fig
 
@@ -275,8 +282,7 @@ plt.show(hide_window=True)
         select_elements(fig, get_obj_list)
 
         # get current value
-        current_values = [getattr(get_obj(), f"get_{property_name}")()
-                          for get_obj, property_name in zip(get_obj_list, property_name_list)]
+        current_values = get_function()
 
         # set the text to bold
         call([get_obj() for get_obj in get_obj_list])
@@ -284,12 +290,12 @@ plt.show(hide_window=True)
         fig.change_tracker.save()
 
         # test if the text has the right weight
-        self.check_property(get_obj_list, property_name_list, value_list,
+        self.compare_list(get_obj_list, get_function(), value_list,
                             f"Property '{property_name_list[0]}' not set correctly. [{test_run}]")
 
         # test undo and redo
         fig.window.undo()
-        self.check_property(get_obj_list, property_name_list, current_values,
+        self.compare_list(get_obj_list, get_function(), current_values,
                             f"Property '{property_name_list[0]}' undo failed. [{test_run}]")
 
         if self.no_undo_save_test is False:
@@ -300,22 +306,26 @@ plt.show(hide_window=True)
                              f"Saved differently after undo. Property '{property_name_list[0]}'. [{test_run}]")
 
         fig.window.redo()
-        self.check_property(get_obj_list, property_name_list, value_list,
+        self.compare_list(get_obj_list, get_function(), value_list,
                             f"Property '{property_name_list[0]}' redo failed. [{test_run}]")
 
         print("\n---- save after redo ----", end="")
         fig.change_tracker.save()
 
         # find the saved string and check the numbers
-        for command, value2, property_name in zip(line_command_list, value2_list, property_name_list):
-            self.check_saved_property(property_name, command, value2, test_run)
+        # find the saved string and check the numbers
+        if test_saved_value is None:
+            for command, value2, property_name in zip(line_command_list, value2_list, property_name_list):
+                self.check_saved_property(property_name, command, value2, test_run)
+        else:
+            test_saved_value()
 
         # run the file again
         fig, text = self.run_plot_script()
 
         try:
             # test if the text has the right weight
-            self.check_property(get_obj_list, property_name_list, value_list,
+            self.compare_list(get_obj_list, get_function(), value_list,
                                 f"Property '{property_name_list[0]}' not set failed. [{test_run}]")
 
             # don't move it and save the result

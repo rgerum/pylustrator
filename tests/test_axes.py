@@ -160,3 +160,44 @@ class TestAxes(BaseTest):
             self.fig.window.input_properties.input_yaxis.tick_edit.input_scale.setText("log", signal=True)
 
         self.change_property("yscale", "log", set_ylog, get_axes, line_command, test_run)
+
+    def test_minor_axis_ticks(self):
+        # get the figure
+        fig, text = self.run_plot_script()
+
+        get_axes = lambda: fig.axes[0]
+        test_run = "Change axes ticks."
+
+        self.move_element((0, 0), fig.axes[0])
+
+        line_command = "plt.figure(1).axes[0].set_xticks("
+
+        def check_saved_property(xy):
+            def check():
+                # find the saved string and check the numbers
+                line, (args, kwargs) = self.check_line_in_file(line_command)
+                self.assertEqualStringOrArray(True, kwargs["minor"], f"Property 'ticks' not saved correctly. [{test_run}]")
+                self.assertEqualStringOrArray([0.01, 0.1, 0.2, 0.3, 0.5], args[0],
+                                              f"Property 'ticks' not saved correctly. [{test_run}]")
+                self.assertEqualStringOrArray([r'$\mathdefault{10^{-2}}$', "a", "b", "c", "0.5"],
+                                              args[1],
+                                              f"Property 'ticks' not saved correctly. [{test_run}]")
+
+            return check
+        # minor ticks
+        def set_ticks(_):
+            self.fig.window.input_properties.input_xaxis.tick_edit.setTarget(get_axes())
+            self.fig.window.input_properties.input_xaxis.tick_edit.input_ticks2.setText('10^-2\n0.1 "a"\n0.2 "b\n0.3 c\n0.5',
+                                                                                       signal=True)
+
+        self.change_property2("xticks", [0.01, 0.1, 0.2, 0.3, 0.5], set_ticks, get_axes, line_command, test_run,
+                             test_saved_value=check_saved_property("x"), get_function=lambda: get_axes().get_xticks(minor=True))
+
+        def set_ticks(_):
+            self.fig.window.input_properties.input_yaxis.tick_edit.setTarget(get_axes())
+            self.fig.window.input_properties.input_yaxis.tick_edit.input_ticks2.setText('10^-2\n0.1 "a"\n0.2 "b\n0.3 c\n0.5',
+                                                                                       signal=True)
+
+        self.change_property2("yticks", [0.01, 0.1, 0.2, 0.3, 0.5], set_ticks, get_axes, line_command, test_run,
+                             test_saved_value=check_saved_property("y"), get_function=lambda: get_axes().get_yticks(minor=True))
+

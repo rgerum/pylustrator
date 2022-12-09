@@ -698,6 +698,23 @@ class QTickEdit(QtWidgets.QWidget):
         elements += [element.target for element in main_figure(self.element).selection.targets if
                      element.target != self.element and isinstance(element.target, Axes)]
 
+        changed = False
+        for elem in elements:
+            current_ticks = getattr(elem, "get_" + self.axis + "ticks")(minor=True)
+            current_ticklabels = [t.get_text() for t in getattr(elem, "get_" + self.axis + "ticklabels")(minor=True)]
+            if len(current_ticks) != len(ticks) or (current_ticks != ticks).any() or \
+                    len(current_ticklabels) != len(labels) or current_ticklabels != labels:
+                changed = True
+        if changed is False:
+            return
+
+        with UndoRedo(elements, "Axes Minor Ticks"):
+            for element in elements:
+                getattr(element, "set_" + self.axis + "lim")(self.range)
+                getattr(element, "set_" + self.axis + "ticks")(ticks, minor=True)
+                getattr(element, "set_" + self.axis + "ticklabels")(labels, minor=True)
+
+        return
         for element in elements:
             getattr(element, "set_" + self.axis + "lim")(self.range)
             getattr(element, "set_" + self.axis + "ticks")(ticks, minor=True)
@@ -760,6 +777,16 @@ class QTickEdit(QtWidgets.QWidget):
         elements = [self.element]
         elements += [element.target for element in main_figure(self.element).selection.targets if
                      element.target != self.element and isinstance(element.target, Axes)]
+
+        changed = False
+        for elem in elements:
+            current_ticks = getattr(elem, "get_" + self.axis + "ticks")()
+            current_ticklabels = [t.get_text() for t in getattr(elem, "get_" + self.axis + "ticklabels")()]
+            if len(current_ticks) != len(ticks) or (current_ticks != ticks).any() or \
+                len(current_ticklabels) != len(labels) or current_ticklabels != labels:
+                changed = True
+        if changed is False:
+            return
 
         with UndoRedo(elements, "Axes Ticks"):
             for element in elements:

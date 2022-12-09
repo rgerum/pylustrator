@@ -80,9 +80,9 @@ def unescape_string(str):
     return str
 
 def to_str(v):
-    if isinstance(v, list) and isinstance(v[0], float):
+    if isinstance(v, list) and len(v) and isinstance(v[0], float):
         return "["+", ".join(np.format_float_positional(a, 4, fractional=False) for a in v)+"]"
-    elif isinstance(v, tuple) and isinstance(v[0], float):
+    elif isinstance(v, tuple) and len(v) and isinstance(v[0], float):
         return "("+", ".join(np.format_float_positional(a, 4, fractional=False) for a in v)+")"
     elif isinstance(v, float):
         return np.format_float_positional(v, 4, fractional=False)
@@ -153,6 +153,11 @@ def add_axes_default(element):
         old_args["yticklabels"] = [t.get_text() for t in old_args["yticklabels"]]
         old_args["grid"] = getattr(element.xaxis, "_gridOnMajor", False) or getattr(element.xaxis, "_major_tick_kw", {"gridOn": False})['gridOn']
         old_args["spines"] = {s: v.get_visible() for s,v in element.spines.items()}
+
+        old_args["xticks-minor"] = list(element.get_xticks(minor=True))
+        old_args["xticklabels-minor"] = [t.get_text() for t in element.get_xticklabels(minor=True)]
+        old_args["yticks-minor"] = list(element.get_yticks(minor=True))
+        old_args["yticklabels-minor"] = [t.get_text() for t in element.get_yticklabels(minor=True)]
         element._pylustrator_old_args = old_args
 
 def getReference(element: Artist, allow_using_variable_names=True):
@@ -428,6 +433,10 @@ class ChangeTracker:
             kwargs["xticklabels"] = [t.get_text() for t in kwargs["xticklabels"]]
             kwargs["yticks"] = list(kwargs["yticks"])
             kwargs["yticklabels"] = [t.get_text() for t in kwargs["yticklabels"]]
+            kwargs["xticks-minor"] = list(element.get_xticks(minor=True))
+            kwargs["xticklabels-minor"] = [t.get_text() for t in element.get_xticklabels(minor=True)]
+            kwargs["yticks-minor"] = list(element.get_yticks(minor=True))
+            kwargs["yticklabels-minor"] = [t.get_text() for t in element.get_yticklabels(minor=True)]
             from matplotlib.ticker import AutoLocator
             if 0:
                 if element.get_autoscale_on():
@@ -447,7 +456,16 @@ class ChangeTracker:
                 if to_str(default) == to_str(value) and exclude_default:
                     del kwargs[prop]
 
-            desc_strings = [(element, f".set({kwargs_to_string(kwargs)})")]
+            # the main properties that can be set directly
+            desc_strings = [(element, f".set({kwargs_to_string({k: v for k, v in kwargs.items() if k in properties})})")]
+
+            # the minor ticks
+            if "xticks-minor" in kwargs:
+                desc_strings.append([element, f".set_xticks({to_str(kwargs['xticks-minor'])}, {to_str(kwargs['xticklabels-minor'])}, minor=True)"])
+            if "yticks-minor" in kwargs:
+                desc_strings.append([element, f".set_yticks({to_str(kwargs['yticks-minor'])}, {to_str(kwargs['yticklabels-minor'])}, minor=True)"])
+
+            # the grid
             has_grid = getattr(element.xaxis, "_gridOnMajor", False) or \
                                getattr(element.xaxis, "_major_tick_kw", {"gridOn": False})['gridOn']
             if has_grid != element._pylustrator_old_args["grid"] or not exclude_default:
