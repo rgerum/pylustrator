@@ -15,19 +15,19 @@ class TestLegend(BaseTest):
         get_legend = lambda: fig.axes[2].get_legend()
         line_command = "plt.figure(1).axes[2].legend("
         test_run = "Change legend in axes."
-        x = 0.041
+        x = 0.040748
         y = 0.854
 
         self.move_element((0, 0), get_legend)
 
         #self.check_text_properties(get_text, line_command, test_run, 0.4931, 0.4979)
-        self.change_property("loc", (x, 0.857), lambda _: self.move_element((-1, 0)), get_legend, line_command,
+        self.change_property("loc", (x, 0.856602), lambda _: self.move_element((-1, 0)), get_legend, line_command,
                              test_run, get_function=lambda: get_legend()._loc)
-        self.change_property("loc", (0.048, 0.857), lambda _: self.move_element((1, 0)), get_legend, line_command,
+        self.change_property("loc", (0.047605, 0.856602), lambda _: self.move_element((1, 0)), get_legend, line_command,
                              test_run, get_function=lambda: get_legend()._loc)
-        self.change_property("loc", (0.048, y), lambda _: self.move_element((0, -1)), get_legend, line_command,
+        self.change_property("loc", (0.047605, y), lambda _: self.move_element((0, -1)), get_legend, line_command,
                              test_run, get_function=lambda: get_legend()._loc)
-        self.change_property("loc", (0.048, 0.857), lambda _: self.move_element((0, 1)), get_legend, line_command,
+        self.change_property("loc", (0.047605, 0.856602), lambda _: self.move_element((0, 1)), get_legend, line_command,
                              test_run, get_function=lambda: get_legend()._loc)
         #self.change_property("loc", (0.2, 0.5),
         #                     lambda _: fig.window.input_size.input_position.valueChangedX.emit(0.2), get_text,

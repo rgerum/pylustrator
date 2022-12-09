@@ -81,11 +81,11 @@ def unescape_string(str):
 
 def to_str(v):
     if isinstance(v, list) and len(v) and isinstance(v[0], float):
-        return "["+", ".join(np.format_float_positional(a, 4, fractional=False) for a in v)+"]"
+        return "["+", ".join(np.format_float_positional(a, 4, fractional=False, trim=".") for a in v)+"]"
     elif isinstance(v, tuple) and len(v) and isinstance(v[0], float):
-        return "("+", ".join(np.format_float_positional(a, 4, fractional=False) for a in v)+")"
+        return "("+", ".join(np.format_float_positional(a, 4, fractional=False, trim=".") for a in v)+")"
     elif isinstance(v, float):
-        return np.format_float_positional(v, 4, fractional=False)
+        return np.format_float_positional(v, 4, fractional=False, trim=".")
     return repr(v)
 def kwargs_to_string(kwargs):
     return ', '.join(f'{k}={to_str(v)}' for k, v in kwargs.items())
@@ -389,7 +389,7 @@ class ChangeTracker:
             ]
 
             # get current property values
-            kwargs = ""
+            kwargs = {"loc": element._loc}
             for prop, func in property_names:
                 value = func(element)
                 try:
@@ -408,13 +408,9 @@ class ChangeTracker:
                 if prop == "title_fontsize" and "title" not in kwargs:
                     continue
                 if value != default or not exclude_default:
-                    kwargs += f", {prop}={repr(value)}"
+                    kwargs[prop] = value
 
-            loc = element._loc
-            if isinstance(loc, tuple):
-                loc = tuple(np.round(s, 5) for s in loc)
-
-            return element.axes, f".legend(loc={repr(loc)}{kwargs})"
+            return element.axes, f".legend({kwargs_to_string(kwargs)})"
         elif isinstance(element, Axes):
             properties = ["position",
                           "xscale", "xlabel", "xticks", "xticklabels", "xlim",
