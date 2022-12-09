@@ -1,5 +1,5 @@
 import numpy as np
-from base_test_class import BaseTest
+from base_test_class import BaseTest, NotInSave
 
 
 class TestAxes(BaseTest):
@@ -213,3 +213,108 @@ class TestAxes(BaseTest):
         self.change_property2("yticks", [0.01, 0.1, 0.2, 0.3, 0.5], set_ticks, get_axes, line_command, test_run,
                              test_saved_value=check_saved_property("y"), get_function=lambda: get_axes().get_yticks(minor=True))
 
+    def test_axes_alignment(self):
+        # get the figure
+        fig, text = self.run_plot_script()
+
+        get_text = [lambda: fig.axes[0], lambda: fig.axes[1]]
+        line_command = ["plt.figure(1).axes[0].set(", "plt.figure(1).axes[1].set("]
+        test_run = "Align axes."
+
+        # align left
+        fig.axes[0].set_position([0.2, 0.2, 0.4, 0.4])
+        fig.axes[1].set_position([0.6, 0.1, 0.3, 0.3])
+        fig.change_tracker.addNewAxesChange(fig.axes[0])
+        fig.change_tracker.addNewAxesChange(fig.axes[1])
+
+        self.change_property2("position", [([0.2, 0.2], [0.6, 0.6]), ([0.2, 0.1], [0.5, 0.4])],
+                              lambda _: fig.window.input_align.buttons[0].clicked.emit(0), get_text, line_command,
+                              test_run, value2_list=[NotInSave, (0.2, 0.1, 0.3, 0.3)])
+
+        # align center
+        fig.axes[0].set_position([0.2, 0.2, 0.4, 0.4])
+        fig.axes[1].set_position([0.6, 0.1, 0.3, 0.3])
+        fig.change_tracker.addNewAxesChange(fig.axes[0])
+        fig.change_tracker.addNewAxesChange(fig.axes[1])
+
+        self.change_property2("position", [([0.35, 0.2], [0.75, 0.6]), ([0.4, 0.1], [0.7, 0.4])],
+                              lambda _: fig.window.input_align.buttons[1].clicked.emit(0), get_text, line_command,
+                              test_run, value2_list=[[0.35, 0.2, 0.4, 0.4], [0.4, 0.1, 0.3, 0.3]])
+
+        # align right
+        fig.axes[0].set_position([0.2, 0.2, 0.4, 0.4])
+        fig.axes[1].set_position([0.6, 0.1, 0.3, 0.3])
+        fig.change_tracker.addNewAxesChange(fig.axes[0])
+        fig.change_tracker.addNewAxesChange(fig.axes[1])
+
+        self.change_property2("position", [[[0.5, 0.2], [0.9, 0.6]], [[0.6, 0.1], [0.9, 0.4]]],
+                              lambda _: fig.window.input_align.buttons[2].clicked.emit(0), get_text, line_command,
+                              test_run, value2_list=[[0.5, 0.2, 0.4, 0.4], [0.6, 0.1, 0.3, 0.3]])
+
+        # align top
+        fig.axes[0].set_position([0.2, 0.2, 0.4, 0.4])
+        fig.axes[1].set_position([0.6, 0.1, 0.3, 0.3])
+        fig.change_tracker.addNewAxesChange(fig.axes[0])
+        fig.change_tracker.addNewAxesChange(fig.axes[1])
+
+        self.change_property2("position", [[[0.2, 0.2], [0.6, 0.6]], [[0.6, 0.3], [0.9, 0.6]]],
+                              lambda _: fig.window.input_align.buttons[4].clicked.emit(0), get_text, line_command,
+                              test_run, value2_list=[[0.2, 0.2, 0.4, 0.4], [0.6, 0.3, 0.3, 0.3]])
+
+        # align center
+        fig.axes[0].set_position([0.2, 0.2, 0.4, 0.4])
+        fig.axes[1].set_position([0.6, 0.1, 0.3, 0.3])
+        fig.change_tracker.addNewAxesChange(fig.axes[0])
+        fig.change_tracker.addNewAxesChange(fig.axes[1])
+
+        self.change_property2("position", [[[0.2, 0.15], [0.6, 0.55]], [[0.6, 0.2], [0.9, 0.5]]],
+                              lambda _: fig.window.input_align.buttons[5].clicked.emit(0), get_text, line_command,
+                              test_run, value2_list=[[0.2, 0.15, 0.4, 0.4], [0.6, 0.2, 0.3, 0.3]])
+
+        # align bottom
+        fig.axes[0].set_position([0.2, 0.2, 0.4, 0.4])
+        fig.axes[1].set_position([0.6, 0.1, 0.3, 0.3])
+        fig.change_tracker.addNewAxesChange(fig.axes[0])
+        fig.change_tracker.addNewAxesChange(fig.axes[1])
+
+        self.change_property2("position", [[[0.2, 0.1], [0.6, 0.5]], [[0.6, 0.1], [0.9, 0.4]]],
+                              lambda _: fig.window.input_align.buttons[6].clicked.emit(0), get_text, line_command,
+                              test_run, value2_list=[[0.2, 0.1, 0.4, 0.4], [0.6, 0.1, 0.3, 0.3]])
+
+    def test_text_distribute(self):
+        # get the figure
+        fig, text = self.run_plot_script()
+
+        get_text = [lambda: fig.axes[0], lambda: fig.axes[1], lambda: fig.axes[2]]
+        line_command = ["plt.figure(1).axes[0].set(", "plt.figure(1).axes[1].set(", "plt.figure(1).axes[2].set("]
+        test_run = "Distribute axes."
+
+        # distribute X
+        fig.axes[0].set_position([0.2, 0.2, 0.3, 0.3])
+        fig.axes[1].set_position([0.6, 0.6, 0.2, 0.2])
+        fig.axes[2].set_position([0.5, 0.5, 0.4, 0.4])
+
+        fig.change_tracker.addNewAxesChange(fig.axes[0])
+        fig.change_tracker.addNewAxesChange(fig.axes[1])
+        fig.change_tracker.addNewAxesChange(fig.axes[2])
+
+        self.change_property2("position", [[[0.2, 0.2], [0.5, 0.5]],
+                                           [[0.7, 0.6], [0.9, 0.8]],
+                                           [[0.4, 0.5], [0.8, 0.9]]],
+                              lambda _: fig.window.input_align.buttons[3].clicked.emit(0), get_text, line_command,
+                              test_run, value2_list=[[0.2, 0.2, 0.3, 0.3], [0.7, 0.6, 0.2, 0.2], [0.4, 0.5, 0.4, 0.4]])
+
+        # distribute Y
+        fig.axes[0].set_position([0.2, 0.2, 0.3, 0.3])
+        fig.axes[1].set_position([0.6, 0.6, 0.2, 0.2])
+        fig.axes[2].set_position([0.5, 0.5, 0.4, 0.4])
+
+        fig.change_tracker.addNewAxesChange(fig.axes[0])
+        fig.change_tracker.addNewAxesChange(fig.axes[1])
+        fig.change_tracker.addNewAxesChange(fig.axes[2])
+
+        self.change_property2("position", [[[0.2, 0.2], [0.5, 0.5]],
+                                           [[0.6, 0.7], [0.8, 0.9]],
+                                           [[0.5, 0.4], [0.9, 0.8]]],
+                              lambda _: fig.window.input_align.buttons[7].clicked.emit(0), get_text, line_command,
+                              test_run, value2_list=[[0.2, 0.2, 0.3, 0.3], [0.6, 0.7, 0.2, 0.2], [0.5, 0.4, 0.4, 0.4]])
