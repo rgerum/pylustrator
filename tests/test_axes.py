@@ -32,8 +32,6 @@ class TestAxes(BaseTest):
         self.assertEqual(text, self.get_script_text(), "Saved differently")
 
     def test_axis_limits(self):
-        self.no_undo_save_test = True
-
         # get the figure
         fig, text = self.run_plot_script()
 
@@ -41,30 +39,51 @@ class TestAxes(BaseTest):
         line_command = "plt.figure(1).axes[0].set("
         test_run = "Change axes limits."
 
-        self.move_element((0, 0), fig.axes[0])
-        fig.change_tracker.save()
-
-        self.change_property("xlim", (0, 10), lambda _: self.fig.window.input_properties.input_xaxis.input_lim.setValue((0, 10), signal=True), get_axes, line_command,
+        self.change_property2("xlim", (0, 10), lambda _: self.fig.window.input_properties.input_xaxis.input_lim.setValue((0, 10), signal=True), get_axes, line_command,
                              test_run)
 
-        line_command = "plt.figure(1).axes[0].set("
-        self.change_property("ylim", (-5, 8), lambda _: self.fig.window.input_properties.input_yaxis.input_lim.setValue((-5, 8), signal=True), get_axes, line_command,
+        self.change_property2("ylim", (-5, 8), lambda _: self.fig.window.input_properties.input_yaxis.input_lim.setValue((-5, 8), signal=True), get_axes, line_command,
                              test_run)
 
-        line_command = "plt.figure(1).axes[0].set("
-        self.change_property("xlabel", "label",
+        self.change_property2("xlabel", "label",
                              lambda _: self.fig.window.input_properties.input_xaxis.input_label.setText("label",
                                                                                                        signal=True),
                              get_axes, line_command,
                              test_run)
 
-        line_command = "plt.figure(1).axes[0].set("
-        self.change_property("ylabel", "label",
+        self.change_property2("ylabel", "label",
                              lambda _: self.fig.window.input_properties.input_yaxis.input_label.setText("label",
                                                                                                         signal=True),
                              get_axes, line_command,
                              test_run)
 
+        get_axes = [lambda: fig.axes[0], lambda: fig.axes[1]]
+        line_command = ["plt.figure(1).axes[0].set(", "plt.figure(1).axes[1].set("]
+        test_run = "Change axes limits of two axes."
+
+        self.change_property2("xlim", (0.3, 10.7),
+                              lambda _: self.fig.window.input_properties.input_xaxis.input_lim.setValue((0.3, 10.7),
+                                                                                                        signal=True),
+                              get_axes, line_command,
+                              test_run)
+
+        self.change_property2("ylim", (0.3, 10.7),
+                              lambda _: self.fig.window.input_properties.input_yaxis.input_lim.setValue((0.3, 10.7),
+                                                                                                        signal=True),
+                              get_axes, line_command,
+                              test_run)
+
+        self.change_property2("xlabel", "label2",
+                              lambda _: self.fig.window.input_properties.input_xaxis.input_label.setText("label2",
+                                                                                                         signal=True),
+                              get_axes, line_command,
+                              test_run)
+
+        self.change_property2("ylabel", "label2",
+                              lambda _: self.fig.window.input_properties.input_yaxis.input_label.setText("label2",
+                                                                                                         signal=True),
+                              get_axes, line_command,
+                              test_run)
     def test_axis_grid(self):
         # get the figure
         fig, text = self.run_plot_script()
@@ -72,8 +91,6 @@ class TestAxes(BaseTest):
         get_axes = lambda: fig.axes[0]
         line_command = "plt.figure(1).axes[0].grid("
         test_run = "Change axes grid."
-
-        self.move_element((0, 0), fig.axes[0])
 
         self.change_property("grid", True, lambda _: self.fig.window.input_properties.button_grid.clicked.emit(True), get_axes, line_command,
                              test_run, get_function=lambda: getattr(get_axes(), "_gridOnMajor", False) or getattr(get_axes().xaxis, "_major_tick_kw", {"gridOn": False})['gridOn'])
@@ -86,8 +103,6 @@ class TestAxes(BaseTest):
         line_command = "plt.figure(1).axes[0].spines[['right', 'top']].set_visible("
         test_run = "Change axes despine."
 
-        self.move_element((0, 0), fig.axes[0])
-
         self.change_property("despine", False, lambda _: self.fig.window.input_properties.button_despine.clicked.emit(True), get_axes, line_command,
                              test_run, get_function=lambda: get_axes().spines['right'].get_visible() and get_axes().spines['top'].get_visible())
 
@@ -97,9 +112,6 @@ class TestAxes(BaseTest):
 
         get_axes = lambda: fig.axes[0]
         test_run = "Change axes ticks."
-
-        self.move_element((0, 0), fig.axes[0])
-
         line_command = "plt.figure(1).axes[0].set("
 
         def check_saved_property(xy):

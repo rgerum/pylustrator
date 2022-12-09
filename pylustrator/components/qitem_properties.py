@@ -973,15 +973,24 @@ class QAxesProperties(QtWidgets.QWidget):
             self.hide()
 
     def saveLabel(self):
+        elements = [self.element]
+        elements += [element.target for element in main_figure(self.element).selection.targets if
+                     element.target != self.element and isinstance(element.target, Axes)]
+
         text = self.input_label.text()
-        with UndoRedo([self.element], f"Set axes {self.axis}-label"):
-            self.element.set(**{f"{self.axis}label": text})
+        with UndoRedo(elements, f"Set axes {self.axis}-label"):
+            for element in elements:
+                element.set(**{f"{self.axis}label": text})
 
     def saveLim(self):
+        elements = [self.element]
+        elements += [element.target for element in main_figure(self.element).selection.targets if
+                     element.target != self.element and isinstance(element.target, Axes)]
+
         limits = self.input_lim.value()
-        with UndoRedo([self.element], f"Set axes {self.axis}-lim"):
-            print("save lim", self.element, {f"{self.axis}lim": limits})
-            self.element.set(**{f"{self.axis}lim": limits})
+        with UndoRedo(elements, f"Set axes {self.axis}-lim"):
+            for element in elements:
+                element.set(**{f"{self.axis}lim": limits})
 
 class QItemProperties(QtWidgets.QWidget):
     targetChanged = QtCore.Signal(object)
