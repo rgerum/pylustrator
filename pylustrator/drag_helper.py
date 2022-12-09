@@ -263,8 +263,8 @@ class GrabbableRectangleSelection(GrabFunctions):
         if mode == "group":
             from pylustrator.helper_functions import axes_to_grid
             #return axes_to_grid([target.target for target in self.targets], track_changes=True)
-            with UndoRedo([target.target for target in self.targets if isinstance(target, Axes)], "Grid Align"):
-                axes_to_grid([target.target for target in self.targets if isinstance(target, Axes)], track_changes=False)
+            with UndoRedo([target.target for target in self.targets if isinstance(target.target, Axes)], "Grid Align"):
+                axes_to_grid([target.target for target in self.targets if isinstance(target.target, Axes)], track_changes=False)
 
         def align(y: int, func: callable):
             self.start_move()
