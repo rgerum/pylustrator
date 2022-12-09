@@ -561,8 +561,14 @@ class QTickEdit(QtWidgets.QWidget):
                 number = float(factor) * float(base) ** float(exponent)
                 line = "%s x %s^%s" % (factor, base, exponent)
             else:
-                number = float(base) ** float(exponent)
-                line = "%s^%s" % (base, exponent)
+                try:
+                    number = float(base) ** float(exponent)
+                    line = "%s^%s" % (base, exponent)
+                except ValueError:
+                    try:
+                        number = float(line)
+                    except ValueError:
+                        number = np.nan
         else:
             try:
                 number = float(line)
@@ -609,6 +615,8 @@ class QTickEdit(QtWidgets.QWidget):
         self.fig = main_figure(element)
         min, max = getattr(self.element, "get_" + self.axis + "lim")()
         self.range = [min, max]
+
+        self.input_scale.setText(getattr(self.element, "get_" + self.axis + "scale")())
 
         ticks = getattr(self.element, "get_" + self.axis + "ticks")()
         labels = getattr(self.element, "get_" + self.axis + "ticklabels")()
