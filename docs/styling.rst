@@ -27,7 +27,7 @@ Saving
 ------
 
 To save the figure press `ctrl+s` or select `File->Save`. This will generate code that corresponds to the changes you made
-to the figure and past it into your script file or your jupyter notebook cell. The code will be pasted directly over the
+to the figure and paste it into your script file or your jupyter notebook cell. The code will be pasted directly over the
 `plt.show()` command that started the editor or, if there already is a generated code block for this figure, it will replace
 the existing code block.
 
