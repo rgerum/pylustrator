@@ -430,6 +430,8 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
                     widget.setSingleStep(0.1)
                 elif type_ == int:
                     widget = QtWidgets.QSpinBox()
+                    if name == ncols_name:
+                        widget.setMinimum(1)
                 widget.label = label
                 layout.addWidget(widget)
                 widget.valueChanged.connect(lambda x, name=name: self.changePropertiy(name, x))
