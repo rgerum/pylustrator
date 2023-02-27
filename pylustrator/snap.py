@@ -27,7 +27,10 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.artist import Artist
-from matplotlib.axes._subplots import Axes
+try:  # starting from mpl version 3.6.0
+    from matplotlib.axes import Axes
+except:
+    from matplotlib.axes._subplots import Axes
 from matplotlib.legend import Legend
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle, Ellipse, FancyArrowPatch

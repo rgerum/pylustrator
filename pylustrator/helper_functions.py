@@ -25,7 +25,10 @@ from matplotlib.text import Text
 import numpy as np
 import traceback
 from .parse_svg import svgread
-from matplotlib.axes._subplots import Axes
+try:  # starting from mpl version 3.6.0
+    from matplotlib.axes import Axes
+except:
+    from matplotlib.axes._subplots import Axes
 from matplotlib.figure import Figure
 from .pyjack import replace_all_refs
 import os

@@ -27,7 +27,10 @@ from packaging import version
 import qtawesome as qta
 from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
 
-from matplotlib.axes._subplots import Axes
+try:  # starting from mpl version 3.6.0
+    from matplotlib.axes import Axes
+except:
+    from matplotlib.axes._subplots import Axes
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.artist import Artist

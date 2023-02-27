@@ -31,7 +31,10 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib import _pylab_helpers
 from matplotlib.artist import Artist
-from matplotlib.axes._subplots import Axes
+try:  # starting from mpl version 3.6.0
+    from matplotlib.axes import Axes
+except:
+    from matplotlib.axes._subplots import Axes
 from matplotlib.collections import Collection
 from matplotlib.figure import Figure
 try:

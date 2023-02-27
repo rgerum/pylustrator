@@ -5,7 +5,10 @@ import matplotlib as mpl
 import matplotlib.transforms as transforms
 from matplotlib.figure import Figure
 from matplotlib.artist import Artist
-from matplotlib.axes._subplots import Axes
+try:  # starting from mpl version 3.6.0
+    from matplotlib.axes import Axes
+except:
+    from matplotlib.axes._subplots import Axes
 from matplotlib.text import Text
 import matplotlib.transforms as transforms
 
