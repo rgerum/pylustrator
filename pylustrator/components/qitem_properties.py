@@ -1047,7 +1047,7 @@ class QItemProperties(QtWidgets.QWidget):
         condition_line = lambda x: getattr(x, "get_linestyle")() not in ["None", " ", ""]
         condition_marker = lambda x: getattr(x, "get_marker")() not in ["None", " ", ""]
 
-        TextWidget(layout, "Linestyle:").link("linestyle", self.targetChanged)
+        TextWidget(layout, "Linestyle:", allow_literal_decoding=True).link("linestyle", self.targetChanged)
 
         NumberWidget(layout, "Linewidth:").link("linewidth", self.targetChanged,
                                                 condition=condition_line)  # lambda x: getattr(x, "get_linestyle") not in ["None", " ", ""])

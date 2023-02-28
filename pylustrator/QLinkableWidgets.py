@@ -371,7 +371,7 @@ class TextWidget(QtWidgets.QWidget, Linkable):
     noSignal = False
     last_text = None
 
-    def __init__(self, layout: QtWidgets.QLayout, text: str, multiline: bool = False, horizontal: bool = True):
+    def __init__(self, layout: QtWidgets.QLayout, text: str, multiline: bool = False, horizontal: bool = True, allow_literal_decoding=False):
         """ a text input widget with a label.
 
         Args:
@@ -382,6 +382,7 @@ class TextWidget(QtWidgets.QWidget, Linkable):
         """
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
+        self.allow_literal_decoding = allow_literal_decoding
         if horizontal:
             self.layout = QtWidgets.QHBoxLayout(self)
         else:
@@ -428,12 +429,18 @@ class TextWidget(QtWidgets.QWidget, Linkable):
         return text.replace("\\n", "\n")
 
     def get(self) -> str:
+        import ast
         """ get the value (used for the Linkable parent class) """
+        if self.allow_literal_decoding:
+            try:
+                return ast.literal_eval(self.text())
+            except ValueError:
+                return self.text()
         return self.text()
 
     def set(self, value: str):
         """ set the value (used for the Linkable parent class) """
-        self.setText(value)
+        self.setText(str(value))
 
     def getSerialized(self) -> str:
         """ serialize the value (used for the Linkable parent class) """
