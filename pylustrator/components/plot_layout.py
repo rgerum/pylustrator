@@ -4,7 +4,10 @@ import numpy as np
 from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
 import matplotlib.transforms as transforms
 from matplotlib.figure import Figure
-from matplotlib.backends.backend_qtagg import (FigureCanvas as Canvas, NavigationToolbar2QT as NavigationToolbar)
+try:  # for matplotlib > 3.0
+    from matplotlib.backends.backend_qtagg import (FigureCanvas as Canvas, NavigationToolbar2QT as NavigationToolbar)
+except ModuleNotFoundError:
+    from matplotlib.backends.backend_qt5agg import (FigureCanvas as Canvas, NavigationToolbar2QT as NavigationToolbar)
 
 from .matplotlibwidget import MatplotlibWidget
 

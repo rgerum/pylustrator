@@ -39,7 +39,10 @@ import time
 
 import qtawesome as qta
 from matplotlib.backends.qt_compat import QtWidgets, QtCore
-from matplotlib.backends.backend_qtagg import (FigureCanvas, FigureManager, NavigationToolbar2QT as NavigationToolbar)
+try:  # for matplotlib > 3.0
+    from matplotlib.backends.backend_qtagg import (FigureCanvas, NavigationToolbar2QT as NavigationToolbar)
+except ModuleNotFoundError:
+    from matplotlib.backends.backend_qt5agg import (FigureCanvas, NavigationToolbar2QT as NavigationToolbar)
 from matplotlib.figure import Figure
 
 

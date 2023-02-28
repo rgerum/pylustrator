@@ -23,7 +23,10 @@ from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
 
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_qtagg import (FigureCanvas, FigureManager, NavigationToolbar2QT as NavigationToolbar)
+try:  # for matplotlib > 3.0
+    from matplotlib.backends.backend_qtagg import (FigureCanvas, FigureManager, NavigationToolbar2QT as NavigationToolbar)
+except ModuleNotFoundError:
+    from matplotlib.backends.backend_qt5agg import (FigureCanvas, FigureManager, NavigationToolbar2QT as NavigationToolbar)
 from pylustrator.components.matplotlibwidget import MatplotlibWidget
 from matplotlib import _pylab_helpers
 from matplotlib.figure import Figure
