@@ -344,6 +344,10 @@ class ChangeTracker:
                 if getattr(element, "is_new_text", False):
                     return element.axes or element.figure, f".text(0, 0, "", visible=False)"
                 else:
+                    is_label = np.any([ax.xaxis.get_label() == element or ax.yaxis.get_label() == element for ax in
+                                       element.figure.axes])
+                    if is_label:
+                        return element, f".set(text='')"
                     return element, f".set(visible=False)"
 
             # properties to store
@@ -574,15 +578,25 @@ class ChangeTracker:
             if reference_obj == element:
                 del self.changes[reference_obj, reference_command]
         if not created_by_pylustrator or isinstance(element, Text):
+            is_label = np.any([ax.xaxis.get_label() == element or ax.yaxis.get_label() == element for ax in element.figure.axes])
+            if is_label:
+                text_content = element.get_text()
+
             def redo():
-                element.set_visible(False)
+                if is_label:
+                    element.set_text("")
+                else:
+                    element.set_visible(False)
                 if isinstance(element, Text):
                     main_figure(element).change_tracker.addNewTextChange(element)
                 else:
                     self.addChange(element, ".set(visible=False)")
 
             def undo():
-                element.set_visible(True)
+                if is_label:
+                    element.set_text(text_content)
+                else:
+                    element.set_visible(True)
                 if isinstance(element, Text):
                     main_figure(element).change_tracker.addNewTextChange(element)
                 else:

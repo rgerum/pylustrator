@@ -40,7 +40,7 @@ from matplotlib.ticker import AutoLocator
 from pylustrator.change_tracker import getReference
 from pylustrator.QLinkableWidgets import QColorWidget, CheckWidget, TextWidget, DimensionsWidget, NumberWidget, ComboWidget
 from pylustrator.helper_functions import main_figure
-from pylustrator.change_tracker import UndoRedo, add_text_default
+from pylustrator.change_tracker import UndoRedo, add_text_default, add_axes_default
 
 
 class TextPropertiesWidget(QtWidgets.QWidget):
@@ -1153,6 +1153,7 @@ class QItemProperties(QtWidgets.QWidget):
             self.fig.change_tracker.addChange(self.element,
                                               ".add_axes([0.25, 0.25, 0.5, 0.5], label=\"%s\")  # id=%s.new" % (
                                                   filename, getReference(axes)), axes, ".new")
+            add_axes_default(axes)
         addChange(axes, ".imshow(plt.imread(\"%s\"))" % filename)
         addChange(axes, '.set_xticks([])')
         addChange(axes, '.set_yticks([])')
