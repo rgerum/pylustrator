@@ -17,22 +17,13 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-    - name: Set up Python 3.8
-      uses: actions/setup-python@v4
+    - uses: actions/checkout@v3
+    - run: pipx install poetry
+    - uses: actions/setup-python@v4
       with:
-        python-version: 3.8
-        cache: 'pip'
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r .github/workflows/requirements.txt
-    - name: Install package
-      run: |
-        pip install . --no-deps
-    - name: Test
+        python-version: '3.8'
+        cache: 'poetry'
+    - run: poetry install --with dev
+    - run: poetry run pytest
       env:
         QT_QPA_PLATFORM: "offscreen"
-      run: |
-        pytest
