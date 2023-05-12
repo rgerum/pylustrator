@@ -39,10 +39,10 @@ class TestAxes(BaseTest):
         line_command = "plt.figure(1).axes[0].set("
         test_run = "Change axes limits."
 
-        self.change_property2("xlim", (0, 10), lambda _: self.fig.window.input_properties.input_xaxis.input_lim.setValue((0, 10), signal=True), get_axes, line_command,
+        self.change_property2("xlim", (1, 10), lambda _: self.fig.window.input_properties.input_xaxis.input_lim.setValue((1, 10), signal=True), get_axes, line_command,
                              test_run)
 
-        self.change_property2("ylim", (-5, 8), lambda _: self.fig.window.input_properties.input_yaxis.input_lim.setValue((-5, 8), signal=True), get_axes, line_command,
+        self.change_property2("ylim", (2, 8), lambda _: self.fig.window.input_properties.input_yaxis.input_lim.setValue((2, 8), signal=True), get_axes, line_command,
                              test_run)
 
         self.change_property2("xlabel", "label",
