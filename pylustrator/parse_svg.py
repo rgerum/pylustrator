@@ -616,8 +616,8 @@ def parseStyleSheet(text: str) -> list:
     text = re.sub("//.*?\n", "", text)
     # remove multiline comments
     text = text.replace("\n", " ")
-    text = re.sub("/\*.*?\*/", "", text)
-    text = re.sub("/\*.*?\*/", "", text)
+    text = re.sub(r"/\*.*?\*/", "", text)
+    text = re.sub(r"/\*.*?\*/", "", text)
 
     style_definitions = []
     styles = re.findall("[^}]*{[^}]*}", text)
