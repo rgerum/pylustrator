@@ -1,4 +1,5 @@
 # import matplotlib and numpy as usual
+import sys
 import matplotlib.pyplot as plt
 import numpy as np
 from icecream import install
@@ -56,7 +57,7 @@ if 1:
     plt.figure(1).axes[2].spines[['right', 'top']].set_visible(False)
     #% end: automatic generated code from pylustrator
     plt.show()
-    exit()
+    sys.exit()
 # activate pylustrator
 pylustrator.start()
 
