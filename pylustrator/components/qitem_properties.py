@@ -29,7 +29,7 @@ from packaging import version
 
 try:  # starting from mpl version 3.6.0
     from matplotlib.axes import Axes
-except:
+except Exception:
     from matplotlib.axes._subplots import Axes
 
 import matplotlib as mpl
@@ -1363,5 +1363,3 @@ class QItemProperties(QtWidgets.QWidget):
             self.input_font_properties.hide()
 
         self.targetChanged.emit(element)
-
-

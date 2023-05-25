@@ -49,7 +49,7 @@ files = ["setup.py", "meta.yaml", "docs/conf.py", package_name+"/__init__.py"]
 for file in files:
     if replace_version(file, current_version, new_version):
         os.system(f"git add {file}")
-    
+
 # commit changes
 os.system(f"git commit -m \"set version to v{new_version}\"")
 os.system(f"git tag \"v{new_version}\"")

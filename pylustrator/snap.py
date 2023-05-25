@@ -30,7 +30,7 @@ from packaging import version
 
 try:  # starting from mpl version 3.6.0
     from matplotlib.axes import Axes
-except:
+except Exception:
     from matplotlib.axes._subplots import Axes
 
 from matplotlib.legend import Legend

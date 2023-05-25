@@ -31,7 +31,7 @@ from .parse_svg import svgread
 
 try:  # starting from mpl version 3.6.0
     from matplotlib.axes import Axes
-except:
+except Exception:
     from matplotlib.axes._subplots import Axes
 
 import os
@@ -387,12 +387,12 @@ def mark_inset(parent_axes: Axes, inset_axes: Axes, loc1: Union[int, Sequence[in
                                                        TransformedBbox)
     try:
         loc1a, loc1b = loc1
-    except:
+    except Exception:
         loc1a = loc1
         loc1b = loc1
     try:
         loc2a, loc2b = loc2
-    except:
+    except Exception:
         loc2a = loc2
         loc2b = loc2
     rect = TransformedBbox(inset_axes.viewLim, parent_axes.transData)

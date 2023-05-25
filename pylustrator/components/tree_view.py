@@ -135,7 +135,7 @@ class MyTreeView(QtWidgets.QTreeView):
             try:
                 item = index.model().itemFromIndex(index)
                 entry = item.entry
-            except:
+            except Exception:
                 item = None
                 entry = None
 

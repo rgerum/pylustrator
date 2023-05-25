@@ -75,10 +75,10 @@ class Linkable:
                 if isinstance(self.element, Text) and len(main_figure(self.element).selection.targets) and isinstance(main_figure(self.element).selection.targets[0].target, Axes):
                     for elm in main_figure(self.element).selection.targets:
                         elm = elm.target
-                        if self.element == getattr(getattr(elm, f"get_xaxis")(), "get_label")():
+                        if self.element == getattr(getattr(elm, "get_xaxis")(), "get_label")():
                             label_object = "x"
                             break
-                        if self.element == getattr(getattr(elm, f"get_yaxis")(), "get_label")():
+                        if self.element == getattr(getattr(elm, "get_yaxis")(), "get_label")():
                             label_object = "y"
                             break
 
@@ -106,10 +106,10 @@ class Linkable:
                 if isinstance(self.element, Text) and len(main_figure(self.element).selection.targets) and isinstance(main_figure(self.element).selection.targets[0].target, Axes):
                     for elm in main_figure(self.element).selection.targets:
                         elm = elm.target
-                        if self.element == getattr(getattr(elm, f"get_xaxis")(), "get_label")():
+                        if self.element == getattr(getattr(elm, "get_xaxis")(), "get_label")():
                             label_object = "x"
                             break
-                        if self.element == getattr(getattr(elm, f"get_yaxis")(), "get_label")():
+                        if self.element == getattr(getattr(elm, "get_yaxis")(), "get_label")():
                             label_object = "y"
                             break
 

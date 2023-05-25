@@ -95,5 +95,3 @@ class TestLegend(BaseTest):
                              lambda _: fig.window.input_properties.input_legend_properties.widgets[
                                  "title_fontsize"].setValue(23),
                              get_legend, line_command, test_run, get_function=lambda: get_legend().get_title().get_fontsize())
-
-

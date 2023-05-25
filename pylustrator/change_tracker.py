@@ -34,7 +34,7 @@ from packaging import version
 
 try:  # starting from mpl version 3.6.0
     from matplotlib.axes import Axes
-except:
+except Exception:
     from matplotlib.axes._subplots import Axes
 
 from matplotlib.collections import Collection
@@ -51,7 +51,7 @@ from matplotlib.text import Text
 
 try:
     from natsort import natsorted
-except:
+except Exception:
     natsorted = sorted
 
 from .exception_swallower import Dummy
@@ -345,13 +345,13 @@ class ChangeTracker:
             # if the text is deleted we do not need to store all properties
             if not element.get_visible() or element.get_text() == "":
                 if getattr(element, "is_new_text", False):
-                    return element.axes or element.figure, f".text(0, 0, "", visible=False)"
+                    return element.axes or element.figure, ".text(0, 0, "", visible=False)"
                 else:
                     is_label = np.any([ax.xaxis.get_label() == element or ax.yaxis.get_label() == element for ax in
                                        element.figure.axes])
                     if is_label:
-                        return element, f".set(text='')"
-                    return element, f".set(visible=False)"
+                        return element, ".set(text='')"
+                    return element, ".set(visible=False)"
 
             # properties to store
             properties = ["position", "text", "ha", "va", "fontsize", "color", "style", "weight", "fontname", "rotation"]

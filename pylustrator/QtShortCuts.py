@@ -48,7 +48,7 @@ class QDragableColor(QtWidgets.QLabel):
 
         try:
             cmap = plt.get_cmap(self.color)
-        except:
+        except Exception:
             return ""
         text = "background-color: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0, "
         N = 10
@@ -214,7 +214,7 @@ class ColorMapChoose(QtWidgets.QDialog):
         import matplotlib.pyplot as plt
         try:
             cmap = plt.get_cmap(color)
-        except:
+        except Exception:
             return ""
         text = "background-color: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0, "
         N = 10

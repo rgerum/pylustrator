@@ -64,7 +64,7 @@ class MatplotlibWidget(FigureCanvas):
 
         self.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         self.updateGeometry()
-        
+
         self.manager = FigureManager(self, 1)
         self.manager._cidgcf = self.figure
 
@@ -91,7 +91,7 @@ class MatplotlibWidget(FigureCanvas):
             self.quick_draw = False
         else:
             self.quick_draw = True
-        
+
     def show(self):
         self.draw()
 

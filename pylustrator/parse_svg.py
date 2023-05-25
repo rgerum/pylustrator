@@ -130,7 +130,7 @@ def apply_style(style: dict, patch: mpatches.Patch) -> dict:
     def readColor(value):
         try:
             return mcolors.to_rgb(value)
-        except:
+        except Exception:
             # matplotlib cannot handle html colors in the form #000
             if len(value) == 4 and value[0] == "#":
                 return readColor("#"+value[1]*2+value[2]*2+value[3]*2)
@@ -193,7 +193,7 @@ def apply_style(style: dict, patch: mpatches.Patch) -> dict:
             elif key == "stroke-width":
                 try:
                     patch.set_linewidth(svgUnitToMpl(value))
-                except:
+                except Exception:
                     pass
             elif key == "stroke-linecap":
                 try:

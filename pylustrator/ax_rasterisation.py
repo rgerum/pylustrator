@@ -25,7 +25,7 @@ import matplotlib.pyplot as plt
 
 try:  # starting from mpl version 3.6.0
     from matplotlib.axes import Axes
-except:
+except Exception:
     from matplotlib.axes._subplots import Axes
 
 from typing import List

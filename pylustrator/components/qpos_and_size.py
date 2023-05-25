@@ -8,7 +8,7 @@ from matplotlib.figure import Figure
 
 try:  # starting from mpl version 3.6.0
     from matplotlib.axes import Axes
-except:
+except Exception:
     from matplotlib.axes._subplots import Axes
 
 import matplotlib.transforms as transforms
@@ -267,5 +267,5 @@ class QPosAndSize(QtWidgets.QWidget):
                 self.input_position.setValue((pos.x0, pos.y0))
             self.input_transform.setEnabled(True)
             self.input_position.setEnabled(True)
-        except:
+        except Exception:
             self.input_position.setDisabled(True)

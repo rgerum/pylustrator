@@ -55,7 +55,7 @@ def vectorAngle(ux, uy, vx, vy):
 
     if dot > 1:
         dot = 1
-    
+
     if dot < -1:
         dot = -1
 

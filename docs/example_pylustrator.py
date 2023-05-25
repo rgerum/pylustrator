@@ -23,7 +23,7 @@ if 1:
     y = 2 * np.sin(np.pi * t)
     a, b = np.random.normal(loc=(5., 3.), scale=(2., 4.), size=(100,2)).T
     b += a
-    
+
     fig = plt.figure(1)
     plt.clf()
     fig.text(0.5, 0.5, "new", transform=plt.figure(1).transFigure)
@@ -89,4 +89,3 @@ plt.bar(1, np.mean(b), label="B")
 #        print(name)
 
 plt.show()
-
