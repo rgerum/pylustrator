@@ -1,6 +1,6 @@
 import os
 
-import matplotlib.transforms as transforms
+from matplotlib import transforms
 import numpy as np
 from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
 from matplotlib.figure import Figure

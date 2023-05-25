@@ -23,7 +23,7 @@ from typing import Optional, Sequence
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import matplotlib.transforms as transforms
+from matplotlib import transforms
 import numpy as np
 from matplotlib.artist import Artist
 from matplotlib.axes import Axes

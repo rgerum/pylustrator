@@ -1,7 +1,7 @@
 from typing import Optional
 
 import matplotlib as mpl
-import matplotlib.transforms as transforms
+from matplotlib import transforms
 from matplotlib.artist import Artist
 from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
 from matplotlib.figure import Figure
@@ -11,7 +11,6 @@ try:  # starting from mpl version 3.6.0
 except Exception:
     from matplotlib.axes._subplots import Axes
 
-import matplotlib.transforms as transforms
 from matplotlib.text import Text
 
 from pylustrator.helper_functions import changeFigureSize, main_figure
