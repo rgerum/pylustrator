@@ -83,7 +83,7 @@ def cache_property(object, name):
 
 
 
-class TargetWrapper(object):
+class TargetWrapper():
     """ a wrapper to add unified set and get position methods for any matplotlib artist """
     target = None
 

@@ -46,7 +46,7 @@ DIR_Y1 = 8
 blit = False
 
 
-class GrabFunctions(object):
+class GrabFunctions():
     """ basic functionality used by all grabbers """
     figure = None
     target = None

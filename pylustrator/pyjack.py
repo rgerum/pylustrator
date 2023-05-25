@@ -256,7 +256,7 @@ def _get_self():
     return _func_code_map[code]
 
 
-class _PyjackFunc(object): pass
+class _PyjackFunc(): pass
 
 
 class _PyjackFuncCode(_PyjackFunc):
