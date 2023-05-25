@@ -30,7 +30,8 @@ def proxy0(data):
 _CELLTYPE = int  # type(proxy0(None).func_closure[0])
 """
 
-class PyjackException(Exception): pass
+class PyjackException(Exception):
+    pass
 
 
 def connect(fn, proxyfn):
@@ -223,9 +224,9 @@ def replace_all_refs(org_obj, new_obj):
                         'func_defaults', 'func_closure']:
                 orgattr = getattr(referrer, key)
                 if orgattr is org_obj:
-                    localsmap[key.split('func_')[-1]] = new_obj
+                    localsmap[key.rsplit('func_', maxsplit=1)[-1]] = new_obj
                 else:
-                    localsmap[key.split('func_')[-1]] = orgattr
+                    localsmap[key.rsplit('func_', maxsplit=1)[-1]] = orgattr
             localsmap['argdefs'] = localsmap['defaults']
             del localsmap['defaults']
             newfn = _types.FunctionType(**localsmap)
@@ -256,7 +257,8 @@ def _get_self():
     return _func_code_map[code]
 
 
-class _PyjackFunc(): pass
+class _PyjackFunc():
+    pass
 
 
 class _PyjackFuncCode(_PyjackFunc):
