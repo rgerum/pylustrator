@@ -417,7 +417,7 @@ class ChangeTracker:
                     else:
                         default = None
                     pass
-                if (prop == "fontsize" or prop == "title_fontsize") and (default == "medium" or default == None):
+                if (prop == "fontsize" or prop == "title_fontsize") and (default == "medium" or default is None):
                     if value == plt.rcParams["font.size"]:
                         continue
                 if prop == "title_fontsize" and "title" not in kwargs:
