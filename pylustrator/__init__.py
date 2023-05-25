@@ -19,10 +19,15 @@
 # You should have received a copy of the GNU General Public License
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
-from .QtGuiDrag import initialize as start
-from .helper_functions import fig_text, add_axes, add_image, despine, changeFigureSize, mark_inset, VoronoiPlot, selectRectangle, mark_inset_pos, draw_from_point_to_bbox, draw_from_point_to_point, loadFigureFromFile, add_letter, add_letters
-from .QtGui import initialize as StartColorChooser
-from .lab_colormap import LabColormap
+from .helper_functions import (VoronoiPlot, add_axes, add_image, add_letter,
+                               add_letters, changeFigureSize, despine,
+                               draw_from_point_to_bbox,
+                               draw_from_point_to_point, fig_text)
+from .helper_functions import loadFigureFromFile
 from .helper_functions import loadFigureFromFile as load
+from .helper_functions import mark_inset, mark_inset_pos, selectRectangle
+from .lab_colormap import LabColormap
+from .QtGui import initialize as StartColorChooser
+from .QtGuiDrag import initialize as start
 
 __version__ = '1.3.0'

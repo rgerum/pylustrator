@@ -21,6 +21,7 @@
 
 import numpy as np
 
+
 def mapToEllipse(pos, rx, ry, cosphi, sinphi, centerx, centery):
     x, y = pos
     x *= rx

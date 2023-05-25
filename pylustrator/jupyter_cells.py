@@ -46,6 +46,7 @@ def setJupyterCellText(text: str):
 def getIpythonCurrentCell() -> str:
     """ this function returns the text of the current jupyter cell """
     import inspect
+
     # get the first stack which has a filename starting with "<ipython-input" (e.g. an ipython cell) and from
     # this stack get the globals, there get the executed cells history and the last element from it
     return [stack for stack in inspect.stack() if stack.filename.startswith("<ipython-input") or "ipykernel" in stack.filename][0][0].f_globals["_ih"][-1]

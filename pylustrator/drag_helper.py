@@ -19,21 +19,24 @@
 # You should have received a copy of the GNU General Public License
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.artist import Artist
-from matplotlib.figure import Figure
-from matplotlib.axes import Axes
-from matplotlib.text import Text
-from matplotlib.patches import Rectangle, Ellipse
-from matplotlib.backend_bases import MouseEvent, KeyEvent
-from typing import Sequence
-from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
-
-from .snap import TargetWrapper, getSnaps, checkSnaps, checkSnapsActive, SnapBase
-from .change_tracker import ChangeTracker
-from pylustrator.change_tracker import UndoRedo
 import time
+from typing import Sequence
+
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.artist import Artist
+from matplotlib.axes import Axes
+from matplotlib.backend_bases import KeyEvent, MouseEvent
+from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
+from matplotlib.figure import Figure
+from matplotlib.patches import Ellipse, Rectangle
+from matplotlib.text import Text
+
+from pylustrator.change_tracker import UndoRedo
+
+from .change_tracker import ChangeTracker
+from .snap import (SnapBase, TargetWrapper, checkSnaps, checkSnapsActive,
+                   getSnaps)
 
 DIR_X0 = 1
 DIR_Y0 = 2
@@ -198,9 +201,9 @@ class GrabbableRectangleSelection(GrabFunctions):
         if 0:
 
             rect1 = Rectangle((x0, y0), x1 - x0, y1 - y0, picker=False, figure=self.figure, linestyle="-", edgecolor="w",
-                              facecolor="#FFFFFF00", zorder=900, label="_rect for %s" % str(target))
+                              facecolor="#FFFFFF00", zorder=900, label=f"_rect for {str(target)}")
             rect2 = Rectangle((x0, y0), x1 - x0, y1 - y0, picker=False, figure=self.figure, linestyle="--", edgecolor="k",
-                              facecolor="#FFFFFF00", zorder=900, label="_rect2 for %s" % str(target))
+                              facecolor="#FFFFFF00", zorder=900, label=f"_rect2 for {str(target)}")
             self.figure.patches.append(rect1)
             self.figure.patches.append(rect2)
             self.targets_rects.append(rect1)
@@ -262,6 +265,7 @@ class GrabbableRectangleSelection(GrabFunctions):
 
         if mode == "group":
             from pylustrator.helper_functions import axes_to_grid
+
             #return axes_to_grid([target.target for target in self.targets], track_changes=True)
             with UndoRedo([target.target for target in self.targets if isinstance(target.target, Axes)], "Grid Align"):
                 axes_to_grid([target.target for target in self.targets if isinstance(target.target, Axes)], track_changes=False)

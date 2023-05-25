@@ -20,19 +20,26 @@
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
 from __future__ import division
-import matplotlib.pyplot as plt
-from matplotlib.text import Text
-import numpy as np
+
 import traceback
+
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.text import Text
+
 from .parse_svg import svgread
+
 try:  # starting from mpl version 3.6.0
     from matplotlib.axes import Axes
 except:
     from matplotlib.axes._subplots import Axes
-from matplotlib.figure import Figure
-from .pyjack import replace_all_refs
+
 import os
 from typing import Sequence, Union
+
+from matplotlib.figure import Figure
+
+from .pyjack import replace_all_refs
 
 
 def fig_text(x: float, y: float, text: str, unit: str = "cm", *args, **kwargs):
@@ -205,8 +212,9 @@ def loadFigureFromFile(filename: str, figure: Figure = None, offset: list = None
         and may not be stable.
     """
     from matplotlib import rcParams
-    from pylustrator import changeFigureSize
+
     import pylustrator
+    from pylustrator import changeFigureSize
 
     if label == "":
         label = get_unique_label(figure if figure is not None else plt.gcf(), filename)
@@ -262,7 +270,7 @@ def loadFigureFromFile(filename: str, figure: Figure = None, offset: list = None
 
             def __exit__(self, type, value, traceback):
                 from matplotlib.figure import Figure
-                from matplotlib.transforms import TransformedBbox, Affine2D
+                from matplotlib.transforms import Affine2D, TransformedBbox
                 plt.figure = self.fig
 
         # get the size of the old figure
@@ -374,7 +382,9 @@ def convertFromPyplot(old, new):
 
 def mark_inset(parent_axes: Axes, inset_axes: Axes, loc1: Union[int, Sequence[int]] = 1, loc2: Union[int, Sequence[int]] = 2, **kwargs):
     """ like the mark_inset function from matplotlib, but loc can also be a tuple """
-    from mpl_toolkits.axes_grid1.inset_locator import TransformedBbox, BboxPatch, BboxConnector
+    from mpl_toolkits.axes_grid1.inset_locator import (BboxConnector,
+                                                       BboxPatch,
+                                                       TransformedBbox)
     try:
         loc1a, loc1b = loc1
     except:
@@ -403,7 +413,8 @@ def mark_inset(parent_axes: Axes, inset_axes: Axes, loc1: Union[int, Sequence[in
 
 def draw_from_point_to_bbox(parent_axes: Axes, insert_axes: Axes, point: Sequence, loc=1, **kwargs):
     """ add a box connector from a point to an axes """
-    from mpl_toolkits.axes_grid1.inset_locator import TransformedBbox, BboxConnector, Bbox
+    from mpl_toolkits.axes_grid1.inset_locator import (Bbox, BboxConnector,
+                                                       TransformedBbox)
     rect = TransformedBbox(Bbox([point, point]), parent_axes.transData)
     # rect = TransformedBbox(Bbox([[1, 0], [1, 0]]), parent_axes.transData)
     p1 = BboxConnector(rect, insert_axes.bbox, loc, **kwargs)
@@ -414,7 +425,8 @@ def draw_from_point_to_bbox(parent_axes: Axes, insert_axes: Axes, point: Sequenc
 
 def draw_from_point_to_point(parent_axes: Axes, insert_axes: Axes, point1: Sequence, point2: Sequence, **kwargs):
     """ add a box connector from a point in on axes to a point in another axes """
-    from mpl_toolkits.axes_grid1.inset_locator import TransformedBbox, BboxConnector, Bbox
+    from mpl_toolkits.axes_grid1.inset_locator import (Bbox, BboxConnector,
+                                                       TransformedBbox)
     rect = TransformedBbox(Bbox([point1, point1]), parent_axes.transData)
     rect2 = TransformedBbox(Bbox([point2, point2]), insert_axes.transData)
     # rect = TransformedBbox(Bbox([[1, 0], [1, 0]]), parent_axes.transData)
@@ -439,10 +451,10 @@ def mark_inset_pos(parent_axes: Axes, inset_axes: Axes, loc1: Union[int, Sequenc
 
 def VoronoiPlot(points: Sequence, values: Sequence, vmin: float = None, vmax:float = None, cmap=None):
     """ plot the voronoi regions of the poins with the given colormap """
-    from matplotlib.patches import Polygon
-    from matplotlib.collections import PatchCollection
-    from scipy.spatial import Voronoi, voronoi_plot_2d
     from matplotlib import cm
+    from matplotlib.collections import PatchCollection
+    from matplotlib.patches import Polygon
+    from scipy.spatial import Voronoi, voronoi_plot_2d
 
     if cmap is None:
         cmap = cm.get_cmap('viridis')
@@ -490,8 +502,8 @@ def selectRectangle(axes: Axes = None):
 
     def onselect(eclick, erelease):
         'eclick and erelease are matplotlib events at press and release'
-        print(' startposition : (%f, %f)' % (eclick.xdata, eclick.ydata))
-        print(' endposition   : (%f, %f)' % (erelease.xdata, erelease.ydata))
+        print(f' startposition : ({eclick.xdata:f}, {eclick.ydata:f})')
+        print(f' endposition   : ({erelease.xdata:f}, {erelease.ydata:f})')
         print(' used button   : ', eclick.button)
 
     from matplotlib.widgets import RectangleSelector
@@ -628,7 +640,7 @@ def axes_to_grid(axes=None, track_changes=False):
                         height,
                         ])
         if track_changes is True:
-            ax.figure.change_tracker.addChange(ax, ".set_position([%f, %f, %f, %f])" % (x_min+axes_indices[i][0] * (width+x_gap), y_min+axes_indices[i][1] * (height + y_gap), width, height))
+            ax.figure.change_tracker.addChange(ax, f".set_position([{x_min + axes_indices[i][0] * (width + x_gap):f}, {y_min + axes_indices[i][1] * (height + y_gap):f}, {width:f}, {height:f}])")
 
     # make all the plots have the same limits
     xmin = np.min([ax.get_xlim()[0] for ax in axes])

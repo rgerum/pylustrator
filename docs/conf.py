@@ -19,9 +19,9 @@
 # You should have received a copy of the GNU General Public License
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
-import sys
 import os
 import shlex
+import sys
 
 print(os.getcwd())
 
@@ -31,6 +31,7 @@ print(os.getcwd())
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import mock
+
 # try to import the modules of the package and mock everything that is not found
 while True:
     try:

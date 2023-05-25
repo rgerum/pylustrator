@@ -1,10 +1,11 @@
-import unittest
-import numpy as np
 import re
+import unittest
 from pathlib import Path
-import matplotlib.pyplot as plt
-from matplotlib.backend_bases import MouseEvent, KeyEvent
 from typing import Any
+
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.backend_bases import KeyEvent, MouseEvent
 
 
 def ensure_list(obj, count=1):

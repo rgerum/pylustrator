@@ -19,20 +19,22 @@
 # You should have received a copy of the GNU General Public License
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
-from xml.dom import minidom
-import matplotlib.colors as mcolors
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-import matplotlib.transforms as mtransforms
-import matplotlib.path as mpath
-from matplotlib.textpath import TextPath
-from matplotlib.font_manager import FontProperties
-import sys
-import numpy as np
-import re
-import io
 import base64
+import io
+import re
+import sys
+from xml.dom import minidom
+
+import matplotlib.colors as mcolors
+import matplotlib.patches as mpatches
+import matplotlib.path as mpath
+import matplotlib.pyplot as plt
 import matplotlib.text
+import matplotlib.transforms as mtransforms
+import numpy as np
+from matplotlib.font_manager import FontProperties
+from matplotlib.textpath import TextPath
+
 from .arc2bez import arcToBezier
 
 

@@ -23,37 +23,40 @@ import re
 import sys
 import traceback
 from typing import IO
-from packaging import version
 
-import numpy as np
 import matplotlib
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib import _pylab_helpers
 from matplotlib.artist import Artist
+from packaging import version
+
 try:  # starting from mpl version 3.6.0
     from matplotlib.axes import Axes
 except:
     from matplotlib.axes._subplots import Axes
+
 from matplotlib.collections import Collection
 from matplotlib.figure import Figure
+
 try:
     from matplotlib.figure import SubFigure  # since matplotlib 3.4.0
 except ImportError:
     SubFigure = None
+from matplotlib.legend import Legend
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
 from matplotlib.text import Text
-from matplotlib.legend import Legend
+
 try:
     from natsort import natsorted
 except:
     natsorted = sorted
 
 from .exception_swallower import Dummy
-from .jupyter_cells import open
 from .helper_functions import main_figure
-
+from .jupyter_cells import open
 
 """ External overload """
 class CustomStackPosition:
@@ -180,9 +183,9 @@ def getReference(element: Artist, allow_using_variable_names=True):
             if name is not None:
                 return name
         if isinstance(element.number, (float, int)):
-            return "plt.figure(%s)" % element.number
+            return f"plt.figure({element.number})"
         else:
-            return "plt.figure(\"%s\")" % element.number
+            return f"plt.figure(\"{element.number}\")"
     # subfigures are only available in matplotlib>=3.4.0
     if version.parse(mpl.__version__) >= version.parse("3.4.0") and isinstance(element, SubFigure):
         index = element._parent.subfigs.index(element)
@@ -247,7 +250,7 @@ def getReference(element: Artist, allow_using_variable_names=True):
 
     if isinstance(element, matplotlib.axes._axes.Axes):
         if element.get_label():
-            return getReference(element.figure) + ".ax_dict[\"%s\"]" % escape_string(element.get_label())
+            return getReference(element.figure) + f".ax_dict[\"{escape_string(element.get_label())}\"]"
         index = element.figure.axes.index(element)
         return getReference(element.figure) + ".axes[%d]" % index
 
@@ -664,7 +667,7 @@ class ChangeTracker:
 
         fig = self.figure
         header = []
-        header += ["fig = plt.figure(%s)" % self.figure.number]
+        header += [f"fig = plt.figure({self.figure.number})"]
         header += ["import matplotlib as mpl"]
 
         self.get_reference_cached = {}

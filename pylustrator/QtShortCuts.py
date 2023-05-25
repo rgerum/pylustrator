@@ -19,10 +19,9 @@
 # You should have received a copy of the GNU General Public License
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
-from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
-from matplotlib import pyplot as plt
 import matplotlib as mpl
-
+from matplotlib import pyplot as plt
+from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
 
 """ Color Chooser """
 
@@ -211,8 +210,8 @@ class ColorMapChoose(QtWidgets.QDialog):
 
     def getBackground(self, color: str) -> str:
         """ convert a colormap to a gradient background """
-        import matplotlib.pyplot as plt
         import matplotlib as mpl
+        import matplotlib.pyplot as plt
         try:
             cmap = plt.get_cmap(color)
         except:

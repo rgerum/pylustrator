@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 # QtGuiDrag.py
 
+import os
 # Copyright (c) 2016-2020, Richard Gerum
 #
 # This file is part of Pylustrator.
@@ -21,29 +22,24 @@
 import sys
 import traceback
 
-from matplotlib import _pylab_helpers
-
-import os
-import qtawesome as qta
 import matplotlib.pyplot as plt
-from matplotlib.figure import Figure
+import qtawesome as qta
+from matplotlib import _pylab_helpers
 from matplotlib.axes._axes import Axes
-from matplotlib.text import Text
 from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
-
+from matplotlib.figure import Figure
+from matplotlib.text import Text
 
 from .ax_rasterisation import rasterizeAxes, restoreAxes
-from .change_tracker import setFigureVariableNames
+from .change_tracker import init_figure, setFigureVariableNames
+from .components.align import Align
+from .components.info_dialog import InfoDialog
+from .components.plot_layout import PlotLayout
+from .components.qitem_properties import QItemProperties
+from .components.qpos_and_size import QPosAndSize
+from .components.tree_view import MyTreeView
 from .drag_helper import DragManager
 from .exception_swallower import swallow_get_exceptions
-
-from .components.qitem_properties import QItemProperties
-from .components.tree_view import MyTreeView
-from .components.align import Align
-from .components.plot_layout import PlotLayout
-from .components.info_dialog import InfoDialog
-from .components.qpos_and_size import QPosAndSize
-from .change_tracker import init_figure
 
 
 def my_excepthook(type, value, tback):
@@ -399,7 +395,7 @@ class PlotWindow(QtWidgets.QWidget):
         self.plot_layout = PlotLayout(self.signals)
 
         # widget layout and elements
-        self.setWindowTitle("Figure %s - Pylustrator" % number)
+        self.setWindowTitle(f"Figure {number} - Pylustrator")
         self.setWindowIcon(QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", "logo.ico")))
         layout_parent = QtWidgets.QVBoxLayout(self)
         layout_parent.setContentsMargins(0, 0, 0, 0)
@@ -574,9 +570,9 @@ class PlotWindow(QtWidgets.QWidget):
     def updateTitle(self):
         """ update the title of the window to display if it is saved or not """
         if self.fig.change_tracker.saved:
-            self.setWindowTitle("Figure %s - Pylustrator" % self.fig.number)
+            self.setWindowTitle(f"Figure {self.fig.number} - Pylustrator")
         else:
-            self.setWindowTitle("Figure %s* - Pylustrator" % self.fig.number)
+            self.setWindowTitle(f"Figure {self.fig.number}* - Pylustrator")
 
     def closeEvent(self, event: QtCore.QEvent):
         """ when the window is closed, ask the user to save """

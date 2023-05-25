@@ -1,5 +1,5 @@
-from matplotlib.backend_bases import KeyEvent
 from base_test_class import BaseTest, NotInSave
+from matplotlib.backend_bases import KeyEvent
 
 
 class TestText(BaseTest):

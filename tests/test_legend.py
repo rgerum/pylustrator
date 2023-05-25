@@ -1,5 +1,5 @@
-from matplotlib.backend_bases import KeyEvent
 from base_test_class import BaseTest
+from matplotlib.backend_bases import KeyEvent
 from matplotlib.legend import Legend
 
 

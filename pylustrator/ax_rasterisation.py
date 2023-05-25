@@ -20,15 +20,19 @@
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
 import io
+
 import matplotlib.pyplot as plt
+
 try:  # starting from mpl version 3.6.0
     from matplotlib.axes import Axes
 except:
     from matplotlib.axes._subplots import Axes
-from matplotlib.figure import Figure
+
 from typing import List
 
-from .helper_functions import removeContentFromFigure, addContentToFigure
+from matplotlib.figure import Figure
+
+from .helper_functions import addContentToFigure, removeContentFromFigure
 
 
 def stashElements(ax: Axes, names: List[str]):

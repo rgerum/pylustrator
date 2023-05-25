@@ -38,11 +38,15 @@ import sys
 import time
 
 import qtawesome as qta
-from matplotlib.backends.qt_compat import QtWidgets, QtCore
+from matplotlib.backends.qt_compat import QtCore, QtWidgets
+
 try:  # for matplotlib > 3.0
-    from matplotlib.backends.backend_qtagg import (FigureCanvas, FigureManager, NavigationToolbar2QT as NavigationToolbar)
+    from matplotlib.backends.backend_qtagg import FigureCanvas, FigureManager
+    from matplotlib.backends.backend_qtagg import \
+        NavigationToolbar2QT as NavigationToolbar
 except ModuleNotFoundError:
     from matplotlib.backends.backend_qt5agg import (FigureCanvas, FigureManager, NavigationToolbar2QT as NavigationToolbar)
+
 from matplotlib.figure import Figure
 
 
@@ -77,6 +81,7 @@ class MatplotlibWidget(FigureCanvas):
     def draw(self):
         self.timer.stop()
         import traceback
+
         #print(traceback.print_stack())
         t = time.time()
         super().draw()
@@ -121,7 +126,7 @@ class CanvasWindow(QtWidgets.QWidget):
 
     def __init__(self, num="", *args, **kwargs):
         QtWidgets.QWidget.__init__(self)
-        self.setWindowTitle("Figure %s" % num)
+        self.setWindowTitle(f"Figure {num}")
         self.setWindowIcon(qta.icon("fa5s.bar-chart"))
         self.layout = QtWidgets.QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)

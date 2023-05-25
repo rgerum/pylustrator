@@ -20,8 +20,9 @@
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
 """ Colormap """
-import numpy as np
 from typing import Sequence, Union
+
+import numpy as np
 from matplotlib.colors import Colormap, ListedColormap, to_rgb
 
 

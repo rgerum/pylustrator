@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+
 import pylustrator
 
 pylustrator.load("plot1.py")

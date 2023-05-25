@@ -12,10 +12,10 @@ proxy function/object.
 NOTE: adapted for pylustrator to be Python3 compatible
 
 """
-import sys as _sys
 import gc as _gc
-import types as _types
 import inspect as _inspect
+import sys as _sys
+import types as _types
 
 _WRAPPER_TYPES = (type(object.__init__), type(object().__init__),)
 
@@ -235,6 +235,7 @@ def replace_all_refs(org_obj, new_obj):
         else:
             # debug:
             import sys
+
             # print(type(referrer), file=sys.stderr)
             pass
 

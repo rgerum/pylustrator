@@ -21,26 +21,29 @@
 
 import os
 from typing import Any
-import numpy as np
-from packaging import version
 
+import numpy as np
 import qtawesome as qta
 from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
+from packaging import version
 
 try:  # starting from mpl version 3.6.0
     from matplotlib.axes import Axes
 except:
     from matplotlib.axes._subplots import Axes
+
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.artist import Artist
 from matplotlib.figure import Figure
 from matplotlib.ticker import AutoLocator
 
-from pylustrator.change_tracker import getReference
-from pylustrator.QLinkableWidgets import QColorWidget, CheckWidget, TextWidget, DimensionsWidget, NumberWidget, ComboWidget
+from pylustrator.change_tracker import (UndoRedo, add_axes_default,
+                                        add_text_default, getReference)
 from pylustrator.helper_functions import main_figure
-from pylustrator.change_tracker import UndoRedo, add_text_default, add_axes_default
+from pylustrator.QLinkableWidgets import (CheckWidget, ComboWidget,
+                                          DimensionsWidget, NumberWidget,
+                                          QColorWidget, TextWidget)
 
 
 class TextPropertiesWidget(QtWidgets.QWidget):
@@ -390,8 +393,8 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
         self.layout = QtWidgets.QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
 
-        from packaging import version
         import matplotlib as mpl
+        from packaging import version
         ncols_name = "ncols"
         if version.parse(mpl._get_version()) < version.parse("3.6.0"):
             ncols_name = "ncol"
@@ -564,11 +567,11 @@ class QTickEdit(QtWidgets.QWidget):
             _, factor, base, exponent = match.groups()
             if factor is not None:
                 number = float(factor) * float(base) ** float(exponent)
-                line = "%s x %s^%s" % (factor, base, exponent)
+                line = f"{factor} x {base}^{exponent}"
             else:
                 try:
                     number = float(base) ** float(exponent)
-                    line = "%s^%s" % (base, exponent)
+                    line = f"{base}^{exponent}"
                 except ValueError:
                     try:
                         number = float(line)
@@ -634,9 +637,9 @@ class QTickEdit(QtWidgets.QWidget):
                 continue
             if min <= t <= max:
                 if l != t:
-                    text.append("%s \"%s\"" % (str(t), l_text))
+                    text.append(f"{str(t)} \"{l_text}\"")
                 else:
-                    text.append("%s" % l_text)
+                    text.append(f"{l_text}")
         self.input_ticks.setText(",<br>".join(text))
 
         ticks = getattr(self.element, "get_" + self.axis + "ticks")(minor=True)
@@ -650,9 +653,9 @@ class QTickEdit(QtWidgets.QWidget):
                 pass
             if min <= t <= max:
                 if l != t:
-                    text.append("%s \"%s\"" % (str(t), l_text))
+                    text.append(f"{str(t)} \"{l_text}\"")
                 else:
-                    text.append("%s" % l_text)
+                    text.append(f"{l_text}")
         self.input_ticks2.setText(",<br>".join(text))
 
         elements = [self.element]
@@ -727,7 +730,7 @@ class QTickEdit(QtWidgets.QWidget):
             min, max = getattr(element, "get_" + self.axis + "lim")()
             if min != self.range[0] or max != self.range[1]:
                 self.fig.change_tracker.addChange(element,
-                                                  ".set_" + self.axis + "lim(%s, %s)" % (str(min), str(max)))
+                                                  ".set_" + self.axis + f"lim({str(min)}, {str(max)})")
             else:
                 self.fig.change_tracker.addChange(element,
                                                   ".set_" + self.axis + "lim(%s, %s)" % (
@@ -757,7 +760,7 @@ class QTickEdit(QtWidgets.QWidget):
             else:
                 prop_copy[name] = value
             prop_copy2[name] = value
-        return (", ".join("%s=%s" % (k, v) for k, v in prop_copy.items())), prop_copy2
+        return (", ".join(f"{k}={v}" for k, v in prop_copy.items())), prop_copy2
 
     def fontStateChanged(self):
         self.ticksChanged()
@@ -852,7 +855,7 @@ class QTickEdit(QtWidgets.QWidget):
                 min, max = getattr(element, "get_" + self.axis + "lim")()
                 if min != self.range[0] or max != self.range[1]:
                     self.fig.change_tracker.addChange(element,
-                                                      ".set_" + self.axis + "lim(%s, %s)" % (str(min), str(max)))
+                                                      ".set_" + self.axis + f"lim({str(min)}, {str(max)})")
                 else:
                     self.fig.change_tracker.addChange(element,
                                                       ".set_" + self.axis + "lim(%s, %s)" % (
@@ -1154,7 +1157,7 @@ class QItemProperties(QtWidgets.QWidget):
                                               ".add_axes([0.25, 0.25, 0.5, 0.5], label=\"%s\")  # id=%s.new" % (
                                                   filename, getReference(axes)), axes, ".new")
             add_axes_default(axes)
-        addChange(axes, ".imshow(plt.imread(\"%s\"))" % filename)
+        addChange(axes, f".imshow(plt.imread(\"{filename}\"))")
         addChange(axes, '.set_xticks([])')
         addChange(axes, '.set_yticks([])')
         if 0:

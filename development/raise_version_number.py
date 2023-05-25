@@ -22,7 +22,7 @@
 import os
 import sys
 
-from release_tools import replace_version, get_setup_properties
+from release_tools import get_setup_properties, replace_version
 
 properties = get_setup_properties()
 
@@ -51,5 +51,5 @@ for file in files:
         os.system(f"git add {file}")
     
 # commit changes
-os.system("git commit -m \"set version to v%s\"" % new_version)
-os.system("git tag \"v%s\"" % new_version)
+os.system(f"git commit -m \"set version to v{new_version}\"")
+os.system(f"git tag \"v{new_version}\"")

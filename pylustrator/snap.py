@@ -19,28 +19,30 @@
 # You should have received a copy of the GNU General Public License
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
-from typing import List, Tuple, Optional
-from packaging import version
-from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
+from typing import List, Optional, Tuple
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.artist import Artist
+from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
+from packaging import version
+
 try:  # starting from mpl version 3.6.0
     from matplotlib.axes import Axes
 except:
     from matplotlib.axes._subplots import Axes
+
 from matplotlib.legend import Legend
 from matplotlib.lines import Line2D
-from matplotlib.patches import Rectangle, Ellipse, FancyArrowPatch
+from matplotlib.patches import Ellipse, FancyArrowPatch, Rectangle
 from matplotlib.text import Text
+
 try:
     from matplotlib.figure import SubFigure  # since matplotlib 3.4.0
 except ImportError:
     SubFigure = None
 from .helper_functions import main_figure
-
 
 DIR_X0 = 1
 DIR_Y0 = 2
@@ -208,25 +210,25 @@ class TargetWrapper(object):
             self.target.set_height(points[1][1] - points[0][1])
             if self.target.get_label() is None or not self.target.get_label().startswith("_rect"):
                 change_tracker.addChange(self.target, ".set_xy([%f, %f])" % tuple(self.target.get_xy()))
-                change_tracker.addChange(self.target, ".set_width(%f)" % self.target.get_width())
-                change_tracker.addChange(self.target, ".set_height(%f)" % self.target.get_height())
+                change_tracker.addChange(self.target, f".set_width({self.target.get_width():f})")
+                change_tracker.addChange(self.target, f".set_height({self.target.get_height():f})")
         elif isinstance(self.target, Ellipse):
             self.target.center = np.mean(points, axis=0)
             self.target.width = points[1][0] - points[0][0]
             self.target.height = points[1][1] - points[0][1]
             change_tracker.addChange(self.target, ".center = (%f, %f)" % tuple(self.target.center))
-            change_tracker.addChange(self.target, ".width = %f" % self.target.width)
-            change_tracker.addChange(self.target, ".height = %f" % self.target.height)
+            change_tracker.addChange(self.target, f".width = {self.target.width:f}")
+            change_tracker.addChange(self.target, f".height = {self.target.height:f}")
         elif isinstance(self.target, FancyArrowPatch):
             self.target.set_positions(points[0], points[1])
             change_tracker.addChange(self.target,
-                                                 ".set_positions(%s, %s)" % (tuple(points[0]), tuple(points[1])))
+                                                 f".set_positions({tuple(points[0])}, {tuple(points[1])})")
         elif isinstance(self.target, Text):
             if checkXLabel(self.target):
                 axes = checkXLabel(self.target)
                 axes.xaxis.labelpad = -(points[0][1] - self.target.pad_offset) / self.label_factor
                 change_tracker.addChange(axes,
-                                                     ".xaxis.labelpad = %f" % axes.xaxis.labelpad)
+                                                     f".xaxis.labelpad = {axes.xaxis.labelpad:f}")
 
                 self.target.set_position(points[0])
                 self.label_y = points[0][1]
@@ -234,7 +236,7 @@ class TargetWrapper(object):
                 axes = checkYLabel(self.target)
                 axes.yaxis.labelpad = -(points[0][0] - self.target.pad_offset) / self.label_factor
                 change_tracker.addChange(axes,
-                                                     ".yaxis.labelpad = %f" % axes.yaxis.labelpad)
+                                                     f".yaxis.labelpad = {axes.yaxis.labelpad:f}")
 
                 self.target.set_position(points[0])
                 self.label_x = points[0][0]

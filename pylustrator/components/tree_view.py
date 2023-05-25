@@ -1,10 +1,9 @@
 from typing import Optional
 
-import qtawesome as qta
-from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
-
 import matplotlib as mpl
+import qtawesome as qta
 from matplotlib.artist import Artist
+from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
 
 
 class myTreeWidgetItem(QtGui.QStandardItem):

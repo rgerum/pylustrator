@@ -19,9 +19,9 @@
 # You should have received a copy of the GNU General Public License
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
-from matplotlib.figure import Figure
 from matplotlib.axes._base import _AxesBase
 from matplotlib.axis import Axis
+from matplotlib.figure import Figure
 
 
 class Dummy:

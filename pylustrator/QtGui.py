@@ -19,24 +19,28 @@
 # You should have received a copy of the GNU General Public License
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
+import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
 
-import numpy as np
-import matplotlib.pyplot as plt
 try:  # for matplotlib > 3.0
-    from matplotlib.backends.backend_qtagg import (FigureCanvas, FigureManager, NavigationToolbar2QT as NavigationToolbar)
+    from matplotlib.backends.backend_qtagg import FigureCanvas, FigureManager
+    from matplotlib.backends.backend_qtagg import \
+        NavigationToolbar2QT as NavigationToolbar
 except ModuleNotFoundError:
     from matplotlib.backends.backend_qt5agg import (FigureCanvas, FigureManager, NavigationToolbar2QT as NavigationToolbar)
-from pylustrator.components.matplotlibwidget import MatplotlibWidget
-from matplotlib import _pylab_helpers
-from matplotlib.figure import Figure
-from matplotlib.artist import Artist
-import matplotlib as mpl
-import qtawesome as qta
-
-from .QtShortCuts import QDragableColor
 
 import sys
+
+import matplotlib as mpl
+import qtawesome as qta
+from matplotlib import _pylab_helpers
+from matplotlib.artist import Artist
+from matplotlib.figure import Figure
+
+from pylustrator.components.matplotlibwidget import MatplotlibWidget
+
+from .QtShortCuts import QDragableColor
 
 
 def my_excepthook(type, value, tback):
@@ -200,7 +204,7 @@ def figureSwapColor(figure: Figure, new_color: str, color_base: str):
                 else:
                     getattr(artist, "set_" + color_type_name)(new_color)
                     artist.figure.change_tracker.addChange(artist,
-                                                           ".set_" + color_type_name + "(\"%s\")" % (new_color,))
+                                                           ".set_" + color_type_name + f"(\"{new_color}\")")
                     continue
             # use the attributes setter method
             getattr(artist, "set_" + color_type_name)(cmap(value))
@@ -216,7 +220,7 @@ def figureSwapColor(figure: Figure, new_color: str, color_base: str):
             else:
                 # use the attributes setter method
                 getattr(artist, "set_" + color_type_name)(new_color)
-                artist.figure.change_tracker.addChange(artist, ".set_" + color_type_name + "(\"%s\")" % (new_color,))
+                artist.figure.change_tracker.addChange(artist, ".set_" + color_type_name + f"(\"{new_color}\")")
 
 
 """ Window """
@@ -415,7 +419,7 @@ class PlotWindow(QtWidgets.QWidget):
         QtWidgets.QWidget.__init__(self)
 
         # widget layout and elements
-        self.setWindowTitle("Figure %s" % number)
+        self.setWindowTitle(f"Figure {number}")
         self.setWindowIcon(qta.icon("fa5.bar-chart"))
         self.layout_main = QtWidgets.QHBoxLayout(self)
 

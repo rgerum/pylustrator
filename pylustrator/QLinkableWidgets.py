@@ -26,10 +26,11 @@ import matplotlib.pyplot as plt
 import matplotlib.transforms as transforms
 import numpy as np
 from matplotlib.artist import Artist
-from matplotlib.figure import Figure
-from matplotlib.text import Text
 from matplotlib.axes import Axes
 from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
+from matplotlib.figure import Figure
+from matplotlib.text import Text
+
 from .helper_functions import main_figure
 
 
@@ -61,7 +62,7 @@ class Linkable:
 
             self.setLinkedProperty = set
             self.getLinkedProperty = get
-            self.serializeLinkedProperty = lambda x: "." + property_name + " = %s" % x
+            self.serializeLinkedProperty = lambda x: "." + property_name + f" = {x}"
         else:
             def set(v, v_list=None):
                 if v_list is None:
@@ -128,7 +129,7 @@ class Linkable:
             self.setLinkedProperty = set  # lambda text: getattr(self.element, "set_"+property_name)(text)
             self.getLinkedProperty = lambda: getattr(self.element, "get_" + property_name)()
             self.getLinkedPropertyAll = getAll
-            self.serializeLinkedProperty = lambda x: ".set_" + property_name + "(%s)" % x
+            self.serializeLinkedProperty = lambda x: ".set_" + property_name + f"({x})"
 
         if condition is None:
             self.condition = lambda x: True
@@ -733,7 +734,7 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
     def dialog_rejected(self):
         """ called when the dialog is cancelled """
         color = self.current_color
-        color = color.name() + "%0.2x" % color.alpha()
+        color = color.name() + f"{color.alpha():002x}"
         self.setColor(color)
         self.valueChanged.emit(self.color)
 
@@ -742,7 +743,7 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
         color = self.dialog.currentColor()
         # if a color is set, apply it
         if color.isValid():
-            color = color.name() + "%0.2x" % color.alpha()
+            color = color.name() + f"{color.alpha():002x}"
             self.setColor(color)
             self.valueChanged.emit(self.color)
 
@@ -752,7 +753,7 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
         self.dialog = None
         # if a color is set, apply it
         if color.isValid():
-            color = color.name() + "%0.2x" % color.alpha()
+            color = color.name() + f"{color.alpha():002x}"
             self.setColor(color)
             self.valueChanged.emit(self.color)
 
@@ -766,7 +767,7 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
             self.button.setStyleSheet("background-color: rgba(%d, %d, %d, %d%%);" % (
             int(value[1:3], 16), int(value[3:5], 16), int(value[5:7], 16), int(value[7:], 16) * 100 / 255))
         else:
-            self.button.setStyleSheet("background-color: %s;" % (value,))
+            self.button.setStyleSheet(f"background-color: {value};")
         self.color = value
 
     def getColor(self) -> str:
@@ -782,7 +783,7 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
         """ set the value (used for the Linkable parent class) """
         try:
             if len(value) == 4:
-                self.setColor(mpl.colors.to_hex(value) + "%02X" % int(value[-1] * 255))
+                self.setColor(mpl.colors.to_hex(value) + f"{int(value[-1] * 255):02X}")
             else:
                 self.setColor(mpl.colors.to_hex(value))
         except ValueError:

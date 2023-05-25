@@ -19,7 +19,8 @@
 # You should have received a copy of the GNU General Public License
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
-from __future__ import print_function, division
+from __future__ import division, print_function
+
 import os
 import sys
 
@@ -48,13 +49,13 @@ try:
     os.system("python setup.py sdist")
 
     # the command
-    command_string = "twine upload dist/pylustrator-%s.tar.gz" % current_version
+    command_string = f"twine upload dist/pylustrator-{current_version}.tar.gz"
     # optionally add the username
     if options.username:
-        command_string += " --username %s" % options.username
+        command_string += f" --username {options.username}"
     # optionally add the password
     if options.password:
-        command_string += " --password %s" % options.password
+        command_string += f" --password {options.password}"
     # print the command string
     print(command_string)
     # and execute it

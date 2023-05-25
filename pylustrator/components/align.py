@@ -1,4 +1,5 @@
 import os
+
 from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
 
 

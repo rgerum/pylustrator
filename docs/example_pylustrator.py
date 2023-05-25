@@ -1,11 +1,11 @@
 # import matplotlib and numpy as usual
 import matplotlib.pyplot as plt
 import numpy as np
+from icecream import install
 
 # now import pylustrator
 import pylustrator
 
-from icecream import install
 install()
 import matplotlib.pyplot as plt
 import numpy as np

@@ -1,19 +1,21 @@
 from typing import Optional
-from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
 
 import matplotlib as mpl
 import matplotlib.transforms as transforms
-from matplotlib.figure import Figure
 from matplotlib.artist import Artist
+from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
+from matplotlib.figure import Figure
+
 try:  # starting from mpl version 3.6.0
     from matplotlib.axes import Axes
 except:
     from matplotlib.axes._subplots import Axes
-from matplotlib.text import Text
+
 import matplotlib.transforms as transforms
+from matplotlib.text import Text
 
 from pylustrator.helper_functions import changeFigureSize, main_figure
-from pylustrator.QLinkableWidgets import DimensionsWidget, ComboWidget
+from pylustrator.QLinkableWidgets import ComboWidget, DimensionsWidget
 
 
 class QPosAndSize(QtWidgets.QWidget):
@@ -160,7 +162,7 @@ class QPosAndSize(QtWidgets.QWidget):
                     pos.x0, pos.y0, pos.width, pos.height))
                 for text in self.fig.texts:
                     pos = text.get_position()
-                    self.fig.change_tracker.addChange(text, ".set_position([%f, %f])" % (pos[0], pos[1]))
+                    self.fig.change_tracker.addChange(text, f".set_position([{pos[0]:f}, {pos[1]:f}])")
 
             self.fig.selection.update_selection_rectangles()
             self.fig.canvas.draw()
