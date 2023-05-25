@@ -268,7 +268,7 @@ def plt_patch(node: minidom.Element, trans_parent_trans: mtransforms.Transform, 
         p.trans_node = parseTransformation(node.getAttribute("transform"))
 
         if not no_draw and not styleNoDisplay(style):
-                plt.gca().add_patch(p)
+            plt.gca().add_patch(p)
     if node.getAttribute("id") != "":
         ids[node.getAttribute("id")] = patch
     return patch
