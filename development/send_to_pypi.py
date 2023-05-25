@@ -35,7 +35,7 @@ try:
 
     current_version = pylustrator.__version__
 
-    from optparse import OptionParser
+    from argparse import OptionParser
 
     parser = OptionParser()
     parser.add_option("-u", "--username", action="store", dest="username")
