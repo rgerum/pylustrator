@@ -76,7 +76,7 @@ def initialize(use_global_variable_names=False, use_exception_silencer=False, di
             element = text(*args, fontdict=kwargs["fontdict"] if "fontdict" in kwargs else None)
             from pylustrator.change_tracker import getReference
             stack_position = traceback.extract_stack()[-2]
-            element._pylustrator_reference = dict(reference=getReference(element), stack_position=stack_position)
+            element._pylustrator_reference = {"reference": getReference(element), "stack_position": stack_position}
             old_args = {}
             properties_to_save = ["position", "text", "ha", "va", "fontsize", "color", "style", "weight", "fontname", "rotation"]
             for name in properties_to_save:
@@ -87,7 +87,7 @@ def initialize(use_global_variable_names=False, use_exception_silencer=False, di
             old_args["position"] = None
             old_args["text"] = None
             old_values = getattr(element, "_pylustrator_old_values", [])
-            old_values.append(dict(stack_position=stack_position, old_args=old_args))
+            old_values.append({"stack_position": stack_position, "old_args": old_args})
             element._pylustrator_old_values = old_values
 
             if "fontdict" in kwargs:

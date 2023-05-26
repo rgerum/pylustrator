@@ -55,8 +55,7 @@ def vectorAngle(ux, uy, vx, vy):
 
     if dot > 1:
         dot = 1
-
-    if dot < -1:
+    elif dot < -1:
         dot = -1
 
     return sign * np.arccos(dot)
@@ -71,8 +70,7 @@ def getArcCenter (px, py, cx, cy, rx, ry,
 
     radicant = (rxsq * rysq) - (rxsq * pypsq) - (rysq * pxpsq)
 
-    if radicant < 0:
-        radicant = 0
+    radicant = max(0, radicant)
 
     radicant /= (rxsq * pypsq) + (rysq * pxpsq)
     radicant = np.sqrt(radicant) * (-1 if largeArcFlag == sweepFlag else 1)

@@ -668,7 +668,7 @@ class DragManager:
         """ make an artist draggable """
         target.set_picker(True)
         if isinstance(target, Text):
-            target.set_bbox(dict(facecolor="none", edgecolor="none"))
+            target.set_bbox({"facecolor": 'none', "edgecolor": 'none'})
 
     def get_picked_element(self, event: MouseEvent, element: Artist = None, picked_element: Artist = None, last_selected: Artist = None):
         """ get the picked element that an event refers to.

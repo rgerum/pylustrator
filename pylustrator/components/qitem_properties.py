@@ -1205,7 +1205,7 @@ class QItemProperties(QtWidgets.QWidget):
         """ when the button 'add annoations' is clicked """
         text = self.element.annotate("New Annotation", (self.element.get_xlim()[0], self.element.get_ylim()[0]),
                                      (np.mean(self.element.get_xlim()), np.mean(self.element.get_ylim())),
-                                     arrowprops=dict(arrowstyle="->"))
+                                     arrowprops={"arrowstyle": '->'})
         self.fig.change_tracker.addChange(self.element,
                                           ".annotate('New Annotation', %s, %s, arrowprops=dict(arrowstyle='->'))  # id=%s.new" % (
                                           text.xy, text.get_position(), getReference(text)),

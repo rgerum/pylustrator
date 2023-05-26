@@ -154,7 +154,7 @@ plt.show(hide_window=True)
             if value2 is NotInSave:
                 return
             if property_name == "visible" and line_command.endswith(".text("):
-                kwargs = dict(visible=False)
+                kwargs = {"visible": False}
             else:
                 raise err
         if line_command.endswith(".text("):
