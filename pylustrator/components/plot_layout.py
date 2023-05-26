@@ -26,6 +26,7 @@ class MyScene(QtWidgets.QGraphicsScene):
         if self.grabber_pressed:
             self.grabber_pressed.mouseReleaseEvent(e)
 
+
 class MyView(QtWidgets.QGraphicsView):
     grabber_found = False
     grabber_pressed = None
@@ -60,15 +61,19 @@ class MyView(QtWidgets.QGraphicsView):
             e.ignore()
             self.canvas_canvas.mousePressEvent(e)
 
+
 class MyEvent:
     def __init__(self, x, y):
         self.x = x
         self.y = y
+
+
 class MyRect(QtWidgets.QGraphicsRectItem):
     w = 10
+
     def __init__(self, x, y, grabber):
         self.grabber = grabber
-        super().__init__(x-self.w/2, y-self.w/2, self.w, self.w)
+        super().__init__(x - self.w / 2, y - self.w / 2, self.w, self.w)
 
     def mousePressEvent(self, e):
         super().mousePressEvent(e)
@@ -82,6 +87,7 @@ class MyRect(QtWidgets.QGraphicsRectItem):
         p = e.scenePos()
         self.grabber.button_release_event(MyEvent(p.x(), self.h - p.y()))
 
+
 class Canvas(QtWidgets.QWidget):
     fitted_to_view = False
     footer_label = None
@@ -90,8 +96,7 @@ class Canvas(QtWidgets.QWidget):
     canvas = None
 
     def __init__(self, signals: "Signals"):
-        """ The wrapper around the matplotlib canvas to create a more image editor like canvas with background and side rulers
-        """
+        """The wrapper around the matplotlib canvas to create a more image editor like canvas with background and side rulers."""
         super().__init__()
 
         signals.figure_changed.connect(self.setFigure)
@@ -170,7 +175,7 @@ class Canvas(QtWidgets.QWidget):
         self.footer_label2 = footer2
 
     def updateRuler(self):
-        """ update the ruler around the figure to show the dimensions """
+        """Update the ruler around the figure to show the dimensions."""
         trans = transforms.Affine2D().scale(1. / 2.54, 1. / 2.54) + self.fig.dpi_scale_trans
         l = 20
         l1 = 20
@@ -220,7 +225,7 @@ class Canvas(QtWidgets.QWidget):
 
         positions = np.hstack([np.arange(0, start_x, -dx)[::-1], np.arange(0, end_x, dx)])
         for i, pos_cm in enumerate(positions):
-        #for i, pos_cm in enumerate(np.arange(start_x, end_x, dx)):
+            # for i, pos_cm in enumerate(np.arange(start_x, end_x, dx)):
             x = (trans.transform((pos_cm, 0))[0] + offset)
             if pos_cm % big_lines == 0:
                 painterX.drawLine(int(x), int(l - l1 - 1), int(x), int(l - 1))
@@ -248,8 +253,8 @@ class Canvas(QtWidgets.QWidget):
         big_lines = 1
         medium_lines = 0.5
 
-        pix_per_cm = trans.transform((0, 1))[1]-trans.transform((0, 0))[1]
-        big_lines = int(np.ceil(self.fontMetrics().height()*5/pix_per_cm))
+        pix_per_cm = trans.transform((0, 1))[1] - trans.transform((0, 0))[1]
+        big_lines = int(np.ceil(self.fontMetrics().height() * 5 / pix_per_cm))
         medium_lines = big_lines / 2
         dy = big_lines / 10
 
@@ -261,7 +266,7 @@ class Canvas(QtWidgets.QWidget):
                 text = str("%d" % np.round(pos_cm))
                 o = 0
                 for ti, t in enumerate(text):
-                    painterY.drawText(int(o), int(y + 3 + self.fontMetrics().height()*ti),
+                    painterY.drawText(int(o), int(y + 3 + self.fontMetrics().height() * ti),
                                       int(o + self.fontMetrics().width("0")), int(self.fontMetrics().height()),
                                       QtCore.Qt.AlignCenter, t)
             elif pos_cm % medium_lines == 0:
@@ -301,13 +306,13 @@ class Canvas(QtWidgets.QWidget):
         self.canvas_border.setMaximumSize(w + 2, h + 2)
 
     def fitToView(self, change_dpi: bool = False):
-        """ fit the figure to the view """
+        """ Fit the figure to the view. """
         self.fitted_to_view = True
         if change_dpi:
             w, h = self.canvas.get_width_height()
             factor = min((self.canvas_canvas.width() - 30) / w, (self.canvas_canvas.height() - 30) / h)
             self.fig.set_dpi(self.fig.get_dpi() * factor)
-            #self.fig.canvas.draw()
+            # self.fig.canvas.draw()
 
             self.canvas.updateGeometry()
             w, h = self.canvas.get_width_height()
@@ -318,7 +323,7 @@ class Canvas(QtWidgets.QWidget):
                                        int((self.canvas_canvas.height() - h) / 2 + 10))
 
             self.updateRuler()
-            #self.fig.canvas.draw()
+            # self.fig.canvas.draw()
 
         else:
             w, h = self.canvas.get_width_height()
@@ -330,24 +335,24 @@ class Canvas(QtWidgets.QWidget):
             self.updateRuler()
 
     def canvas_key_press(self, event: QtCore.QEvent):
-        """ when a key in the canvas widget is pressed """
+        """ When a key in the canvas widget is pressed. """
         if event.key == "control":
             self.control_modifier = True
 
     def canvas_key_release(self, event: QtCore.QEvent):
-        """ when a key in the canvas widget is released """
+        """ When a key in the canvas widget is released. """
         if event.key == "control":
             self.control_modifier = False
 
     def moveCanvasCanvas(self, offset_x: float, offset_y: float):
-        """ when the canvas is panned """
+        """ When the canvas is panned. """
         p = self.canvas_container.pos()
         self.canvas_container.move(int(p.x() + offset_x), int(p.y() + offset_y))
 
         self.updateRuler()
 
     def scroll_event(self, event: QtCore.QEvent):
-        """ when the mouse wheel is used to zoom the figure """
+        """ When the mouse wheel is used to zoom the figure. """
         if self.control_modifier:
             new_dpi = self.fig.get_dpi() + 10 * event.step
             # prevent zoom to be too far out
@@ -377,24 +382,24 @@ class Canvas(QtWidgets.QWidget):
             bb = self.fig.axes[0].get_position()
 
     def resizeEvent(self, event: QtCore.QEvent):
-        """ when the window is resized """
+        """ When the window is resized. """
         if self.fitted_to_view:
             self.fitToView(True)
         else:
             self.updateRuler()
 
     def showEvent(self, event: QtCore.QEvent):
-        """ when the window is shown """
+        """ When the window is shown. """
         self.fitToView(True)
         self.updateRuler()
 
     def button_press_event(self, event: QtCore.QEvent):
-        """ when a mouse button is pressed """
+        """ When a mouse button is pressed. """
         if event.button == 2:
             self.drag = np.array([event.x, event.y])
 
     def mouse_move_event(self, event: QtCore.QEvent):
-        """ when the mouse is moved """
+        """ When the mouse is moved. """
         if self.drag is not None:
             pos = np.array([event.x, event.y])
             offset = pos - self.drag
@@ -410,12 +415,12 @@ class Canvas(QtWidgets.QWidget):
             self.footer_label2.setText("")
 
     def button_release_event(self, event: QtCore.QEvent):
-        """ when the mouse button is released """
+        """ When the mouse button is released. """
         if event.button == 2:
             self.drag = None
 
     def keyPressEvent(self, event: QtCore.QEvent):
-        """ when a key is pressed """
+        """ When a key is pressed. """
         if event.key() == QtCore.Qt.Key_Control:
             self.control_modifier = True
         if event.key() == QtCore.Qt.Key_Left:
@@ -431,27 +436,26 @@ class Canvas(QtWidgets.QWidget):
             self.fitToView(True)
 
     def keyReleaseEvent(self, event: QtCore.QEvent):
-        """ when a key is released """
+        """ When a key is released. """
         if event.key() == QtCore.Qt.Key_Control:
             self.control_modifier = False
 
     def updateFigureSize(self):
-        """ update the size of the figure """
+        """ Update the size of the figure. """
         w, h = self.canvas.get_width_height()
         self.canvas_container.setMinimumSize(w, h)
         self.canvas_container.setMaximumSize(w, h)
 
     def changedFigureSize(self, size: tuple):
-        """ change the size of the figure """
+        """ Change the size of the figure. """
         self.fig.set_size_inches(np.array(size) / 2.54)
         self.fig.canvas.draw()
-
 
 
 class ToolBar(QtWidgets.QToolBar):
 
     def __init__(self, canvas: Canvas, figure: Figure):
-        """ A widget that displays a toolbar similar to the default Matplotlib toolbar (for the zoom and pan tool)
+        """ A widget that displays a toolbar similar to the default Matplotlib toolbar (for the zoom and pan tool).
 
         Args:
             canvas: the canvas of the figure
@@ -492,8 +496,8 @@ class ToolBar(QtWidgets.QToolBar):
         self.prev_active = 'DRAG'
 
     def icon(self, name: str):
-        """ get an icon with the given filename """
-        pm = QtGui.QPixmap(os.path.join(os.path.dirname(__file__), "..","icons", name))
+        """ Get an icon with the given filename. """
+        pm = QtGui.QPixmap(os.path.join(os.path.dirname(__file__), "..", "icons", name))
         if hasattr(pm, 'setDevicePixelRatio'):
             try:  # older mpl < 3.5.0
                 pm.setDevicePixelRatio(self.canvas._dpi_ratio)
@@ -503,12 +507,12 @@ class ToolBar(QtWidgets.QToolBar):
         return QtGui.QIcon(pm)
 
     def setSelect(self):
-        """ select the pylustrator selection and drag tool """
+        """ Select the pylustrator selection and drag tool. """
         self.fig.figure_dragger.activate()
 
-        if self.prev_active=="PAN":
+        if self.prev_active == "PAN":
             self.navi_toolbar.pan()
-        elif self.prev_active=="ZOOM":
+        elif self.prev_active == "ZOOM":
             self.navi_toolbar.zoom()
 
         self.prev_active = 'DRAG'
@@ -516,7 +520,7 @@ class ToolBar(QtWidgets.QToolBar):
         self.navi_toolbar._active = 'DRAG'
 
     def setPan(self):
-        """ select the mpl pan tool """
+        """ Select the mpl pan tool. """
         if self.prev_active == "DRAG":
             self.fig.figure_dragger.deactivate()
 
@@ -526,7 +530,7 @@ class ToolBar(QtWidgets.QToolBar):
         self.prev_active = 'PAN'
 
     def setZoom(self):
-        """ select the mpl zoom tool """
+        """ Select the mpl zoom tool. """
         if self.prev_active == "DRAG":
             self.fig.figure_dragger.deactivate()
 
@@ -534,6 +538,7 @@ class ToolBar(QtWidgets.QToolBar):
             self.navi_toolbar.zoom()
 
         self.prev_active = 'ZOOM'
+
 
 class PlotLayout(QtWidgets.QWidget):
     toolbar = None

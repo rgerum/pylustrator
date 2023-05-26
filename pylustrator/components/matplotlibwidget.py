@@ -72,6 +72,7 @@ class MatplotlibWidget(FigureCanvas):
         self.timer.setInterval(300)
         self.timer.timeout.connect(self.draw)
     timer = None
+
     def schedule_draw(self):
         if self.quick_draw is True:
             return super().draw()
@@ -82,7 +83,7 @@ class MatplotlibWidget(FigureCanvas):
         self.timer.stop()
         import traceback
 
-        #print(traceback.print_stack())
+        # print(traceback.print_stack())
         t = time.time()
         super().draw()
         duration = time.time() - t

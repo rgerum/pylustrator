@@ -24,8 +24,9 @@ This file implements pylustrator for jupyter notebooks. Basically it provides an
 the file is instead of a normal file a jupyter notebook and redirects writes accordingly.
 """
 
+
 def setJupyterCellText(text: str):
-    """ the function replaces the text in the current jupyter cell with the given text """
+    """ The function replaces the text in the current jupyter cell with the given text. """
     from IPython.display import Javascript, display
     text = text.replace("\n", "\\n").replace("'", "\\'")
     js = """
@@ -37,14 +38,14 @@ def setJupyterCellText(text: str):
     // get the cell object
     var cell = Jupyter.notebook.get_cell(cell_idx);
     cell.get_text();
-    cell.set_text('"""+text+"""');
-    console.log('"""+text+"""');
+    cell.set_text('""" + text + """');
+    console.log('""" + text + """');
     """
     display(Javascript(js))
 
 
 def getIpythonCurrentCell() -> str:
-    """ this function returns the text of the current jupyter cell """
+    """ This function returns the text of the current jupyter cell. """
     import inspect
 
     # get the first stack which has a filename starting with "<ipython-input" (e.g. an ipython cell) and from
@@ -54,8 +55,10 @@ def getIpythonCurrentCell() -> str:
 
 global_files = {}
 build_in_open = open
+
+
 def open(filename: str, *args, **kwargs):
-    """ open a file and if its a jupyter cell then mock a filepointer to that cell """
+    """ Open a file and if its a jupyter cell then mock a filepointer to that cell. """
     if filename.startswith("<ipython") or "ipykernel" in filename:
         class IPythonCell:
             text = None
@@ -81,8 +84,8 @@ def open(filename: str, *args, **kwargs):
                     if pos == -1:
                         yield text
                         break
-                    yield text[:pos+1]
-                    text = text[pos+1:]
+                    yield text[:pos + 1]
+                    text = text[pos + 1:]
 
             def write(self, line):
                 if self.write_text is None:

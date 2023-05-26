@@ -39,12 +39,12 @@ from .arc2bez import arcToBezier
 
 
 def deform(base_trans: mtransforms.Transform, x: float, y: float, sx: float = 0, sy: float = 0):
-    """ apply an affine transformation to the given transformation """
+    """ Apply an affine transformation to the given transformation. """
     return mtransforms.Affine2D([[x, sx, 0], [sy, y, 0], [0, 0, 1]]) + base_trans
 
 
 def parseTransformation(transform_text: str) -> mtransforms.Transform:
-    """ convert a transform string in the svg file to a matplotlib transformation """
+    """ Convert a transform string in the svg file to a matplotlib transformation. """
     base_trans = mtransforms.IdentityTransform()
     if transform_text is None or transform_text == "":
         return base_trans
@@ -70,11 +70,11 @@ def parseTransformation(transform_text: str) -> mtransforms.Transform:
             base_trans = mtransforms.Affine2D([[x, 0, 0], [0, y, 0], [0, 0, 1]]) + base_trans
         elif command == "skewX":
             x, = data
-            x = np.tan(x*np.pi/180)
+            x = np.tan(x * np.pi / 180)
             base_trans = mtransforms.Affine2D([[1, x, 0], [0, 1, 0], [0, 0, 1]]) + base_trans
         elif command == "skewY":
             y, = data
-            y = np.tan(y*np.pi/180)
+            y = np.tan(y * np.pi / 180)
             base_trans = mtransforms.Affine2D([[1, 0, 0], [y, 1, 0], [0, 0, 1]]) + base_trans
         elif command == "matrix":
             x, sy, sx, y, ox, oy = data
@@ -85,7 +85,7 @@ def parseTransformation(transform_text: str) -> mtransforms.Transform:
 
 
 def get_inline_style(node: minidom.Element, base_style: dict = None) -> dict:
-    """ update the basestyle with the style defined by the style property of the node """
+    """ Update the basestyle with the style defined by the style property of the node. """
     style = {}
     if base_style is not None:
         style.update(base_style)
@@ -104,8 +104,8 @@ def get_inline_style(node: minidom.Element, base_style: dict = None) -> dict:
 
 
 def get_css_style(node: minidom.Element, css_list: list, base_style: dict) -> dict:
-    """ update the base_style with the style definitions from the stylesheet that are applicable to the node
-        defined by the classes or id of the node
+    """ Update the base_style with the style definitions from the stylesheet that are applicable to the node
+    defined by the classes or id of the node.
     """
     style = {}
     if base_style is not None:
@@ -123,7 +123,7 @@ def get_css_style(node: minidom.Element, css_list: list, base_style: dict) -> di
 
 
 def apply_style(style: dict, patch: mpatches.Patch) -> dict:
-    """ apply the properties defined in style to the given patch """
+    """ Apply the properties defined in style to the given patch. """
     fill_opacity = float(style.get("opacity", 1)) * float(style.get("fill-opacity", 1))
     stroke_opacity = float(style.get("opacity", 1)) * float(style.get("stroke-opacity", 1))
 
@@ -133,7 +133,7 @@ def apply_style(style: dict, patch: mpatches.Patch) -> dict:
         except Exception:
             # matplotlib cannot handle html colors in the form #000
             if len(value) == 4 and value[0] == "#":
-                return readColor("#"+value[1]*2+value[2]*2+value[3]*2)
+                return readColor("#" + value[1] * 2 + value[2] * 2 + value[3] * 2)
             raise
 
     # matplotlib defaults differ
@@ -146,7 +146,7 @@ def apply_style(style: dict, patch: mpatches.Patch) -> dict:
         try:
             if key == "opacity":
                 pass
-                #patch.set_alpha(float(value))
+                # patch.set_alpha(float(value))
             elif key == "fill":
                 if value == "none" or value == "transparent":
                     patch.set_facecolor("none")
@@ -176,12 +176,12 @@ def apply_style(style: dict, patch: mpatches.Patch) -> dict:
                     offset = 0
                     if isinstance(patch.get_linestyle(), tuple):
                         offset, dashes = patch.get_linestyle()
-                    patch.set_linestyle((offset, [float(s)*4 for s in value.split(",")]))
+                    patch.set_linestyle((offset, [float(s) * 4 for s in value.split(",")]))
             elif key == "stroke-dashoffset":
                 dashes = [1, 0]
                 if isinstance(patch.get_linestyle(), tuple):
                     offset, dashes = patch.get_linestyle()
-                patch.set_linestyle((float(value)*4, dashes))
+                patch.set_linestyle((float(value) * 4, dashes))
             elif key == "stroke-linecap":
                 if value == "square":
                     value = "projecting"
@@ -225,7 +225,7 @@ def apply_style(style: dict, patch: mpatches.Patch) -> dict:
 
 
 def font_properties_from_style(style: dict) -> FontProperties:
-    """ convert a style to a FontProperties object """
+    """ Convert a style to a FontProperties object. """
     fp = FontProperties()
     for key, value in style.items():
         if key == "font-family":
@@ -244,14 +244,14 @@ def font_properties_from_style(style: dict) -> FontProperties:
 
 
 def styleNoDisplay(style: dict) -> bool:
-    """ check whether the style defines not to display the element """
+    """ Check whether the style defines not to display the element. """
     return style.get("display", "inline") == "none" or \
-            style.get("visibility", "visible") == "hidden" or \
-            style.get("visibility", "visible") == "collapse"
+        style.get("visibility", "visible") == "hidden" or \
+        style.get("visibility", "visible") == "collapse"
 
 
 def plt_patch(node: minidom.Element, trans_parent_trans: mtransforms.Transform, style: dict, constructor: callable, ids: dict, no_draw: bool = False) -> mpatches.Patch:
-    """ add a node to the figure by calling the provided constructor """
+    """ Add a node to the figure by calling the provided constructor. """
     trans_node = parseTransformation(node.getAttribute("transform"))
     style = get_inline_style(node, get_css_style(node, ids["css"], style))
 
@@ -263,7 +263,7 @@ def plt_patch(node: minidom.Element, trans_parent_trans: mtransforms.Transform, 
         if not getattr(p, "is_marker", False):
             style = apply_style(style, p)
             p.style = style
-            #p.set_transform(p.get_transform() + plt.gca().transData)
+            # p.set_transform(p.get_transform() + plt.gca().transData)
         p.trans_parent = trans_parent_trans
         p.trans_node = parseTransformation(node.getAttribute("transform"))
 
@@ -275,7 +275,7 @@ def plt_patch(node: minidom.Element, trans_parent_trans: mtransforms.Transform, 
 
 
 def clone_patch(patch: mpatches.Patch) -> mpatches.Patch:
-    """ clone a patch element with the same properties as the given patch """
+    """ Clone a patch element with the same properties as the given patch. """
     if isinstance(patch, mpatches.Rectangle):
         return mpatches.Rectangle(xy=patch.get_xy(),
                                   width=patch.get_width(),
@@ -292,7 +292,7 @@ def clone_patch(patch: mpatches.Patch) -> mpatches.Patch:
 
 
 def patch_rect(node: minidom.Element, trans: mtransforms.Transform, style: dict, ids: dict) -> mpatches.Rectangle:
-    """ draw a svg rectangle node as a rectangle patch element into the figure (with the given transformation and style) """
+    """ Draw a svg rectangle node as a rectangle patch element into the figure (with the given transformation and style). """
     if node.getAttribute("d") != "":
         return patch_path(node, trans, style, ids)
     if node.getAttribute("ry") != "" and node.getAttribute("ry") != 0:
@@ -308,17 +308,17 @@ def patch_rect(node: minidom.Element, trans: mtransforms.Transform, style: dict,
 
 
 def patch_ellipse(node: minidom.Element, trans: mtransforms.Transform, style: dict, ids: dict) -> mpatches.Ellipse:
-    """ draw a svg ellipse node as a ellipse patch element into the figure (with the given transformation and style) """
+    """ Draw a svg ellipse node as a ellipse patch element into the figure (with the given transformation and style). """
     if node.getAttribute("d") != "":
         return patch_path(node, trans, style, ids)
     return mpatches.Ellipse(xy=(float(node.getAttribute("cx")), float(node.getAttribute("cy"))),
-                            width=float(node.getAttribute("rx"))*2,
-                            height=float(node.getAttribute("ry"))*2,
+                            width=float(node.getAttribute("rx")) * 2,
+                            height=float(node.getAttribute("ry")) * 2,
                             transform=trans)
 
 
 def patch_circle(node: minidom.Element, trans: mtransforms.Transform, style: dict, ids: dict) -> mpatches.Circle:
-    """ draw a svg circle node as a circle patch element into the figure (with the given transformation and style) """
+    """ Draw a svg circle node as a circle patch element into the figure (with the given transformation and style). """
     if node.getAttribute("d") != "":
         return patch_path(node, trans, style, ids)
     return mpatches.Circle(xy=(float(node.getAttribute("cx")), float(node.getAttribute("cy"))),
@@ -327,7 +327,7 @@ def patch_circle(node: minidom.Element, trans: mtransforms.Transform, style: dic
 
 
 def plt_draw_text(node: minidom.Element, trans: mtransforms.Transform, style: dict, ids: dict, no_draw: bool = False):
-    """ draw a svg text node as a text patch element into the figure (with the given transformation and style) """
+    """ Draw a svg text node as a text patch element into the figure (with the given transformation and style). """
     trans = parseTransformation(node.getAttribute("transform")) + trans + plt.gca().transData
     trans = mtransforms.Affine2D([[1, 0, 0], [0, -1, 0], [0, 0, 1]]) + trans
     if node.getAttribute("x") != "":
@@ -383,9 +383,7 @@ def plt_draw_text(node: minidom.Element, trans: mtransforms.Transform, style: di
 
 
 def patch_path(node: minidom.Element, trans: mtransforms.Transform, style: dict, ids: dict) -> list:
-    """ draw a path svg node by using a matplotlib path patch (with the given transform and style) """
-
-
+    """ Draw a path svg node by using a matplotlib path patch (with the given transform and style). """
     start_pos = None
     command = None
     verts = []
@@ -419,8 +417,8 @@ def patch_path(node: minidom.Element, trans: mtransforms.Transform, style: dict,
 
         if not no_angle:
             n = len(positions)
-            angles[-1].append(vec2angle(verts[-n] - verts[-n-1]))
-            for i in range(n-1):
+            angles[-1].append(vec2angle(verts[-n] - verts[-n - 1]))
+            for i in range(n - 1):
                 angles.append([])
             angles.append([vec2angle(verts[-1] - verts[-2])])
         else:
@@ -459,7 +457,7 @@ def patch_path(node: minidom.Element, trans: mtransforms.Transform, style: dict,
         # horizontal lineto
         elif command == 'h':
             current_pos = addPathElement(mpath.Path.LINETO,
-                                         np.array([popValue()+current_pos[0]*(1-absolute), current_pos[1]]))
+                                         np.array([popValue() + current_pos[0] * (1 - absolute), current_pos[1]]))
         # vertical lineto
         elif command == 'v':
             current_pos = addPathElement(mpath.Path.LINETO,
@@ -523,6 +521,7 @@ def patch_path(node: minidom.Element, trans: mtransforms.Transform, style: dict,
 
     def addMarker(i, name):
         marker_style, patches = ids[name]
+
         def add_list_elements(element):
             if isinstance(element, list):
                 for e in element:
@@ -535,7 +534,7 @@ def patch_path(node: minidom.Element, trans: mtransforms.Transform, style: dict,
                 a = angles[i]
                 ca, sa = np.cos(a), np.sin(a)
                 ox, oy = verts[i]
-                trans2 = parent_patch.trans_node + mtransforms.Affine2D([[ca, -sa, ox], [sa, ca, oy], [0, 0, 1]]) + parent_patch.trans_parent + trans#+ plt.gca().transAxes
+                trans2 = parent_patch.trans_node + mtransforms.Affine2D([[ca, -sa, ox], [sa, ca, oy], [0, 0, 1]]) + parent_patch.trans_parent + trans  # + plt.gca().transAxes
                 if marker_style.get("markerUnits", "strokeWidth") == "strokeWidth":
                     s = svgUnitToMpl(style["stroke-width"])
                     trans2 = mtransforms.Affine2D([[s, 0, 0], [0, s, 0], [0, 0, 1]]) + trans2
@@ -560,19 +559,19 @@ def patch_path(node: minidom.Element, trans: mtransforms.Transform, style: dict,
         if style.get("marker-mid").startswith("url(#"):
             name = style.get("marker-mid")[len("url(#"):-1]
             if name in ids:
-                for i in range(1, len(angles)-1):
+                for i in range(1, len(angles) - 1):
                     addMarker(i, name)
     if style.get("marker-end"):
         if style.get("marker-end").startswith("url(#"):
             name = style.get("marker-end")[len("url(#"):-1]
             if name in ids:
-                addMarker(len(angles)-1, name)
+                addMarker(len(angles) - 1, name)
 
     return patch_list
 
 
 def svgUnitToMpl(unit: str, default=None) -> float:
-    """ convert a unit text to svg pixels """
+    """ Convert a unit text to svg pixels. """
     import re
     if unit == "":
         return default
@@ -596,7 +595,7 @@ def svgUnitToMpl(unit: str, default=None) -> float:
 
 
 def openImageFromLink(link: str) -> np.ndarray:
-    """ load an embedded image file or an externally liked image file"""
+    """ Load an embedded image file or an externally liked image file."""
     if link.startswith("file:///"):
         return plt.imread(link[len("file:///"):])
     else:
@@ -613,7 +612,7 @@ def openImageFromLink(link: str) -> np.ndarray:
 
 
 def parseStyleSheet(text: str) -> list:
-    """ parse a style sheet text """
+    """ Parse a style sheet text. """
     # remove line comments
     text = re.sub("//.*?\n", "", text)
     # remove multiline comments
@@ -633,7 +632,7 @@ def parseStyleSheet(text: str) -> list:
 
 
 def parseGroup(node: minidom.Element, trans: mtransforms.Transform, style: dict, ids: dict, no_draw: bool = False) -> list:
-    """ parse the children of a group node with the inherited transformation and style """
+    """ Parse the children of a group node with the inherited transformation and style. """
     trans = parseTransformation(node.getAttribute("transform")) + trans
     style = get_inline_style(node, style)
 
@@ -686,8 +685,8 @@ def parseGroup(node: minidom.Element, trans: mtransforms.Transform, style: dict,
                                                             svgUnitToMpl(child.getAttribute("y")), svgUnitToMpl(child.getAttribute("y")) + svgUnitToMpl(child.getAttribute("height")),
                                                             ], zorder=1)
                 else:
-                    pass#im_patch = plt.imshow(im[::-1], zorder=1)
-                #patch_list.append(im_patch)
+                    pass  # im_patch = plt.imshow(im[::-1], zorder=1)
+                # patch_list.append(im_patch)
         elif child.tagName == "metadata":
             pass  # we do not have to draw metadata
         else:
@@ -700,16 +699,16 @@ def parseGroup(node: minidom.Element, trans: mtransforms.Transform, style: dict,
 
 
 def svgread(filename: str):
-    """ read an SVG file """
+    """ Read an SVG file. """
     doc = minidom.parse(filename)
 
     svg = doc.getElementsByTagName("svg")[0]
     try:
         x1, y1, x2, y2 = [svgUnitToMpl(s.strip()) for s in svg.getAttribute("viewBox").split()]
-        width, height = (x2 - x1)/plt.gcf().dpi, (y2 - y1)/plt.gcf().dpi
+        width, height = (x2 - x1) / plt.gcf().dpi, (y2 - y1) / plt.gcf().dpi
         if max([width, height]) > 8:
-            f = 8/max([width, height])
-            plt.gcf().set_size_inches(width*f, height*f)
+            f = 8 / max([width, height])
+            plt.gcf().set_size_inches(width * f, height * f)
         else:
             plt.gcf().set_size_inches(width, height)
     except ValueError:
@@ -719,8 +718,8 @@ def svgread(filename: str):
         width /= plt.gcf().dpi
         height /= plt.gcf().dpi
         if max([width, height]) > 8:
-            f = 8/max([width, height])
-            plt.gcf().set_size_inches(width*f, height*f)
+            f = 8 / max([width, height])
+            plt.gcf().set_size_inches(width * f, height * f)
         else:
             plt.gcf().set_size_inches(width, height)
     ax = plt.axes([0, 0, 1, 1], label=filename, frameon=False)

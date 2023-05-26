@@ -23,10 +23,11 @@ import matplotlib as mpl
 from matplotlib import pyplot as plt
 from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
 
-""" Color Chooser """
+""" Color Chooser. """
+
 
 class QDragableColor(QtWidgets.QLabel):
-    """ a color widget that can be dragged onto another QDragableColor widget to exchange the two colors.
+    """ A color widget that can be dragged onto another QDragableColor widget to exchange the two colors.
     Alternatively it can be right-clicked to select either a color or a colormap through their respective menus.
     The button can represent either a single color or a colormap.
     """
@@ -35,7 +36,7 @@ class QDragableColor(QtWidgets.QLabel):
     color_changed_by_color_picker = QtCore.Signal(bool)
 
     def __init__(self, value: str):
-        """ initialize with a color """
+        """ Initialize with a color. """
         super().__init__(value)
         import matplotlib.pyplot as plt
         self.maps = plt.colormaps()
@@ -44,8 +45,7 @@ class QDragableColor(QtWidgets.QLabel):
         self.setColor(value, True)
 
     def getBackground(self) -> str:
-        """ get the background of the color button """
-
+        """ Get the background of the color button. """
         try:
             cmap = plt.get_cmap(self.color)
         except Exception:
@@ -59,23 +59,23 @@ class QDragableColor(QtWidgets.QLabel):
         return text
 
     def setColor(self, value: str, no_signal=False):
-        """ set the current color """
+        """ Set the current color. """
         # display and save the new color
         self.color = value
         self.setText(value)
         self.color_changed.emit(value)
         if value in self.maps:
-            self.setStyleSheet("text-align: center; border: 2px solid black; padding: 0.1em; "+self.getBackground())
+            self.setStyleSheet("text-align: center; border: 2px solid black; padding: 0.1em; " + self.getBackground())
         else:
             self.setStyleSheet(f"text-align: center; background-color: {value}; border: 2px solid black; padding: 0.1em; ")
 
     def getColor(self) -> str:
-        """ get the current color """
+        """ Get the current color. """
         # return the color
         return self.color
 
     def mousePressEvent(self, event):
-        """ when a mouse button is pressed """
+        """ When a mouse button is pressed. """
         # a left mouse button lets the user drag the color
         if event.button() == QtCore.Qt.LeftButton:
             drag = QtGui.QDrag(self)
@@ -90,7 +90,7 @@ class QDragableColor(QtWidgets.QLabel):
             self.setText(self.color)
             self.setDisabled(False)
             if self.color in self.maps:
-                self.setStyleSheet("text-align: center; border: 2px solid black; padding: 0.1em; "+self.getBackground())
+                self.setStyleSheet("text-align: center; border: 2px solid black; padding: 0.1em; " + self.getBackground())
             else:
                 self.setStyleSheet(f"text-align: center; background-color: {self.color}; border: 2px solid black; padding: 0.1em; ")
         # a right mouse button opens a color choose menu
@@ -98,29 +98,29 @@ class QDragableColor(QtWidgets.QLabel):
             self.openDialog()
 
     def dragEnterEvent(self, event):
-        """ when a color widget is dragged over the current widget """
+        """ When a color widget is dragged over the current widget. """
         if event.mimeData().hasFormat("text/plain") and event.source() != self:
             event.acceptProposedAction()
             if self.color in self.maps:
-                self.setStyleSheet("border: 2px solid red; padding: 0.1em; "+self.getBackground())
+                self.setStyleSheet("border: 2px solid red; padding: 0.1em; " + self.getBackground())
             else:
                 self.setStyleSheet(f"background-color: {self.color}; border: 2px solid red; padding: 0.1em; ")
 
     def dragLeaveEvent(self, event):
-        """ when the color widget which is dragged leaves the area of this widget """
+        """ When the color widget which is dragged leaves the area of this widget. """
         if self.color in self.maps:
-            self.setStyleSheet("border: 2px solid black; padding: 0.1em; "+self.getBackground())
+            self.setStyleSheet("border: 2px solid black; padding: 0.1em; " + self.getBackground())
         else:
             self.setStyleSheet(f"background-color: {self.color}; border: 2px solid black; padding: 0.1em; ")
 
     def dropEvent(self, event):
-        """ when a color widget is dropped here, exchange the two colors """
+        """ When a color widget is dropped here, exchange the two colors. """
         color = event.source().getColor()
         event.source().setColor(self.getColor())
         self.setColor(color)
 
     def openDialog(self):
-        """ open a color choosed dialog """
+        """ Open a color choosed dialog. """
         if self.color in self.maps:
             dialog = ColorMapChoose(self.parent(), self.color)
             colormap, selected = dialog.exec()
@@ -138,13 +138,13 @@ class QDragableColor(QtWidgets.QLabel):
                 self.color_changed_by_color_picker.emit(True)
 
 
-
 class ColorMapChoose(QtWidgets.QDialog):
-    """ A dialog to select a colormap """
+    """ A dialog to select a colormap. """
+
     result = ""
 
     def __init__(self, parent: QtWidgets.QWidget, map):
-        """ initialize the dialog with all the colormap of matplotlib """
+        """ Initialize the dialog with all the colormap of matplotlib. """
         QtWidgets.QDialog.__init__(self, parent)
         main_layout = QtWidgets.QVBoxLayout(self)
         self.layout = QtWidgets.QHBoxLayout()
@@ -164,25 +164,25 @@ class ColorMapChoose(QtWidgets.QDialog):
         # http://matplotlib.org/examples/color/colormaps_reference.html
         cmaps = [('Perceptually Uniform Sequential', [
             'viridis', 'plasma', 'inferno', 'magma']),
-                 ('Sequential', [
-                     'Greys', 'Purples', 'Blues', 'Greens', 'Oranges', 'Reds',
-                     'YlOrBr', 'YlOrRd', 'OrRd', 'PuRd', 'RdPu', 'BuPu',
-                     'GnBu', 'PuBu', 'YlGnBu', 'PuBuGn', 'BuGn', 'YlGn']),
-                 ('Sequential (2)', [
-                     'binary', 'gist_yarg', 'gist_gray', 'gray', 'bone', 'pink',
-                     'spring', 'summer', 'autumn', 'winter', 'cool', 'Wistia',
-                     'hot', 'afmhot', 'gist_heat', 'copper']),
-                 ('Diverging', [
-                     'PiYG', 'PRGn', 'BrBG', 'PuOr', 'RdGy', 'RdBu',
-                     'RdYlBu', 'RdYlGn', 'Spectral', 'coolwarm', 'bwr', 'seismic']),
-                 ('Qualitative', [
-                     'Pastel1', 'Pastel2', 'Paired', 'Accent',
-                     'Dark2', 'Set1', 'Set2', 'Set3',
-                     'tab10', 'tab20', 'tab20b', 'tab20c']),
-                 ('Miscellaneous', [
-                     'flag', 'prism', 'ocean', 'gist_earth', 'terrain', 'gist_stern',
-                     'gnuplot', 'gnuplot2', 'CMRmap', 'cubehelix', 'brg', 'hsv',
-                     'gist_rainbow', 'rainbow', 'jet', 'nipy_spectral', 'gist_ncar'])]
+            ('Sequential', [
+             'Greys', 'Purples', 'Blues', 'Greens', 'Oranges', 'Reds',
+             'YlOrBr', 'YlOrRd', 'OrRd', 'PuRd', 'RdPu', 'BuPu',
+             'GnBu', 'PuBu', 'YlGnBu', 'PuBuGn', 'BuGn', 'YlGn']),
+            ('Sequential (2)', [
+             'binary', 'gist_yarg', 'gist_gray', 'gray', 'bone', 'pink',
+             'spring', 'summer', 'autumn', 'winter', 'cool', 'Wistia',
+             'hot', 'afmhot', 'gist_heat', 'copper']),
+            ('Diverging', [
+             'PiYG', 'PRGn', 'BrBG', 'PuOr', 'RdGy', 'RdBu',
+             'RdYlBu', 'RdYlGn', 'Spectral', 'coolwarm', 'bwr', 'seismic']),
+            ('Qualitative', [
+             'Pastel1', 'Pastel2', 'Paired', 'Accent',
+             'Dark2', 'Set1', 'Set2', 'Set3',
+             'tab10', 'tab20', 'tab20b', 'tab20c']),
+            ('Miscellaneous', [
+             'flag', 'prism', 'ocean', 'gist_earth', 'terrain', 'gist_stern',
+             'gnuplot', 'gnuplot2', 'CMRmap', 'cubehelix', 'brg', 'hsv',
+             'gist_rainbow', 'rainbow', 'jet', 'nipy_spectral', 'gist_ncar'])]
 
         for cmap_category, cmap_list in cmaps:
             layout = QtWidgets.QVBoxLayout()
@@ -191,7 +191,7 @@ class ColorMapChoose(QtWidgets.QDialog):
             label.setFixedWidth(150)
             for cmap in cmap_list:
                 button = QtWidgets.QPushButton(cmap)
-                button.setStyleSheet("text-align: center; border: 2px solid black; "+self.getBackground(cmap))
+                button.setStyleSheet("text-align: center; border: 2px solid black; " + self.getBackground(cmap))
                 button.clicked.connect(lambda _, cmap=cmap: self.buttonClicked(cmap))
                 self.buttons.append(button)
                 layout.addWidget(button)
@@ -199,17 +199,17 @@ class ColorMapChoose(QtWidgets.QDialog):
             self.layout.addLayout(layout)
 
     def buttonClicked(self, text: str):
-        """ the used as selected a colormap, we are done """
+        """ The used as selected a colormap, we are done. """
         self.result = text
         self.done(1)
 
     def exec(self):
-        """ execute the dialog and return the result """
+        """ Execute the dialog and return the result. """
         result = QtWidgets.QDialog.exec(self)
         return self.result, result == 1
 
     def getBackground(self, color: str) -> str:
-        """ convert a colormap to a gradient background """
+        """ Convert a colormap to a gradient background. """
         import matplotlib as mpl
         import matplotlib.pyplot as plt
         try:

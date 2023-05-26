@@ -58,13 +58,18 @@ from .exception_swallower import Dummy
 from .helper_functions import main_figure
 from .jupyter_cells import open
 
-""" External overload """
+""" External overload. """
+
+
 class CustomStackPosition:
     filename = None
     lineno = None
+
     def __init__(self, filename, lineno):
         self.filename = filename
         self.lineno = lineno
+
+
 custom_stack_position = None
 custom_prepend = ""
 custom_append = ""
@@ -75,26 +80,33 @@ escape_pairs = [
     ("\r", "\\r"),
     ("\"", "\\\""),
 ]
+
+
 def escape_string(str):
     for pair in escape_pairs:
         str = str.replace(pair[0], pair[1])
     return str
+
 
 def unescape_string(str):
     for pair in escape_pairs:
         str = str.replace(pair[1], pair[0])
     return str
 
+
 def to_str(v):
     if isinstance(v, list) and len(v) and isinstance(v[0], float):
-        return "["+", ".join(np.format_float_positional(a, 4, fractional=False, trim=".") for a in v)+"]"
+        return "[" + ", ".join(np.format_float_positional(a, 4, fractional=False, trim=".") for a in v) + "]"
     elif isinstance(v, tuple) and len(v) and isinstance(v[0], float):
-        return "("+", ".join(np.format_float_positional(a, 4, fractional=False, trim=".") for a in v)+")"
+        return "(" + ", ".join(np.format_float_positional(a, 4, fractional=False, trim=".") for a in v) + ")"
     elif isinstance(v, float):
         return np.format_float_positional(v, 4, fractional=False, trim=".")
     return repr(v)
+
+
 def kwargs_to_string(kwargs):
     return ', '.join(f'{k}={to_str(v)}' for k, v in kwargs.items())
+
 
 class UndoRedo:
     def __init__(self, elements, name):
@@ -116,6 +128,7 @@ class UndoRedo:
             self.figure.signals.figure_selection_property_changed.emit()
             self.change_tracker.addEdit([self.undo, self.redo, self.name])
 
+
 def init_figure(fig):
     for axes in fig.axes:
         add_axes_default(axes)
@@ -123,6 +136,7 @@ def init_figure(fig):
             add_text_default(text)
     for text in fig.texts:
         add_text_default(text)
+
 
 def add_text_default(element):
     # properties to store
@@ -139,13 +153,15 @@ def add_text_default(element):
         if getattr(element, "is_new_text", False):
             old_args["position"] = None
             old_args["text"] = None
+
         element._pylustrator_old_args = old_args
+
 
 def add_axes_default(element):
     properties = ["position",
                   "xlim", "xlabel", "xticks", "xticklabels", "xscale",
                   "ylim", "ylabel", "yticks", "yticklabels", "yscale",
-                  "zorder"
+                  "zorder",
                   ]
     if getattr(element, "_pylustrator_old_args", None) is None:
         old_args = {}
@@ -163,7 +179,7 @@ def add_axes_default(element):
         old_args["yticks-locator"] = element.get_yaxis().major.locator
         old_args["yticklabels"] = [t.get_text() for t in old_args["yticklabels"]]
         old_args["grid"] = getattr(element.xaxis, "_gridOnMajor", False) or getattr(element.xaxis, "_major_tick_kw", {"gridOn": False})['gridOn']
-        old_args["spines"] = {s: v.get_visible() for s,v in element.spines.items()}
+        old_args["spines"] = {s: v.get_visible() for s, v in element.spines.items()}
 
         old_args["xticks-minor"] = list(element.get_xticks(minor=True))
         old_args["xticklabels-minor"] = [t.get_text() for t in element.get_xticklabels(minor=True)]
@@ -173,8 +189,9 @@ def add_axes_default(element):
     add_text_default(element.get_xaxis().get_label())
     add_text_default(element.get_yaxis().get_label())
 
+
 def getReference(element: Artist, allow_using_variable_names=True):
-    """ get the code string that represents the given Artist. """
+    """Get the code string that represents the given Artist."""
     if element is None:
         return ""
     if isinstance(element, Figure):
@@ -260,7 +277,7 @@ def getReference(element: Artist, allow_using_variable_names=True):
 
 
 def setFigureVariableNames(figure: Figure):
-    """ get the global variable names that refer to the given figure """
+    """Get the global variable names that refer to the given figure."""
     import inspect
     mpl_figure = _pylab_helpers.Gcf.figs[figure].canvas.figure
     calling_globals = inspect.stack()[2][0].f_globals
@@ -269,14 +286,15 @@ def setFigureVariableNames(figure: Figure):
         for name, val in calling_globals.items()
         if isinstance(val, mpl.figure.Figure) and hash(val) == hash(mpl_figure)
     ]
-    #print("fig_names", fig_names)
+    # print("fig_names", fig_names)
     if len(fig_names):
         globals()[fig_names[0]] = mpl_figure
         setattr(mpl_figure, "_variable_name", fig_names[0])
 
 
 class ChangeTracker:
-    """ a class that records a list of the change to the figure """
+    """A class that records a list of the change to the figure."""
+
     changes = None
     saved = True
 
@@ -306,7 +324,7 @@ class ChangeTracker:
         self.load()
 
     def addChange(self, command_obj: Artist, command: str, reference_obj: Artist = None, reference_command: str = None):
-        """ add a change """
+        """Add a change."""
         command = command.replace("\n", "\\n")
         if reference_obj is None:
             reference_obj = command_obj
@@ -324,9 +342,10 @@ class ChangeTracker:
                 description_strings.extend(desc)
             else:
                 description_strings.append(desc)
+
         def restore():
             for element, string in description_strings:
-                #function, arguments = re.match(r"\.([^(]*)\((.*)\)", string)
+                # function, arguments = re.match(r"\.([^(]*)\((.*)\)", string)
                 print(f"eval {getReference(element)}{string}")
                 eval(f"{getReference(element)}{string}")
                 if isinstance(element, Text):
@@ -337,7 +356,7 @@ class ChangeTracker:
                     self.addNewAxesChange(element)
                 else:
                     raise NotImplementedError
-                #getattr(element, function)(eval(arg))
+                # getattr(element, function)(eval(arg))
         return restore
 
     def get_describtion_string(self, element, exclude_default=True):
@@ -430,14 +449,14 @@ class ChangeTracker:
             properties = ["position",
                           "xscale", "xlabel", "xticks", "xticklabels", "xlim",
                           "yscale", "ylabel", "yticks", "yticklabels", "ylim",
-                          "zorder"
+                          "zorder",
                           ]
 
             # get current property values
             kwargs = {}
             for prop in properties:
                 value = getattr(element, f"get_{prop}")()
-                #if self.text_properties_defaults[prop] != value or not exclude_default:
+                # if self.text_properties_defaults[prop] != value or not exclude_default:
                 kwargs[prop] = value
 
             pos = element.get_position()
@@ -483,7 +502,7 @@ class ChangeTracker:
 
             # the grid
             has_grid = getattr(element.xaxis, "_gridOnMajor", False) or \
-                               getattr(element.xaxis, "_major_tick_kw", {"gridOn": False})['gridOn']
+                getattr(element.xaxis, "_major_tick_kw", {"gridOn": False})['gridOn']
             if has_grid != element._pylustrator_old_args["grid"] or not exclude_default:
                 desc_strings.append([element, f".grid({has_grid})"])
 
@@ -511,6 +530,7 @@ class ChangeTracker:
             return desc_strings
 
     text_properties_defaults = None
+
     def addNewTextChange(self, element):
         command_parent, command = self.get_describtion_string(element)
 
@@ -540,7 +560,7 @@ class ChangeTracker:
                 del self.changes[reference_obj, reference_command]
 
         # store the changes
-        #if not element.get_visible() and getattr(element, "is_new_text", False):
+        # if not element.get_visible() and getattr(element, "is_new_text", False):
         #    return
         main_figure(element).change_tracker.addChange(command_parent, command)
 
@@ -554,7 +574,7 @@ class ChangeTracker:
                 del self.changes[reference_obj, reference_command]
 
         # store the changes
-        #if not element.get_visible() and getattr(element, "is_new_text", False):
+        # if not element.get_visible() and getattr(element, "is_new_text", False):
         #    return
         for command_parent, command in desc_strings:
             if command.endswith(".set()"):
@@ -567,12 +587,12 @@ class ChangeTracker:
             if self.last_edit >= 0 and len(self.edits[self.last_edit]) > 2:
                 name_undo = self.edits[self.last_edit][2]
             name_redo = ""
-            if self.last_edit < len(self.edits) - 1 and len(self.edits[self.last_edit+1]) > 2:
-                name_redo = self.edits[self.last_edit+1][2]
+            if self.last_edit < len(self.edits) - 1 and len(self.edits[self.last_edit + 1]) > 2:
+                name_redo = self.edits[self.last_edit + 1][2]
             self.update_changes_signal.emit(self.last_edit < 0, self.last_edit >= len(self.edits) - 1, name_undo, name_redo)
 
     def removeElement(self, element: Artist):
-        """ remove an Artis from the figure """
+        """ Remove an Artis from the figure."""
         # create_key = key+".new"
         created_by_pylustrator = (element, ".new") in self.changes
         # delete changes related to this element
@@ -612,41 +632,41 @@ class ChangeTracker:
         self.figure.selection.remove_target(element)
 
     def addEdit(self, edit: list):
-        """ add an edit to the stored list of edits """
+        """Add an edit to the stored list of edits."""
         if self.last_edit < len(self.edits) - 1:
             self.edits = self.edits[:self.last_edit + 1]
         self.edits.append(edit)
         self.last_edit = len(self.edits) - 1
         self.last_edit = len(self.edits) - 1
-        #print("addEdit", len(self.edits), self.last_edit)
+        # print("addEdit", len(self.edits), self.last_edit)
         self.changeCountChanged()
 
     def backEdit(self):
-        """ undo an edit in the list """
+        """Undo an edit in the list."""
         if self.last_edit < 0:
-            #print("no backEdit", len(self.edits), self.last_edit)
+            # print("no backEdit", len(self.edits), self.last_edit)
             return
         edit = self.edits[self.last_edit]
         edit[0]()
         self.last_edit -= 1
         self.figure.canvas.draw()
-        #print("backEdit", len(self.edits), self.last_edit)
+        # print("backEdit", len(self.edits), self.last_edit)
         self.changeCountChanged()
 
     def forwardEdit(self):
-        """ redo an edit """
+        """Redo an edit."""
         if self.last_edit >= len(self.edits) - 1:
-            #print("no forwardEdit", len(self.edits), self.last_edit)
+            # print("no forwardEdit", len(self.edits), self.last_edit)
             return
         edit = self.edits[self.last_edit + 1]
         edit[1]()
         self.last_edit += 1
         self.figure.canvas.draw()
-        #print("forwardEdit", len(self.edits), self.last_edit)
+        # print("forwardEdit", len(self.edits), self.last_edit)
         self.changeCountChanged()
 
     def load(self):
-        """ load a set of changes from a script file. The changes are the code that pylustrator generated """
+        """Load a set of changes from a script file. The changes are the code that pylustrator generated."""
         regex = re.compile(r"(\.[^\(= ]*)(.*)")
         command_obj_regexes = [getReference(self.figure),
                                r"plt\.figure\([^)]*\)",
@@ -755,12 +775,12 @@ class ChangeTracker:
 
             self.get_reference_cached[reference_obj] = reference_obj_str
 
-            #print("---", [reference_obj, reference_command], (command_obj, command + parameter))
+            # print("---", [reference_obj, reference_command], (command_obj, command + parameter))
             self.changes[reference_obj, reference_command] = (command_obj, command + parameter)
         self.sorted_changes()
 
     def sorted_changes(self):
-        """ sort the changes by their priority. For example setting to logscale needs to be executed before xlim. """
+        """ Sort the changes by their priority. For example setting to logscale needs to be executed before xlim. """
         def getRef(obj):
             try:
                 return getReference(obj)
@@ -810,7 +830,7 @@ class ChangeTracker:
         return output
 
     def save(self):
-        """ save the changes to the .py file """
+        """ Save the changes to the .py file. """
         # if saving is disabled
         if self.no_save is True:
             return
@@ -831,7 +851,7 @@ class ChangeTracker:
             if line.startswith("fig.add_axes"):
                 output.append(header[1])
         output.append("#% end: automatic generated code from pylustrator" + custom_append)
-        print("\n"+"\n".join(output)+"\n")
+        print("\n" + "\n".join(output) + "\n")
 
         block_id = getReference(self.figure)
         block = getTextFromFile(block_id, stack_position)
@@ -848,7 +868,7 @@ class ChangeTracker:
 
 
 def getTextFromFile(block_id: str, stack_pos: traceback.FrameSummary):
-    """ get the text which corresponds to the block_id (e.g. which figure) at the given position sepcified by stack_pos. """
+    """ Get the text which corresponds to the block_id (e.g. which figure) at the given position sepcified by stack_pos. """
     block_id = lineToId(block_id)
     block = None
 
@@ -870,7 +890,7 @@ def getTextFromFile(block_id: str, stack_pos: traceback.FrameSummary):
             # if there is a new pylustrator block
             elif line.strip().startswith(custom_prepend + "#% start:"):
                 block = Block(line)
-                start_lineno = lineno-1
+                start_lineno = lineno - 1
 
             # if we are currently reading a block, continue with the next line
             if block is not None and not block.finished:
@@ -884,34 +904,35 @@ def getTextFromFile(block_id: str, stack_pos: traceback.FrameSummary):
 
 
 class Block:
-    """ an object to represent the code block generated by a pylustrator save """
+    """ An object to represent the code block generated by a pylustrator save. """
+
     id = None
     finished = False
 
     def __init__(self, line: str):
-        """ initialize the block with its first line """
+        """ Initialize the block with its first line."""
         self.text = line
         self.size = 1
         self.indent = getIndent(line)
 
     def add(self, line: str):
-        """ add a line to the block """
+        """ Add a line to the block. """
         if self.id is None:
             self.id = lineToId(line)
         self.text += line
         self.size += 1
 
     def end(self):
-        """ end the block """
+        """ End the block. """
         self.finished = True
 
     def __iter__(self):
-        """ iterate over all the lines of the block """
+        """ Iterate over all the lines of the block. """
         return iter(self.text.split("\n"))
 
 
 def getIndent(line: str):
-    """ get the indent part of a line of code """
+    """ Get the indent part of a line of code. """
     i = 0
     for i in range(len(line)):
         if line[i] != " " and line[i] != "\t":
@@ -921,7 +942,7 @@ def getIndent(line: str):
 
 
 def addLineCounter(fp: IO):
-    """ wrap a file pointer to store th line numbers """
+    """ Wrap a file pointer to store th line numbers. """
     fp.lineno = 0
     write = fp.write
 
@@ -933,7 +954,7 @@ def addLineCounter(fp: IO):
 
 
 def lineToId(line: str):
-    """ get the id of a line, e.g. part which specifies which figure it refers to """
+    """ Get the id of a line, e.g. part which specifies which figure it refers to. """
     line = line.strip()
     line = line.split(".ax_dict")[0]
     if line.startswith("fig = "):
@@ -942,7 +963,7 @@ def lineToId(line: str):
 
 
 def insertTextToFile(new_block: str, stack_pos: traceback.FrameSummary, figure_id_line: str):
-    """ insert a text block into a file """
+    """ Insert a text block into a file. """
     figure_id_line = lineToId(figure_id_line)
     block = None
     written = False

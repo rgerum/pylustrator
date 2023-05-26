@@ -42,10 +42,10 @@ def approxUnitArc(ang1, ang2):
     y2 = np.sin(ang1 + ang2)
 
     return [
-            [x1 - y1 * a, y1 + x1 * a],
-            [x2 + y2 * a, y2 - x2 * a],
-            [x2, y2]
-          ]
+        [x1 - y1 * a, y1 + x1 * a],
+        [x2 + y2 * a, y2 - x2 * a],
+        [x2, y2],
+    ]
 
 
 def vectorAngle(ux, uy, vx, vy):
@@ -61,8 +61,8 @@ def vectorAngle(ux, uy, vx, vy):
     return sign * np.arccos(dot)
 
 
-def getArcCenter (px, py, cx, cy, rx, ry,
-    largeArcFlag, sweepFlag, sinphi, cosphi, pxp, pyp):
+def getArcCenter(px, py, cx, cy, rx, ry,
+                 largeArcFlag, sweepFlag, sinphi, cosphi, pxp, pyp):
     rxsq = np.power(rx, 2)
     rysq = np.power(ry, 2)
     pxpsq = np.power(pxp, 2)
@@ -90,15 +90,15 @@ def getArcCenter (px, py, cx, cy, rx, ry,
     ang2 = vectorAngle(vx1, vy1, vx2, vy2)
 
     if sweepFlag == 0 and ang2 > 0:
-        ang2 -= np.pi*2
+        ang2 -= np.pi * 2
 
     if sweepFlag == 1 and ang2 < 0:
-        ang2 += np.pi*2
+        ang2 += np.pi * 2
 
     return centerx, centery, ang1, ang2
 
 
-def arcToBezier(pos1, pos2, rx, ry, xAxisRotation = 0, largeArcFlag = 0, sweepFlag = 0):
+def arcToBezier(pos1, pos2, rx, ry, xAxisRotation=0, largeArcFlag=0, sweepFlag=0):
     px, py = pos1
     cx, cy = pos2
     curves = []
@@ -125,7 +125,7 @@ def arcToBezier(pos1, pos2, rx, ry, xAxisRotation = 0, largeArcFlag = 0, sweepFl
         ry *= np.sqrt(lambda_)
 
     centerx, centery, ang1, ang2 = getArcCenter(px, py, cx, cy, rx, ry,
-                                    largeArcFlag, sweepFlag, sinphi, cosphi, pxp, pyp)
+                                                largeArcFlag, sweepFlag, sinphi, cosphi, pxp, pyp)
 
     # If 'ang2' == 90.0000000001, then `ratio` will evaluate to
     # 1.0000000001. This causes `segments` to be greater than one, which is an

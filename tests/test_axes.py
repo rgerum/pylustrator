@@ -40,22 +40,22 @@ class TestAxes(BaseTest):
         test_run = "Change axes limits."
 
         self.change_property2("xlim", (1, 10), lambda _: self.fig.window.input_properties.input_xaxis.input_lim.setValue((1, 10), signal=True), get_axes, line_command,
-                             test_run)
+                              test_run)
 
         self.change_property2("ylim", (2, 8), lambda _: self.fig.window.input_properties.input_yaxis.input_lim.setValue((2, 8), signal=True), get_axes, line_command,
-                             test_run)
+                              test_run)
 
         self.change_property2("xlabel", "label",
-                             lambda _: self.fig.window.input_properties.input_xaxis.input_label.setText("label",
-                                                                                                       signal=True),
-                             get_axes, line_command,
-                             test_run)
+                              lambda _: self.fig.window.input_properties.input_xaxis.input_label.setText("label",
+                                                                                                         signal=True),
+                              get_axes, line_command,
+                              test_run)
 
         self.change_property2("ylabel", "label",
-                             lambda _: self.fig.window.input_properties.input_yaxis.input_label.setText("label",
-                                                                                                        signal=True),
-                             get_axes, line_command,
-                             test_run)
+                              lambda _: self.fig.window.input_properties.input_yaxis.input_label.setText("label",
+                                                                                                         signal=True),
+                              get_axes, line_command,
+                              test_run)
 
         get_axes = [lambda: fig.axes[0], lambda: fig.axes[1]]
         line_command = ["plt.figure(1).axes[0].set(", "plt.figure(1).axes[1].set("]
@@ -84,6 +84,7 @@ class TestAxes(BaseTest):
                                                                                                          signal=True),
                               get_axes, line_command,
                               test_run)
+
     def test_axis_grid(self):
         # get the figure
         fig, text = self.run_plot_script()
@@ -197,21 +198,22 @@ class TestAxes(BaseTest):
 
             return check
         # minor ticks
+
         def set_ticks(_):
             self.fig.window.input_properties.input_xaxis.tick_edit.setTarget(get_axes())
             self.fig.window.input_properties.input_xaxis.tick_edit.input_ticks2.setText('10^-2\n0.1 "a"\n0.2 "b\n0.3 c\n0.5',
-                                                                                       signal=True)
+                                                                                        signal=True)
 
         self.change_property2("xticks", [0.01, 0.1, 0.2, 0.3, 0.5], set_ticks, get_axes, line_command, test_run,
-                             test_saved_value=check_saved_property("x"), get_function=lambda: get_axes().get_xticks(minor=True))
+                              test_saved_value=check_saved_property("x"), get_function=lambda: get_axes().get_xticks(minor=True))
 
         def set_ticks(_):
             self.fig.window.input_properties.input_yaxis.tick_edit.setTarget(get_axes())
             self.fig.window.input_properties.input_yaxis.tick_edit.input_ticks2.setText('10^-2\n0.1 "a"\n0.2 "b\n0.3 c\n0.5',
-                                                                                       signal=True)
+                                                                                        signal=True)
 
         self.change_property2("yticks", [0.01, 0.1, 0.2, 0.3, 0.5], set_ticks, get_axes, line_command, test_run,
-                             test_saved_value=check_saved_property("y"), get_function=lambda: get_axes().get_yticks(minor=True))
+                              test_saved_value=check_saved_property("y"), get_function=lambda: get_axes().get_yticks(minor=True))
 
     def test_axes_alignment(self):
         # get the figure

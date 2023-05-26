@@ -42,6 +42,6 @@ setup(name='pylustrator',
           'numpy',
           'matplotlib',
           'qtawesome',
-          'scikit-image'
+          'scikit-image',
       ],
       )

@@ -48,12 +48,14 @@ def my_excepthook(type, value, tback):
 
 sys.excepthook = my_excepthook
 
-""" Matplotlib overload """
+""" Matplotlib overload. """
 figures = {}
 app = None
 keys_for_lines = {}
 
 no_save_allowed = False
+
+
 def initialize(use_global_variable_names=False, use_exception_silencer=False, disable_save=False):
     """
     This will overload the commands ``plt.figure()`` and ``plt.show()``.
@@ -120,8 +122,8 @@ def initialize(use_global_variable_names=False, use_exception_silencer=False, di
     plt.show = show
     patchColormapsWithMetaInfo()
 
-    #stack_call_position = traceback.extract_stack()[-2]
-    #stack_call_position.filename
+    # stack_call_position = traceback.extract_stack()[-2]
+    # stack_call_position.filename
 
     plt.keys_for_lines = keys_for_lines
 
@@ -134,8 +136,9 @@ def initialize(use_global_variable_names=False, use_exception_silencer=False, di
 
     Figure.savefig = savefig
 
+
 def pyl_show(hide_window: bool = False):
-    """ the function overloads the matplotlib show function.
+    """The function overloads the matplotlib show function.
     It opens a DragManager window instead of the default matplotlib window.
     """
     global figures, app
@@ -153,10 +156,10 @@ def pyl_show(hide_window: bool = False):
         fig = _pylab_helpers.Gcf.figs[figure_number].canvas.figure
 
         # get variable names that point to this figure
-        #if setting_use_global_variable_names:
+        # if setting_use_global_variable_names:
         #    setFigureVariableNames(figure_number)
         # get the window
-        #window = _pylab_helpers.Gcf.figs[figure].canvas.window_pylustrator
+        # window = _pylab_helpers.Gcf.figs[figure].canvas.window_pylustrator
         # warn about ticks not fitting tick labels
         warnAboutTicks(fig)
         # add dragger
@@ -173,7 +176,7 @@ def pyl_show(hide_window: bool = False):
 
 
 def show(hide_window: bool = False):
-    """ the function overloads the matplotlib show function.
+    """ The function overloads the matplotlib show function.
     It opens a DragManager window instead of the default matplotlib window.
     """
     global figures
@@ -188,7 +191,7 @@ def show(hide_window: bool = False):
         if setting_use_global_variable_names:
             setFigureVariableNames(figure)
         # get the window
-        #window = _pylab_helpers.Gcf.figs[figure].canvas.window_pylustrator
+        # window = _pylab_helpers.Gcf.figs[figure].canvas.window_pylustrator
         window = PlotWindow()
         window.setFigure(_pylab_helpers.Gcf.figs[figure].canvas.figure)
         # warn about ticks not fitting tick labels
@@ -209,7 +212,7 @@ def show(hide_window: bool = False):
 
 
 class CmapColor(list):
-    """ a color like object that has the colormap as metadata """
+    """ A color like object that has the colormap as metadata. """
 
     def setMeta(self, value, cmap):
         self.value = value
@@ -217,7 +220,7 @@ class CmapColor(list):
 
 
 def patchColormapsWithMetaInfo():
-    """ all colormaps now return color with metadata from which colormap the color came from """
+    """ All colormaps now return color with metadata from which colormap the color came from. """
     from matplotlib.colors import Colormap
 
     cm_call = Colormap.__call__
@@ -233,7 +236,7 @@ def patchColormapsWithMetaInfo():
 
 
 def figure(num=None, figsize=None, force_add=False, *args, **kwargs):
-    """ overloads the matplotlib figure call and wraps the Figure in a PlotWindow """
+    """ Overloads the matplotlib figure call and wraps the Figure in a PlotWindow. """
     global figures
     # if num is not defined create a new number
     if num is None:
@@ -258,7 +261,7 @@ def figure(num=None, figsize=None, force_add=False, *args, **kwargs):
 
 
 def warnAboutTicks(fig):
-    """ warn if the tick labels and tick values do not match, to prevent users from accidentally setting wrong tick values """
+    """ Warn if the tick labels and tick values do not match, to prevent users from accidentally setting wrong tick values. """
     import sys
     for index, ax in enumerate(fig.axes):
         ticks = ax.get_yticks()
@@ -281,7 +284,7 @@ def warnAboutTicks(fig):
                 print("Warning tick and label differ", t, l, "for axes", ax_name, file=sys.stderr)
 
 
-""" Window """
+""" Window. """
 
 
 class Signals(QtWidgets.QWidget):
@@ -324,7 +327,7 @@ class PlotWindow(QtWidgets.QWidget):
         undo_act.triggered.connect(undo)
         self.menu_edit.addAction(undo_act)
 
-        #self.preview.addFigure(figure)
+        # self.preview.addFigure(figure)
 
     def selectionProperyChanged(self):
         self.fig.selection.update_selection_rectangles()
@@ -376,8 +379,8 @@ class PlotWindow(QtWidgets.QWidget):
     def redo(self):
         self.fig.figure_dragger.redo()
 
-    def __init__(self, number: int=0):
-        """ The main window of pylustrator
+    def __init__(self, number: int = 0):
+        """ The main window of pylustrator.
 
         Args:
             number: the id of the figure
@@ -390,7 +393,6 @@ class PlotWindow(QtWidgets.QWidget):
         self.signals = Signals()
         self.signals.canvas_changed.connect(self.setCanvas)
         self.signals.figure_selection_property_changed.connect(self.selectionProperyChanged)
-
 
         self.plot_layout = PlotLayout(self.signals)
 
@@ -448,14 +450,14 @@ class PlotWindow(QtWidgets.QWidget):
             self.layout_main.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
             layout_parent.addWidget(self.layout_main)
 
-        #self.preview = FigurePreviews(self)
-        #self.layout_main.addWidget(self.preview)
+        # self.preview = FigurePreviews(self)
+        # self.layout_main.addWidget(self.preview)
         #
         widget = QtWidgets.QWidget()
         self.layout_tools = QtWidgets.QVBoxLayout(widget)
         widget.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
-        #widget.setMaximumWidth(350)
-        #widget.setMinimumWidth(350)
+        # widget.setMaximumWidth(350)
+        # widget.setMinimumWidth(350)
         self.layout_main.addWidget(widget)
 
         if 0:
@@ -496,7 +498,7 @@ class PlotWindow(QtWidgets.QWidget):
         self.layout_main.setStretchFactor(2, 0)
 
     def rasterize(self, rasterize: bool):
-        """ convert the figur elements to an image """
+        """ Convert the figur elements to an image. """
         if len(self.fig.selection.targets):
             self.fig.figure_dragger.select_element(None)
         if rasterize:
@@ -508,13 +510,13 @@ class PlotWindow(QtWidgets.QWidget):
         self.fig.canvas.draw()
 
     def actionSave(self):
-        """ save the code for the figure """
+        """ Save the code for the figure. """
         self.fig.change_tracker.save()
         for _last_saved_figure, args, kwargs in getattr(self.fig, "_last_saved_figure", []):
             self.fig.savefig(_last_saved_figure, *args, **kwargs)
 
     def actionSaveImage(self):
-        """ save figure as an image """
+        """ Save figure as an image. """
         path = QtWidgets.QFileDialog.getSaveFileName(self, "Save Image", getattr(self.fig, "_last_saved_figure", [(None,)])[0][0],
                                                      "Images (*.png *.jpg *.pdf)")
         if isinstance(path, tuple):
@@ -530,16 +532,16 @@ class PlotWindow(QtWidgets.QWidget):
         print("Saved plot image as", path)
 
     def showInfo(self):
-        """ show the info dialog """
+        """ Show the info dialog. """
         self.info_dialog = InfoDialog(self)
         self.info_dialog.show()
 
     def showEvent(self, event: QtCore.QEvent):
-        """ when the window is shown """
+        """ When the window is shown. """
         self.colorWidget.updateColorsText()
 
     def update(self):
-        """ update the tree view """
+        """ Update the tree view. """
         # self.input_size.setValue(np.array(self.fig.get_size_inches())*2.54)
 
         def wrap(func):
@@ -568,14 +570,14 @@ class PlotWindow(QtWidgets.QWidget):
         self.signals.figure_element_selected.emit(self.fig)
 
     def updateTitle(self):
-        """ update the title of the window to display if it is saved or not """
+        """ Update the title of the window to display if it is saved or not. """
         if self.fig.change_tracker.saved:
             self.setWindowTitle(f"Figure {self.fig.number} - Pylustrator")
         else:
             self.setWindowTitle(f"Figure {self.fig.number}* - Pylustrator")
 
     def closeEvent(self, event: QtCore.QEvent):
-        """ when the window is closed, ask the user to save """
+        """ When the window is closed, ask the user to save. """
         if not self.fig.change_tracker.saved and not no_save_allowed:
             reply = QtWidgets.QMessageBox.question(self, 'Warning - Pylustrator', 'The figure has not been saved. '
                                                                                   'All data will be lost.\nDo you want to save it?',

@@ -40,7 +40,7 @@ class Align(QtWidgets.QWidget):
         self.layout.addStretch()
 
     def execute_action(self, act: str):
-        """ execute an alignment action """
+        """ Execute an alignment action. """
         self.fig.selection.align_points(act)
         self.fig.selection.update_selection_rectangles()
         self.fig.canvas.draw()

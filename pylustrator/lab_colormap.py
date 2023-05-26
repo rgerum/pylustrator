@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
-""" Colormap """
+""" Colormap. """
 from typing import Sequence, Union
 
 import numpy as np
@@ -27,30 +27,32 @@ from matplotlib.colors import Colormap, ListedColormap, to_rgb
 
 
 class CmapColor(list):
-    """ a class that appends metadate to a color """
+    """ A class that appends metadate to a color. """
+
     def setMeta(self, value, cmap):
         self.value = value
         self.cmap = cmap
 
 
 def convert_rgb2lab(colors: Sequence):
-    """ convert colors from rgb to lab color space """
+    """ Convert colors from rgb to lab color space. """
     from skimage.color import rgb2lab
     return [rgb2lab(np.array(c)[None, None, :3]) for c in colors]
 
 
 def convert_lab2rgb(colors):
-    """ convert colors from lab to rgb color space """
+    """ Convert colors from lab to rgb color space. """
     from skimage.color import lab2rgb
     return [lab2rgb(np.array(c))[0, 0, :3] for c in colors]
 
 
 class LabColormap(ListedColormap):
-    """ a custom colormap that blends between N custom colors """
+    """ A custom colormap that blends between N custom colors. """
+
     init_colors = None
 
     def __init__(self, colors: Sequence, N: int, stops=None):
-        """ initialize with the given colors and stops """
+        """ Initialize with the given colors and stops. """
         # store stops
         self.stops = stops
         # set colors
@@ -59,7 +61,7 @@ class LabColormap(ListedColormap):
         Colormap.__init__(self, "test", N)
 
     def _init(self):
-        """ generate the colormap from the given colors (used by ListedColormap) """
+        """ Generate the colormap from the given colors (used by ListedColormap). """
         # convert to lab
         lab_colors = convert_rgb2lab(self.init_colors)
         # initialize new list
@@ -76,7 +78,7 @@ class LabColormap(ListedColormap):
         ListedColormap._init(self)
 
     def __call__(self, value: float, *args, **kwargs):
-        """ get the color associated with the given value from the colormap """
+        """ Get the color associated with the given value from the colormap. """
         # get the color
         result = Colormap.__call__(self, value, *args, **kwargs)
         # add meta values to it
@@ -86,12 +88,12 @@ class LabColormap(ListedColormap):
         return result
 
     def get_color(self) -> Sequence:
-        """ return all the colors """
+        """ Return all the colors. """
         # return the colors
         return self.init_colors
 
     def set_color(self, color: Union[str, Sequence], index: int = None):
-        """ set a color to the given index """
+        """ Set a color to the given index. """
         # update the color according to the index
         if index is not None:
             self.init_colors[index] = to_rgb(color)
@@ -105,7 +107,7 @@ class LabColormap(ListedColormap):
         self._isinit = False
 
     def get_stops(self) -> Sequence:
-        """ return the stops """
+        """ Return the stops. """
         # get the stops
         stops = self.stops
         # if they are not defined, interpolate from 0 to 1
@@ -115,7 +117,7 @@ class LabColormap(ListedColormap):
         return stops
 
     def linearize_lightness(self):
-        """ linearize the lightness of the colors in the colormap """
+        """ Linearize the lightness of the colors in the colormap. """
         # convert to lab
         lab_colors = convert_rgb2lab(self.init_colors)
         # define start and end lightness

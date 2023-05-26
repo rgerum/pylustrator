@@ -17,7 +17,7 @@ import inspect as _inspect
 import sys as _sys
 import types as _types
 
-_WRAPPER_TYPES = (type(object.__init__), type(object().__init__),)
+_WRAPPER_TYPES = (type(object.__init__), type(object().__init__))
 
 # deactivated closure support as this code does not work for python3
 """
@@ -29,6 +29,7 @@ def proxy0(data):
 
 _CELLTYPE = int  # type(proxy0(None).func_closure[0])
 """
+
 
 class PyjackException(Exception):
     pass
@@ -78,7 +79,7 @@ def connect(fn, proxyfn):
         fn.restore = restore
         return fn
     else:
-        bundle = (fn, fn_type,)
+        bundle = (fn, fn_type)
         raise PyjackException("fn %r of type '%r' not supported" % bundle)
 
 
@@ -148,7 +149,6 @@ def replace_all_refs(org_obj, new_obj):
        Python runtime interns strings.
 
     """
-
     _gc.collect()
 
     hit = False
@@ -197,7 +197,7 @@ def replace_all_refs(org_obj, new_obj):
             hit = True
 
         # TUPLE, FROZENSET
-        elif isinstance(referrer, (tuple, frozenset,)):
+        elif isinstance(referrer, (tuple, frozenset)):
             new_tuple = []
             for obj in referrer:
                 if obj is org_obj:
@@ -207,7 +207,7 @@ def replace_all_refs(org_obj, new_obj):
             replace_all_refs(referrer, type(referrer)(new_tuple))
 
         # CELLTYPE (deactivated as it makes problems im Python3)
-        #elif isinstance(referrer, _CELLTYPE):
+        # elif isinstance(referrer, _CELLTYPE):
         #    def proxy0(data):
         #        def proxy1(): return data
 
@@ -240,7 +240,7 @@ def replace_all_refs(org_obj, new_obj):
             # print(type(referrer), file=sys.stderr)
             pass
 
-    #if hit is False:
+    # if hit is False:
     #    raise AttributeError("Object '%r' not found" % org_obj)
 
     return org_obj
@@ -303,7 +303,7 @@ class _PyjackFuncBuiltin(_PyjackFunc):
         try:
             return getattr(self._fn, attr)
         except AttributeError:
-            bundle = (self._fn, attr,)
+            bundle = (self._fn, attr)
             raise AttributeError("function %r has no attr '%s'" % bundle)
 
     def restore(self):

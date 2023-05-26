@@ -200,9 +200,9 @@ class TestText(BaseTest):
         test_run = "Delete new text in axes."
 
         self.change_property2("visible", False,
-                             lambda _: fig.figure_dragger.selection.keyPressEvent(
+                              lambda _: fig.figure_dragger.selection.keyPressEvent(
                                  KeyEvent('delete', fig.canvas, "delete")), get_text, line_command,
-                             test_run, delete=True)
+                              test_run, delete=True)
 
     def check_text_properties(self, get_text, line_command, test_run, x, y):
         fig = self.fig

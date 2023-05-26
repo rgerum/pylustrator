@@ -12,7 +12,7 @@ for root, dirs, files in os.walk(os.path.join(os.path.dirname(__file__), "..")):
         if file.endswith(".py"):
             print(file)
             full_filename = os.path.join(root, file)
-            with open(full_filename+".tmp", "w") as fp2:
+            with open(full_filename + ".tmp", "w") as fp2:
                 fp2.write(notice.format(file))
                 with open(full_filename, "r") as fp1:
                     start = False
@@ -23,4 +23,4 @@ for root, dirs, files in os.walk(os.path.join(os.path.dirname(__file__), "..")):
                             fp2.write(line)
                             continue
 
-            shutil.move(full_filename+".tmp", full_filename)
+            shutil.move(full_filename + ".tmp", full_filename)

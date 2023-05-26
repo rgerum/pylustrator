@@ -20,7 +20,7 @@ class TestLegend(BaseTest):
 
         self.move_element((0, 0), get_legend)
 
-        #self.check_text_properties(get_text, line_command, test_run, 0.4931, 0.4979)
+        # self.check_text_properties(get_text, line_command, test_run, 0.4931, 0.4979)
         self.change_property("loc", (x, 0.856602), lambda _: self.move_element((-1, 0)), get_legend, line_command,
                              test_run, get_function=lambda: get_legend()._loc)
         self.change_property("loc", (0.047605, 0.856602), lambda _: self.move_element((1, 0)), get_legend, line_command,
@@ -29,10 +29,10 @@ class TestLegend(BaseTest):
                              test_run, get_function=lambda: get_legend()._loc)
         self.change_property("loc", (0.047605, 0.856602), lambda _: self.move_element((0, 1)), get_legend, line_command,
                              test_run, get_function=lambda: get_legend()._loc)
-        #self.change_property("loc", (0.2, 0.5),
+        # self.change_property("loc", (0.2, 0.5),
         #                     lambda _: fig.window.input_size.input_position.valueChangedX.emit(0.2), get_text,
         #                     line_command, test_run, get_function=lambda: get_text()._loc)
-        #self.change_property("loc", (0.2, 0.2),
+        # self.change_property("loc", (0.2, 0.2),
         #                     lambda _: fig.window.input_size.input_position.valueChangedY.emit(0.2), get_text,
         #                     line_command, test_run, get_function=lambda: get_text()._loc)
 

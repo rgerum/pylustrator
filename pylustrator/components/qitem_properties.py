@@ -52,7 +52,7 @@ class TextPropertiesWidget(QtWidgets.QWidget):
     target_list = None
 
     def __init__(self, layout: QtWidgets.QLayout):
-        """ A widget to edit the properties of a Matplotlib text
+        """ A widget to edit the properties of a Matplotlib text.
 
         Args:
             layout: the layout to which to add the widget
@@ -67,7 +67,7 @@ class TextPropertiesWidget(QtWidgets.QWidget):
         align_group = QtWidgets.QButtonGroup(self)
         for align in self.align_names:
             button = QtWidgets.QPushButton(qta.icon("fa5s.align-" + align), "")
-            button.setToolTip("align "+align)
+            button.setToolTip("align " + align)
             button.setCheckable(True)
             button.clicked.connect(lambda x, name=align: self.changeAlign(name))
             self.layout.addWidget(button)
@@ -97,13 +97,13 @@ class TextPropertiesWidget(QtWidgets.QWidget):
         self.layout.addWidget(self.label)
         self.label.clicked.connect(self.selectFont)
 
-        #self.button_delete = QtWidgets.QPushButton(qta.icon("fa5s.trash"), "")
-        #self.button_delete.clicked.connect(self.delete)
-        #self.button_delete.setToolTip("delete")
-        #self.layout.addWidget(self.button_delete)
+        # self.button_delete = QtWidgets.QPushButton(qta.icon("fa5s.trash"), "")
+        # self.button_delete.clicked.connect(self.delete)
+        # self.button_delete.setToolTip("delete")
+        # self.layout.addWidget(self.button_delete)
 
     def convertMplWeightToQtWeight(self, weight: str) -> int:
-        """ convert a font weight string to a weight enumeration of Qt """
+        """ Convert a font weight string to a weight enumeration of Qt. """
         weight_dict = {'normal': QtGui.QFont.Normal, 'bold': QtGui.QFont.Bold, 'heavy': QtGui.QFont.ExtraBold,
                        'light': QtGui.QFont.Light, 'ultrabold': QtGui.QFont.Black, 'ultralight': QtGui.QFont.ExtraLight}
         if weight in weight_dict:
@@ -111,7 +111,7 @@ class TextPropertiesWidget(QtWidgets.QWidget):
         return weight_dict["normal"]
 
     def convertQtWeightToMplWeight(self, weight: int) -> str:
-        """ convert a Qt weight value to a string for use in matmplotlib """
+        """ Convert a Qt weight value to a string for use in matmplotlib. """
         weight_dict = {QtGui.QFont.Normal: 'normal', QtGui.QFont.Bold: 'bold', QtGui.QFont.ExtraBold: 'heavy',
                        QtGui.QFont.Light: 'light', QtGui.QFont.Black: 'ultrabold', QtGui.QFont.ExtraLight: 'ultralight'}
         if weight in weight_dict:
@@ -119,7 +119,7 @@ class TextPropertiesWidget(QtWidgets.QWidget):
         return "normal"
 
     def selectFont(self):
-        """ open a font select dialog """
+        """ Open a font select dialog. """
         font0 = QtGui.QFont()
         font0.setFamily(self.target.get_fontname())
         font0.setWeight(self.convertMplWeightToQtWeight(self.target.get_weight()))
@@ -140,7 +140,7 @@ class TextPropertiesWidget(QtWidgets.QWidget):
         self.setTarget(self.target_list)
 
     def setTarget(self, element: Artist):
-        """ set the target artist for this widget """
+        """ Set the target artist for this widget. """
         if isinstance(element, list):
             self.target_list = element
             element = element[0]
@@ -163,7 +163,7 @@ class TextPropertiesWidget(QtWidgets.QWidget):
         self.target = element
 
     def delete(self):
-        """ delete the target text """
+        """ Delete the target text. """
         if self.target is not None:
             fig = main_figure(self.target)
             fig.change_tracker.removeElement(self.target)
@@ -172,35 +172,35 @@ class TextPropertiesWidget(QtWidgets.QWidget):
             fig.canvas.draw()
 
     def changeWeight(self, checked: bool):
-        """ set bold or normal """
+        """ Set bold or normal. """
         if self.target:
             with UndoRedo(self.target_list, "Change weight"):
                 for element in self.target_list:
                     element.set_weight("bold" if checked else "normal")
 
     def changeStyle(self, checked: bool):
-        """ set italic or normal """
+        """ Set italic or normal. """
         if self.target:
             with UndoRedo(self.target_list, "Change style"):
                 for element in self.target_list:
                     element.set_style("italic" if checked else "normal")
 
     def changeColor(self, color: str):
-        """ set the text color """
+        """ Set the text color. """
         if self.target:
             with UndoRedo(self.target_list, "Change color"):
                 for element in self.target_list:
                     element.set_color(color)
 
     def changeAlign(self, align: str):
-        """ set the text algin """
+        """ Set the text align. """
         if self.target:
             with UndoRedo(self.target_list, "Change alignment"):
                 for element in self.target_list:
                     element.set_ha(align)
 
     def changeFontSize(self, value: int):
-        """ set the font size """
+        """ Set the font size. """
         if self.target:
             with UndoRedo(self.target_list, "Change font size"):
                 for element in self.target_list:
@@ -214,7 +214,7 @@ class TextPropertiesWidget2(QtWidgets.QWidget):
     target_list = None
 
     def __init__(self, layout: QtWidgets.QLayout):
-        """ A widget to edit the properties of a Matplotlib text
+        """ A widget to edit the properties of a Matplotlib text.
 
         Args:
             layout: the layout to which to add the widget
@@ -271,7 +271,7 @@ class TextPropertiesWidget2(QtWidgets.QWidget):
         self.propertiesChanged.connect(lambda: self.target and main_figure(self.target).signals.figure_selection_property_changed.emit())
 
     def convertMplWeightToQtWeight(self, weight: str) -> int:
-        """ convert a font weight string to a weight enumeration of Qt """
+        """ Convert a font weight string to a weight enumeration of Qt. """
         weight_dict = {'normal': QtGui.QFont.Normal, 'bold': QtGui.QFont.Bold, 'heavy': QtGui.QFont.ExtraBold,
                        'light': QtGui.QFont.Light, 'ultrabold': QtGui.QFont.Black, 'ultralight': QtGui.QFont.ExtraLight}
         if weight in weight_dict:
@@ -279,7 +279,7 @@ class TextPropertiesWidget2(QtWidgets.QWidget):
         return weight_dict["normal"]
 
     def convertQtWeightToMplWeight(self, weight: int) -> str:
-        """ convert a Qt weight value to a string for use in matmplotlib """
+        """ Convert a Qt weight value to a string for use in matmplotlib. """
         weight_dict = {QtGui.QFont.Normal: 'normal', QtGui.QFont.Bold: 'bold', QtGui.QFont.ExtraBold: 'heavy',
                        QtGui.QFont.Light: 'light', QtGui.QFont.Black: 'ultrabold', QtGui.QFont.ExtraLight: 'ultralight'}
         if weight in weight_dict:
@@ -287,7 +287,7 @@ class TextPropertiesWidget2(QtWidgets.QWidget):
         return "normal"
 
     def selectFont(self):
-        """ open a font select dialog """
+        """ Open a font select dialog. """
         font0 = QtGui.QFont()
         font0.setFamily(self.target.get_fontname())
         font0.setWeight(self.convertMplWeightToQtWeight(self.target.get_weight()))
@@ -305,11 +305,11 @@ class TextPropertiesWidget2(QtWidgets.QWidget):
             self.properties["fontstyle"] = style
 
         self.propertiesChanged.emit()
-        #main_figure(self.target).canvas.draw()
+        # main_figure(self.target).canvas.draw()
         self.setTarget(self.target_list)
 
     def setTarget(self, element: Artist):
-        """ set the target artist for this widget """
+        """ Set the target artist for this widget. """
         self.noSignal = True
         try:
             if len(element) == 0:
@@ -333,7 +333,7 @@ class TextPropertiesWidget2(QtWidgets.QWidget):
             self.button_color.setColor(element.get_color())
 
             for name, name2, type_, default_ in self.property_names:
-                value = getattr(element, "get_"+name2)()
+                value = getattr(element, "get_" + name2)()
                 self.properties[name] = value
 
             self.target = element
@@ -341,7 +341,7 @@ class TextPropertiesWidget2(QtWidgets.QWidget):
             self.noSignal = False
 
     def delete(self):
-        """ delete the target text """
+        """ Delete the target text. """
         if self.target is not None:
             fig = main_figure(self.target)
             fig.change_tracker.removeElement(self.target)
@@ -350,27 +350,27 @@ class TextPropertiesWidget2(QtWidgets.QWidget):
             fig.canvas.draw()
 
     def changeWeight(self, checked: bool):
-        """ set bold or normal """
+        """ Set bold or normal. """
         self.properties["fontweight"] = "bold" if checked else "normal"
         self.propertiesChanged.emit()
 
     def changeStyle(self, checked: bool):
-        """ set italic or normal """
+        """ Set italic or normal. """
         self.properties["fontstyle"] = "italic" if checked else "normal"
         self.propertiesChanged.emit()
 
     def changeColor(self, color: str):
-        """ set the text color """
+        """ Set the text color. """
         self.properties["color"] = color
         self.propertiesChanged.emit()
 
     def changeAlign(self, align: str):
-        """ set the text algin """
+        """ Set the text align. """
         self.properties["horizontalalignment"] = align
         self.propertiesChanged.emit()
 
     def changeFontSize(self, value: int):
-        """ set the font size """
+        """ Set the font size. """
         if self.noSignal:
             return
         self.properties["fontsize"] = value
@@ -383,7 +383,7 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
     target_list = None
 
     def __init__(self, layout: QtWidgets.QLayout):
-        """ A widget that allows to change to properties of a matplotlib legend
+        """ A widget that allows to change to properties of a matplotlib legend.
 
         Args:
             layout: the layout to which to add the widget
@@ -445,7 +445,7 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
             if icon is not None and getattr(widget, "label", None):
                 from pathlib import Path
                 pix = QtGui.QPixmap(str(Path(__file__).parent.parent / "icons" / icon))
-                pix = pix.scaledToWidth(int(28*QtGui.QGuiApplication.primaryScreen().logicalDotsPerInch()/96), QtCore.Qt.SmoothTransformation)
+                pix = pix.scaledToWidth(int(28 * QtGui.QGuiApplication.primaryScreen().logicalDotsPerInch() / 96), QtCore.Qt.SmoothTransformation)
                 widget.setToolTip(name)
                 widget.label.setToolTip(name)
                 widget.label.setPixmap(pix)
@@ -453,7 +453,7 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
             self.widgets[name] = widget
 
     def changePropertiy(self, name: str, value: Any):
-        """ change the property with the given name to the provided value """
+        """ Change the property with the given name to the provided value. """
         if self.target is None:
             return
 
@@ -461,6 +461,7 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
         self.properties[name] = value
         new_properties = self.properties.copy()
         target = self.target
+
         def setProperties(properties):
             nonlocal target
             bbox = target.get_frame().get_bbox()
@@ -485,7 +486,7 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
         main_figure(target).change_tracker.addEdit([undo, redo, f"Legend {name}"])
 
     def setTarget(self, element: Artist):
-        """ set the target artist for this widget """
+        """ Set the target artist for this widget. """
         if isinstance(element, list):
             self.target_list = element
             element = element[0]
@@ -519,7 +520,7 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
 
 class QTickEdit(QtWidgets.QWidget):
     def __init__(self, axis: str, signal_target_changed: QtCore.Signal):
-        """ A widget to change the tick properties
+        """ A widget to change the tick properties.
 
         Args:
             axis: whether to use the "x" or "y" axis
@@ -546,7 +547,7 @@ class QTickEdit(QtWidgets.QWidget):
 
         self.input_scale = ComboWidget(self.layout, axis + "-Scale", ["linear", "log", "symlog", "logit"])
         self.input_scale.editingFinished.connect(self.scaleChanged)
-        #self.input_scale.link(axis + "scale", signal_target_changed)
+        # self.input_scale.link(axis + "scale", signal_target_changed)
 
         self.input_font = TextPropertiesWidget2(self.layout)
         self.input_font.propertiesChanged.connect(self.fontStateChanged)
@@ -559,7 +560,7 @@ class QTickEdit(QtWidgets.QWidget):
         self.button_ok.clicked.connect(self.hide)
 
     def parseTickLabel(self, line: str) -> (float, str):
-        """ interpret the tick value specified in line """
+        """ Interpret the tick value specified in line. """
         import re
         line = line.replace("−", "-")
         match = re.match(r"\$\\mathdefault{(([-.\d]*)\\times)?([-.\d]+)\^{([-.\d]+)}}\$", line)
@@ -585,7 +586,7 @@ class QTickEdit(QtWidgets.QWidget):
         return number, line
 
     def formatTickLabel(self, line: str) -> (float, str):
-        """ interpret the tick label specified in line"""
+        """ Interpret the tick label specified in line."""
         import re
         line = line.replace("−", "-")
         match = re.match(r"\s*(([-.\d]*)\s*x)?\s*([-.\d]+)\s*\^\s*([-.\d]+)\s*\"(.+)?\"", line)
@@ -618,7 +619,7 @@ class QTickEdit(QtWidgets.QWidget):
         return number, line
 
     def setTarget(self, element: Artist):
-        """ set the target Artist for this widget"""
+        """ Set the target Artist for this widget."""
         self.element = element
         self.fig = main_figure(element)
         min, max = getattr(self.element, "get_" + self.axis + "lim")()
@@ -668,7 +669,7 @@ class QTickEdit(QtWidgets.QWidget):
         self.input_font.setTarget(ticks)
 
     def parseTicks(self, string: str):
-        """ parse a list of given ticks """
+        """ Parse a list of given ticks. """
         try:
             ticks = []
             labels = []
@@ -693,13 +694,13 @@ class QTickEdit(QtWidgets.QWidget):
         return ticks, labels
 
     def str(self, object: Any):
-        """ serialize an object and interpret nan values """
+        """ Serialize an object and interpret nan values. """
         if str(object) == "nan":
             return "np.nan"
         return str(object)
 
     def ticksChanged2(self):
-        """ when the minor ticks changed """
+        """ When the minor ticks changed. """
         ticks, labels = self.parseTicks(self.input_ticks2.text())
 
         elements = [self.element]
@@ -753,7 +754,7 @@ class QTickEdit(QtWidgets.QWidget):
             value = self.input_font.properties[name]
             if default_ is not None and value == default_:
                 continue
-            #if default_ is None and value == plt.rcParams["legend." + name]:
+            # if default_ is None and value == plt.rcParams["legend." + name]:
             #    continue
             if type_ == str:
                 prop_copy[name] = '"' + value + '"'
@@ -764,10 +765,10 @@ class QTickEdit(QtWidgets.QWidget):
 
     def fontStateChanged(self):
         self.ticksChanged()
-        #fig.change_tracker.addChange(axes, ".legend(%s)" % (", ".join("%s=%s" % (k, v) for k, v in prop_copy.items())))
+        # fig.change_tracker.addChange(axes, ".legend(%s)" % (", ".join("%s=%s" % (k, v) for k, v in prop_copy.items())))
 
     def scaleChanged(self):
-        """ when the scale changed """
+        """ When the scale changed. """
         elements = [self.element]
         elements += [element.target for element in main_figure(self.element).selection.targets if
                      element.target != self.element and isinstance(element.target, Axes)]
@@ -779,7 +780,7 @@ class QTickEdit(QtWidgets.QWidget):
                 element.set(**kwargs)
 
     def ticksChanged(self):
-        """ when the major ticks changed """
+        """ When the major ticks changed. """
         ticks, labels = self.parseTicks(self.input_ticks.text())
 
         elements = [self.element]
@@ -791,7 +792,7 @@ class QTickEdit(QtWidgets.QWidget):
             current_ticks = getattr(elem, "get_" + self.axis + "ticks")()
             current_ticklabels = [t.get_text() for t in getattr(elem, "get_" + self.axis + "ticklabels")()]
             if len(current_ticks) != len(ticks) or (current_ticks != ticks).any() or \
-                len(current_ticklabels) != len(labels) or current_ticklabels != labels:
+                    len(current_ticklabels) != len(labels) or current_ticklabels != labels:
                 changed = True
         if changed is False:
             return
@@ -874,7 +875,7 @@ class QAxesProperties(QtWidgets.QWidget):
     targetChanged_wrapped = QtCore.Signal(object)
 
     def __init__(self, layout: QtWidgets.QLayout, axis: str, signal_target_changed: QtCore.Signal):
-        """ a widget to change the properties of an axes (label, limits)
+        """ A widget to change the properties of an axes (label, limits).
 
         Args:
             layout: the layout to which to add this widget
@@ -915,12 +916,12 @@ class QAxesProperties(QtWidgets.QWidget):
         self.tick_edit = QTickEdit(axis, signal_target_changed)
 
     def showTickWidget(self):
-        """ open the tick edit dialog """
+        """ Open the tick edit dialog. """
         self.tick_edit.setTarget(self.element)
         self.tick_edit.show()
 
     def setTarget(self, element: Artist):
-        """ set the target Artist of this widget """
+        """ Set the target Artist of this widget. """
         self.element = element
 
         if isinstance(element, Axes):
@@ -933,7 +934,7 @@ class QAxesProperties(QtWidgets.QWidget):
     targetChanged_wrapped = QtCore.Signal(object)
 
     def __init__(self, layout: QtWidgets.QLayout, axis: str, signal_target_changed: QtCore.Signal):
-        """ a widget to change the properties of an axes (label, limits)
+        """ A widget to change the properties of an axes (label, limits).
 
         Args:
             layout: the layout to which to add this widget
@@ -965,12 +966,12 @@ class QAxesProperties(QtWidgets.QWidget):
         self.tick_edit = QTickEdit(axis, signal_target_changed)
 
     def showTickWidget(self):
-        """ open the tick edit dialog """
+        """ Open the tick edit dialog. """
         self.tick_edit.setTarget(self.element)
         self.tick_edit.show()
 
     def setTarget(self, element: Artist):
-        """ set the target Artist of this widget """
+        """ Set the target Artist of this widget. """
         self.element = element
 
         if isinstance(element, Axes):
@@ -1000,13 +1001,14 @@ class QAxesProperties(QtWidgets.QWidget):
             for element in elements:
                 element.set(**{f"{self.axis}lim": limits})
 
+
 class QItemProperties(QtWidgets.QWidget):
     targetChanged = QtCore.Signal(object)
     valueChanged = QtCore.Signal(tuple)
     element = None
 
     def __init__(self, layout: QtWidgets.QLayout, signals: "Signals"):
-        """ a widget that holds all the properties to set and the tree view
+        """ A widget that holds all the properties to set and the tree view.
 
         Args:
             layout: the layout to which to add the widget
@@ -1124,7 +1126,7 @@ class QItemProperties(QtWidgets.QWidget):
         self.setMinimumWidth(100)
 
     def select_element(self, element: Artist):
-        """ select an element """
+        """ Select an element. """
         if element is None:
             self.setElement(self.fig)
         else:
@@ -1134,7 +1136,7 @@ class QItemProperties(QtWidgets.QWidget):
         self.fig = fig
 
     def buttonAddImageClicked(self):
-        """ when the button 'add image' is clicked """
+        """ When the button 'add image' is clicked. """
         fig = self.fig
 
         def addChange(element, command):
@@ -1177,7 +1179,7 @@ class QItemProperties(QtWidgets.QWidget):
         self.input_text.input1.setFocus()
 
     def buttonAddTextClicked(self):
-        """ when the button 'add text' is clicked """
+        """ When the button 'add text' is clicked. """
         if isinstance(self.element, Axes):
             text = self.element.text(0.5, 0.5, "New Text", transform=self.element.transAxes)
             text.is_new_text = True
@@ -1202,7 +1204,7 @@ class QItemProperties(QtWidgets.QWidget):
         self.input_text.input1.setFocus()
 
     def buttonAddAnnotationClicked(self):
-        """ when the button 'add annoations' is clicked """
+        """ When the button 'add annoations' is clicked. """
         text = self.element.annotate("New Annotation", (self.element.get_xlim()[0], self.element.get_ylim()[0]),
                                      (np.mean(self.element.get_xlim()), np.mean(self.element.get_ylim())),
                                      arrowprops={"arrowstyle": '->'})
@@ -1220,9 +1222,9 @@ class QItemProperties(QtWidgets.QWidget):
         self.input_text.input1.setFocus()
 
     def buttonAddRectangleClicked(self):
-        """ when the button 'add rectangle' is clicked """
+        """ When the button 'add rectangle' is clicked. """
         p = mpl.patches.Rectangle((self.element.get_xlim()[0], self.element.get_ylim()[0]),
-                                  width=np.mean(self.element.get_xlim()), height=np.mean(self.element.get_ylim()), )
+                                  width=np.mean(self.element.get_xlim()), height=np.mean(self.element.get_ylim()))
         self.element.add_patch(p)
 
         self.fig.change_tracker.addChange(self.element,
@@ -1239,7 +1241,7 @@ class QItemProperties(QtWidgets.QWidget):
         self.input_text.input1.setFocus()
 
     def buttonAddArrowClicked(self):
-        """ when the button 'add arrow' is clicked """
+        """ When the button 'add arrow' is clicked. """
         p = mpl.patches.FancyArrowPatch((self.element.get_xlim()[0], self.element.get_ylim()[0]),
                                         (np.mean(self.element.get_xlim()), np.mean(self.element.get_ylim())),
                                         arrowstyle="Simple,head_length=10,head_width=10,tail_width=2",
@@ -1260,9 +1262,9 @@ class QItemProperties(QtWidgets.QWidget):
         self.input_text.input1.setFocus()
 
     def buttonDespineClicked(self):
-        """ despine the target """
-
+        """ Despine the target. """
         elements = [element.target for element in main_figure(self.element).selection.targets if isinstance(element.target, Axes)]
+
         def is_despined(elem):
             return elem.spines['right'].get_visible() and elem.spines['top'].get_visible()
         despined = [is_despined(elem) for elem in elements]
@@ -1275,7 +1277,7 @@ class QItemProperties(QtWidgets.QWidget):
                     element.spines[spine].set_visible(new_value)
 
     def buttonGridClicked(self):
-        """ toggle the grid of the target """
+        """ Toggle the grid of the target. """
         elements = [element.target for element in main_figure(self.element).selection.targets
                     if isinstance(element.target, Axes)]
         has_grid = getattr(self.element.xaxis, "_gridOnMajor", False) or getattr(self.element.xaxis, "_major_tick_kw", {"gridOn": False})['gridOn']
@@ -1288,6 +1290,7 @@ class QItemProperties(QtWidgets.QWidget):
                 for element in elements:
                     element.grid(False)
                     self.fig.change_tracker.addChange(element, ".grid(False)")
+
             def set_true():
                 for element in elements:
                     element.grid(True)
@@ -1302,7 +1305,7 @@ class QItemProperties(QtWidgets.QWidget):
         self.fig.canvas.draw()
 
     def buttonLegendClicked(self):
-        """ add a legend to the target """
+        """ Add a legend to the target. """
         self.element.legend()
         self.fig.change_tracker.addChange(self.element, ".legend()")
         self.fig.figure_dragger.make_dragable(self.element.get_legend())
@@ -1310,7 +1313,7 @@ class QItemProperties(QtWidgets.QWidget):
         self.signals.figure_element_child_created.emit(self.element)
 
     def changePickable(self):
-        """ make the target pickable """
+        """ Make the target pickable. """
         if self.input_picker.isChecked():
             self.element._draggable.connect()
         else:
@@ -1318,7 +1321,7 @@ class QItemProperties(QtWidgets.QWidget):
         self.signals.figure_element_child_created.emit(self.element)
 
     def setElement(self, element: Artist):
-        """ set the target Artist of this widget """
+        """ Set the target Artist of this widget. """
         self.label.setText(str(element))
         self.element = element
         try:
