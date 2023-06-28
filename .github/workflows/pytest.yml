@@ -23,7 +23,7 @@ jobs:
       with:
         python-version: '3.8'
         cache: 'poetry'
-    - run: poetry install --with dev
+    - run: poetry install --with test
     - run: poetry run pytest
       env:
         QT_QPA_PLATFORM: "offscreen"
