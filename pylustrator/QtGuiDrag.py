@@ -519,7 +519,7 @@ class PlotWindow(QtWidgets.QWidget):
 
     def actionSaveImage(self):
         """ save figure as an image """
-        path = QtWidgets.QFileDialog.getSaveFileName(self, "Save Image", getattr(self.fig, "_last_saved_figure", [(None,)])[0][0],
+        path = QtWidgets.QFileDialog.getSaveFileName(self, "Save Image", str(getattr(self.fig, "_last_saved_figure", [(None,)])[0][0]),
                                                      "Images (*.png *.jpg *.pdf)")
         if isinstance(path, tuple):
             path = str(path[0])
