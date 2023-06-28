@@ -17,7 +17,7 @@ qtawesome = ">=0.5.0"
 scikit-image = ">=0.7.0"
 
 [tool.poetry.group.test.dependencies]
-pytest = "^6.0.0"
+pytest = "^7.2.0"
 
 
 [build-system]
