@@ -673,81 +673,85 @@ class ChangeTracker:
         if not block:
             block, lineno = getTextFromFile(getReference(self.figure, allow_using_variable_names=False), stack_position)
         for line in block:
-            line = line.strip()
-            lineno += 1
-            if line == "" or line in header or line.startswith("#"):
-                continue
-            if re.match(r".*\.ax_dict =.*", line):
-                continue
-
-            raw_line = line
-
-            # try to identify the command object of the line
-            command_obj = ""
-            for r in command_obj_regexes:
-                while True:
-                    try:
-                        found = r.match(line).group()
-                        line = line[len(found):]
-                        command_obj += found
-                    except AttributeError:
-                        pass
-                        break
-
             try:
-                command, parameter = regex.match(line).groups()
-            except AttributeError:  # no regex match
-                continue
+                line = line.strip()
+                lineno += 1
+                if line == "" or line in header or line.startswith("#"):
+                    continue
+                if re.match(r".*\.ax_dict =.*", line):
+                    continue
 
-            m = re.match(r".*# id=(.*)", line)
-            if m:
-                key = m.groups()[0]
-            else:
-                key = command_obj + command
+                raw_line = line
 
-            # by default reference and command object are the same
-            reference_obj = command_obj
-            reference_command = command
+                # try to identify the command object of the line
+                command_obj = ""
+                for r in command_obj_regexes:
+                    while True:
+                        try:
+                            found = r.match(line).group()
+                            line = line[len(found):]
+                            command_obj += found
+                        except AttributeError:
+                            pass
+                            break
 
-            if command == ".set_xticks" or command == ".set_yticks" or command == ".set_xlabels" or command == ".set_ylabels":
-                if line.find("minor=True") != -1:
-                    reference_command = command + "_minor"
+                try:
+                    command, parameter = regex.match(line).groups()
+                except AttributeError:  # no regex match
+                    continue
 
-            # for new created texts, the reference object is the text and not the axis/figure
-            if command == ".text" or command == ".annotate" or command == ".add_patch":
-                # for texts we stored the linenumbers where they were created
-                if command == ".text":
-                    # get the parent object (usually an Axes)
-                    parent = eval(reference_obj)
-                    # iterate over the texts
-                    for t in parent.texts:
-                        # and find if one of the texts was created in the line we are currently looking at
-                        if getattr(t, "_pylustrator_reference", None):
-                            if t._pylustrator_reference["stack_position"].lineno == lineno:
-                                reference_obj = getReference(t)
-                                break
+                m = re.match(r".*# id=(.*)", line)
+                if m:
+                    key = m.groups()[0]
+                else:
+                    key = command_obj + command
+
+                # by default reference and command object are the same
+                reference_obj = command_obj
+                reference_command = command
+
+                if command == ".set_xticks" or command == ".set_yticks" or command == ".set_xlabels" or command == ".set_ylabels":
+                    if line.find("minor=True") != -1:
+                        reference_command = command + "_minor"
+
+                # for new created texts, the reference object is the text and not the axis/figure
+                if command == ".text" or command == ".annotate" or command == ".add_patch":
+                    # for texts we stored the linenumbers where they were created
+                    if command == ".text":
+                        # get the parent object (usually an Axes)
+                        parent = eval(reference_obj)
+                        # iterate over the texts
+                        for t in parent.texts:
+                            # and find if one of the texts was created in the line we are currently looking at
+                            if getattr(t, "_pylustrator_reference", None):
+                                if t._pylustrator_reference["stack_position"].lineno == lineno:
+                                    reference_obj = getReference(t)
+                                    break
+                        else:
+                            reference_obj, _ = re.match(r"(.*)(\..*)", key).groups()
                     else:
                         reference_obj, _ = re.match(r"(.*)(\..*)", key).groups()
-                else:
-                    reference_obj, _ = re.match(r"(.*)(\..*)", key).groups()
-                reference_command = ".new"
-                if command == ".text":
-                    eval(reference_obj).is_new_text = True
+                    reference_command = ".new"
+                    if command == ".text":
+                        eval(reference_obj).is_new_text = True
 
-            command_obj = eval(command_obj)
-            reference_obj_str = reference_obj
-            reference_obj = eval(reference_obj)
+                command_obj = eval(command_obj)
+                reference_obj_str = reference_obj
+                reference_obj = eval(reference_obj)
 
-            # if values where saved during the pylustrator saved code
-            for change in getattr(reference_obj, "_pylustrator_old_values", []):
-                if change["stack_position"].lineno == lineno:
-                    old_values = change["old_args"].copy()
-                    old_values.update(getattr(reference_obj, "_pylustrator_old_args", {}))
-                    reference_obj._pylustrator_old_args = old_values
+                # if values where saved during the pylustrator saved code
+                for change in getattr(reference_obj, "_pylustrator_old_values", []):
+                    if change["stack_position"].lineno == lineno:
+                        old_values = change["old_args"].copy()
+                        old_values.update(getattr(reference_obj, "_pylustrator_old_args", {}))
+                        reference_obj._pylustrator_old_args = old_values
 
-            # if the reference object is just a dummy, we ignore it
-            if isinstance(reference_obj, Dummy):
-                print("WARNING: line references a missing object, will remove line on save:", raw_line, file=sys.stderr)
+                # if the reference object is just a dummy, we ignore it
+                if isinstance(reference_obj, Dummy):
+                    print("WARNING: line references a missing object, will remove line on save:", raw_line, file=sys.stderr)
+                    continue
+            # this error can occur if there are old saved lines that reference objects that are not there anymore
+            except IndexError:
                 continue
 
             self.get_reference_cached[reference_obj] = reference_obj_str
