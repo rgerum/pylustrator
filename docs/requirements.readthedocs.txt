@@ -4,3 +4,4 @@ matplotlib
 pyside6
 qtpy
 mock
+sphinx_rtd_theme
