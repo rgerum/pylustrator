@@ -1,6 +1,6 @@
 sphinxcontrib-bibtex
 nbsphinx
 matplotlib
-pyside2
+pyside6
 qtpy
 mock
