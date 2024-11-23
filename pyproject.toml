@@ -8,7 +8,7 @@ readme = "README.md"
 repository = 'https://github.com/rgerum/pylustrator'
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = ">=3.9"
 natsort = ">=2.0.0"
 numpy = ">=1.0.3"
 matplotlib = ">=2.0.2"
