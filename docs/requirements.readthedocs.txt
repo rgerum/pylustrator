@@ -3,3 +3,4 @@ nbsphinx
 matplotlib
 pyside2
 qtpy
+mock
