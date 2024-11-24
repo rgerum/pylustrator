@@ -66,14 +66,22 @@ python script (before your ``plt.show()``) that defines these changes:
     :linenos:
 
     #% start: automatic generated code from pylustrator
-    plt.figure(1).set_size_inches(8.000000/2.54, 8.000000/2.54, forward=True)
-    plt.figure(1).axes[0].set_position([0.191879, 0.148168, 0.798133, 0.742010])
-    plt.figure(1).axes[0].set_xlabel("data x")
-    plt.figure(1).axes[0].set_ylabel("data y")
-    plt.figure(1).axes[1].set_position([0.375743, 0.603616, 0.339534, 0.248372])
-    plt.figure(1).axes[1].set_xlabel("data x")
-    plt.figure(1).axes[1].set_ylabel("data y")
-    plt.figure(1).axes[1].set_ylim(-40.0, 90.0)
+    plt.figure(1).ax_dict = {ax.get_label(): ax for ax in plt.figure(1).axes}
+    import matplotlib as mpl
+    getattr(plt.figure(1), '_pylustrator_init', lambda: ...)()
+    plt.figure(1).set_size_inches(9.980000/2.54, 11.660000/2.54, forward=True)
+    plt.figure(1).axes[0].set(position=[0.1531, 0.1557, 0.7968, 0.3141], xlabel='time', ylabel='amplitude')
+    plt.figure(1).axes[0].set_position([0.151600, 0.127337, 0.788696, 0.324652])
+    plt.figure(1).axes[0].spines[['right', 'top']].set_visible(False)
+    plt.figure(1).axes[0].text(-0.0934, 0.9934, 'c', transform=plt.figure(1).axes[0].transAxes, ha='center', weight='bold')  # id=plt.figure(1).axes[0].texts[0].new
+    plt.figure(1).axes[1].set(position=[0.5784, 0.5555, 0.3714, 0.3779], xlabel='A', ylabel='B')
+    plt.figure(1).axes[1].set_position([0.572546, 0.540568, 0.367654, 0.390595])
+    plt.figure(1).axes[1].spines[['right', 'top']].set_visible(False)
+    plt.figure(1).axes[1].text(-0.1648, 0.9934, 'b', transform=plt.figure(1).axes[1].transAxes, weight='bold')  # id=plt.figure(1).axes[1].texts[0].new
+    plt.figure(1).axes[2].set(position=[0.1531, 0.5555, 0.2741, 0.3779], xticks=[0., 1.], xticklabels=['A', 'B'], ylabel='mean value')
+    plt.figure(1).axes[2].set_position([0.151600, 0.540568, 0.271293, 0.390595])
+    plt.figure(1).axes[2].spines[['right', 'top']].set_visible(False)
+    plt.figure(1).axes[2].text(-0.2717, 0.9934, 'a', transform=plt.figure(1).axes[2].transAxes, ha='center', weight='bold')  # id=plt.figure(1).axes[2].texts[0].new
     #% end: automatic generated code from pylustrator
 
 .. note::
