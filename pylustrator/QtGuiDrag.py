@@ -29,8 +29,12 @@ import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.axes._axes import Axes
 from matplotlib.text import Text
-from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
+from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets, _version_info
 
+if _version_info[0] == 6:
+    QAction = QtGui.QAction
+else:
+    QAction = QtWidgets.QAction
 
 from .ax_rasterisation import rasterizeAxes, restoreAxes
 from .change_tracker import setFigureVariableNames
@@ -58,6 +62,8 @@ app = None
 keys_for_lines = {}
 
 no_save_allowed = False
+
+
 def initialize(use_global_variable_names=False, use_exception_silencer=False, disable_save=False):
     """
     This will overload the commands ``plt.figure()`` and ``plt.show()``.
@@ -82,7 +88,8 @@ def initialize(use_global_variable_names=False, use_exception_silencer=False, di
             stack_position = traceback.extract_stack()[-2]
             element._pylustrator_reference = dict(reference=getReference(element), stack_position=stack_position)
             old_args = {}
-            properties_to_save = ["position", "text", "ha", "va", "fontsize", "color", "style", "weight", "fontname", "rotation"]
+            properties_to_save = ["position", "text", "ha", "va", "fontsize", "color", "style", "weight", "fontname",
+                                  "rotation"]
             for name in properties_to_save:
                 try:
                     old_args[name] = getattr(element, f"get_{name}")()
@@ -98,7 +105,9 @@ def initialize(use_global_variable_names=False, use_exception_silencer=False, di
                 del kwargs["fontdict"]
             element.set(**kwargs)
             return element
+
         return wrapped_text
+
     Axes.text = wrap_text_function(Axes.text)
     Figure.text = wrap_text_function(Figure.text)
 
@@ -110,7 +119,9 @@ def initialize(use_global_variable_names=False, use_exception_silencer=False, di
     # warning for shell session
     stack_pos = traceback.extract_stack()[-2]
     if not stack_pos.filename.endswith('.py') and not stack_pos.filename.startswith("<ipython-input-"):
-        print("WARNING: you are using pylustartor in a shell session. Changes cannot be saved to a file. They will just be printed.", file=sys.stderr)
+        print(
+            "WARNING: you are using pylustartor in a shell session. Changes cannot be saved to a file. They will just be printed.",
+            file=sys.stderr)
 
     setting_use_global_variable_names = use_global_variable_names
 
@@ -124,8 +135,8 @@ def initialize(use_global_variable_names=False, use_exception_silencer=False, di
     plt.show = show
     patchColormapsWithMetaInfo()
 
-    #stack_call_position = traceback.extract_stack()[-2]
-    #stack_call_position.filename
+    # stack_call_position = traceback.extract_stack()[-2]
+    # stack_call_position.filename
 
     plt.keys_for_lines = keys_for_lines
 
@@ -137,6 +148,7 @@ def initialize(use_global_variable_names=False, use_exception_silencer=False, di
         sf(self, filename, *args, **kwargs)
 
     Figure.savefig = savefig
+
 
 def pyl_show(hide_window: bool = False):
     """ the function overloads the matplotlib show function.
@@ -157,10 +169,10 @@ def pyl_show(hide_window: bool = False):
         fig = _pylab_helpers.Gcf.figs[figure_number].canvas.figure
 
         # get variable names that point to this figure
-        #if setting_use_global_variable_names:
+        # if setting_use_global_variable_names:
         #    setFigureVariableNames(figure_number)
         # get the window
-        #window = _pylab_helpers.Gcf.figs[figure].canvas.window_pylustrator
+        # window = _pylab_helpers.Gcf.figs[figure].canvas.window_pylustrator
         # warn about ticks not fitting tick labels
         warnAboutTicks(fig)
         # add dragger
@@ -192,7 +204,7 @@ def show(hide_window: bool = False):
         if setting_use_global_variable_names:
             setFigureVariableNames(figure)
         # get the window
-        #window = _pylab_helpers.Gcf.figs[figure].canvas.window_pylustrator
+        # window = _pylab_helpers.Gcf.figs[figure].canvas.window_pylustrator
         window = PlotWindow()
         window.setFigure(_pylab_helpers.Gcf.figs[figure].canvas.figure)
         # warn about ticks not fitting tick labels
@@ -320,7 +332,7 @@ class PlotWindow(QtWidgets.QWidget):
     def addFigure(self, figure):
         self.figures.append(figure)
 
-        undo_act = QtWidgets.QAction(f"Figure {figure.number}", self)
+        undo_act = QAction(f"Figure {figure.number}", self)
 
         def undo():
             self.setFigure(figure)
@@ -328,7 +340,7 @@ class PlotWindow(QtWidgets.QWidget):
         undo_act.triggered.connect(undo)
         self.menu_edit.addAction(undo_act)
 
-        #self.preview.addFigure(figure)
+        # self.preview.addFigure(figure)
 
     def selectionProperyChanged(self):
         self.fig.selection.update_selection_rectangles()
@@ -339,17 +351,17 @@ class PlotWindow(QtWidgets.QWidget):
         file_menu = self.menuBar.addMenu("&File")
 
         if no_save_allowed is False:
-            open_act = QtWidgets.QAction("&Save", self)
+            open_act = QAction("&Save", self)
             open_act.setShortcut("Ctrl+S")
             open_act.triggered.connect(self.actionSave)
             file_menu.addAction(open_act)
 
-        open_act = QtWidgets.QAction("Save &Image...", self)
+        open_act = QAction("Save &Image...", self)
         open_act.setShortcut("Ctrl+I")
         open_act.triggered.connect(self.actionSaveImage)
         file_menu.addAction(open_act)
 
-        open_act = QtWidgets.QAction("Exit", self)
+        open_act = QAction("Exit", self)
         open_act.triggered.connect(self.close)
         open_act.setShortcut("Ctrl+Q")
         file_menu.addAction(open_act)
@@ -357,15 +369,15 @@ class PlotWindow(QtWidgets.QWidget):
         file_menu = self.menuBar.addMenu("&Edit")
         self.menu_edit = file_menu
 
-        info_act = QtWidgets.QAction("&Info", self)
+        info_act = QAction("&Info", self)
         info_act.triggered.connect(self.showInfo)
 
-        self.undo_act = QtWidgets.QAction("Undo", self)
+        self.undo_act = QAction("Undo", self)
         self.undo_act.triggered.connect(self.undo)
         self.undo_act.setShortcut("Ctrl+Z")
         file_menu.addAction(self.undo_act)
 
-        self.redo_act = QtWidgets.QAction("Redo", self)
+        self.redo_act = QAction("Redo", self)
         self.redo_act.triggered.connect(self.redo)
         self.redo_act.setShortcut("Ctrl+Y")
         file_menu.addAction(self.redo_act)
@@ -380,7 +392,7 @@ class PlotWindow(QtWidgets.QWidget):
     def redo(self):
         self.fig.figure_dragger.redo()
 
-    def __init__(self, number: int=0):
+    def __init__(self, number: int = 0):
         """ The main window of pylustrator
 
         Args:
@@ -394,7 +406,6 @@ class PlotWindow(QtWidgets.QWidget):
         self.signals = Signals()
         self.signals.canvas_changed.connect(self.setCanvas)
         self.signals.figure_selection_property_changed.connect(self.selectionProperyChanged)
-
 
         self.plot_layout = PlotLayout(self.signals)
 
@@ -452,14 +463,14 @@ class PlotWindow(QtWidgets.QWidget):
             self.layout_main.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
             layout_parent.addWidget(self.layout_main)
 
-        #self.preview = FigurePreviews(self)
-        #self.layout_main.addWidget(self.preview)
+        # self.preview = FigurePreviews(self)
+        # self.layout_main.addWidget(self.preview)
         #
         widget = QtWidgets.QWidget()
         self.layout_tools = QtWidgets.QVBoxLayout(widget)
         widget.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
-        #widget.setMaximumWidth(350)
-        #widget.setMinimumWidth(350)
+        # widget.setMaximumWidth(350)
+        # widget.setMinimumWidth(350)
         self.layout_main.addWidget(widget)
 
         if 0:
@@ -473,11 +484,11 @@ class PlotWindow(QtWidgets.QWidget):
             self.button_derasterize.clicked.connect(lambda x: self.rasterize(False))
             self.button_derasterize.setDisabled(True)
         elif 0:
-            self.button_rasterize = QtWidgets.QAction("rasterize", self)
+            self.button_rasterize = QAction("rasterize", self)
             self.button_rasterize.triggered.connect(lambda x: self.rasterize(True))
             self.menu_edit.addAction(self.button_rasterize)
 
-            self.button_derasterize = QtWidgets.QAction("derasterize", self)
+            self.button_derasterize = QAction("derasterize", self)
             self.button_derasterize.triggered.connect(lambda x: self.rasterize(False))
             self.menu_edit.addAction(self.button_derasterize)
             self.button_derasterize.setDisabled(True)
@@ -519,7 +530,8 @@ class PlotWindow(QtWidgets.QWidget):
 
     def actionSaveImage(self):
         """ save figure as an image """
-        path = QtWidgets.QFileDialog.getSaveFileName(self, "Save Image", str(getattr(self.fig, "_last_saved_figure", [(None,)])[0][0]),
+        path = QtWidgets.QFileDialog.getSaveFileName(self, "Save Image",
+                                                     str(getattr(self.fig, "_last_saved_figure", [(None,)])[0][0]),
                                                      "Images (*.png *.jpg *.pdf)")
         if isinstance(path, tuple):
             path = str(path[0])
@@ -544,7 +556,8 @@ class PlotWindow(QtWidgets.QWidget):
 
     def update(self):
         """ update the tree view """
-        # self.input_size.setValue(np.array(self.fig.get_size_inches())*2.54)
+
+        # self.input_size.setValue(np.array(self.fig.get_size_inches()) * 2.54)
 
         def wrap(func):
             def newfunc(element, event=None):
