@@ -1,7 +1,13 @@
 import os
 import numpy as np
 
-from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
+from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets, _version_info
+
+if _version_info[0] == 6:
+    QActionGroup = QtGui.QActionGroup
+else:
+    QActionGroup = QtWidgets.QActionGroup
+
 import matplotlib.transforms as transforms
 from matplotlib.figure import Figure
 try:  # for matplotlib > 3.0
@@ -470,7 +476,7 @@ class ToolBar(QtWidgets.QToolBar):
 
         # the action group makes the actions exclusive, you
         # can't use 2 at the same time
-        action_group = QtWidgets.QActionGroup(self)
+        action_group = QActionGroup(self)
 
         self._actions["drag"] = self.addAction(self.icon("arrow.png"), "", self.setSelect)
         self._actions["drag"].setCheckable(True)
