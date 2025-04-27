@@ -120,6 +120,9 @@ def init_figure(fig):
             add_text_default(text)
     for text in fig.texts:
         add_text_default(text)
+    for subfig in fig.subfigs:
+        for text in subfig.texts:
+            add_text_default(text)
 
 def add_text_default(element):
     # properties to store
@@ -421,8 +424,8 @@ class ChangeTracker:
                     continue
                 if value != default or not exclude_default:
                     kwargs[prop] = value
-
-            return element.axes, f".legend({kwargs_to_string(kwargs)})"
+            parent = element.figure if element.axes is None else element.axes
+            return parent, f".legend({kwargs_to_string(kwargs)})"
         elif isinstance(element, Axes):
             properties = ["position",
                           "xscale", "xlabel", "xticks", "xticklabels", "xlim",

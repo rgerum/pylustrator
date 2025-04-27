@@ -22,7 +22,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.artist import Artist
-from matplotlib.figure import Figure
+from matplotlib.figure import Figure, SubFigure
 from matplotlib.axes import Axes
 from matplotlib.text import Text
 from matplotlib.patches import Rectangle, Ellipse
@@ -631,12 +631,19 @@ class DragManager:
                 self.make_dragable(patch)
             self.make_dragable(axes.xaxis.get_label())
             self.make_dragable(axes.yaxis.get_label())
-
             self.make_dragable(axes)
-        for text in self.figure.texts:
-            self.make_dragable(text)
-        for patch in self.figure.patches:
-            self.make_dragable(patch)
+
+        def make_figure_dragable(fig: Figure | SubFigure) -> None:
+            for text in fig.texts:
+                self.make_dragable(text)
+            for patch in fig.patches:
+                self.make_dragable(patch)
+            for leg in fig.legends:
+                self.make_dragable(leg)
+
+        make_figure_dragable(self.figure)
+        for subfig in self.figure.subfigs:
+            make_figure_dragable(subfig)
 
         self.selection = GrabbableRectangleSelection(figure, figure._pyl_scene)
         self.figure.selection = self.selection
