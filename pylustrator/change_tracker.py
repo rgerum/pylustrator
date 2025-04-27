@@ -116,6 +116,9 @@ class UndoRedo:
 def init_figure(fig):
     for axes in fig.axes:
         add_axes_default(axes)
+        add_text_default(axes.title)
+        add_text_default(axes._left_title)
+        add_text_default(axes._right_title)
         for text in axes.texts:
             add_text_default(text)
     for text in fig.texts:
