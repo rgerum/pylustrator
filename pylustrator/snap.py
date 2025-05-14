@@ -35,6 +35,7 @@ from matplotlib.legend import Legend
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle, Ellipse, FancyArrowPatch
 from matplotlib.text import Text
+from matplotlib.figure import Figure
 try:
     from matplotlib.figure import SubFigure  # since matplotlib 3.4.0
 except ImportError:
@@ -178,10 +179,16 @@ class TargetWrapper(object):
             points.append(p2)
         elif isinstance(self.target, Legend):
             bbox = self.target.get_frame().get_bbox()
+            if isinstance(self.target.axes, Axes):
+                transform = self.target.axes.transAxes
+            elif isinstance(self.target.figure, Figure):
+                transform = self.target.figure.transFigure
+            else:
+                transform = self.target.figure.transSubfigure
             if isinstance(self.target._get_loc(), int):
                 # if the legend doesn't have a location yet, use the left bottom corner of the bounding box
-                self.target._set_loc(tuple(self.target.axes.transAxes.inverted().transform(tuple([bbox.x0, bbox.y0]))))
-            points.append(self.target.axes.transAxes.transform(self.target._get_loc()))
+                self.target._set_loc(tuple(transform.inverted().transform(tuple([bbox.x0, bbox.y0]))))
+            points.append(transform.transform(self.target._get_loc()))
             # add points to span bounding box around the frame
             points.append([bbox.x0, bbox.y0])
             points.append([bbox.x1, bbox.y1])
@@ -249,7 +256,13 @@ class TargetWrapper(object):
                     self.target.xy = points[1]
                     change_tracker.addChange(self.target, ".xy = (%f, %f)" % tuple(self.target.xy))
         elif isinstance(self.target, Legend):
-            point = self.target.axes.transAxes.inverted().transform(self.transform_inverted_points(points)[0])
+            if isinstance(self.target.axes, Axes):
+                transform = self.target.axes.transAxes
+            elif isinstance(self.target.figure, Figure):
+                transform = self.target.figure.transFigure
+            else:
+                transform = self.target.figure.transSubfigure
+            point = transform.inverted().transform(self.transform_inverted_points(points)[0])
             self.target._loc = tuple(point)
             change_tracker.addNewLegendChange(self.target)
             #change_tracker.addChange(self.target, "._set_loc((%f, %f))" % tuple(point))
