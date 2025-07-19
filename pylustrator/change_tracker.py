@@ -628,6 +628,7 @@ class ChangeTracker:
         self.last_edit = len(self.edits) - 1
         self.last_edit = len(self.edits) - 1
         #print("addEdit", len(self.edits), self.last_edit)
+        self.saved = False
         self.changeCountChanged()
 
     def backEdit(self):

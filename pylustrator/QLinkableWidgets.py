@@ -186,6 +186,7 @@ class Linkable:
         else:
             fig = main_figure(element)
 
+        save_change(element)
         fig.change_tracker.addEdit([undo, redo, "Change property"])
         fig.canvas.draw()
         main_figure(self.element).signals.figure_selection_property_changed.emit()
