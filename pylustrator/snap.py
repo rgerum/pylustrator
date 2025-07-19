@@ -167,7 +167,7 @@ class TargetWrapper(object):
                 points[1] = points[0] + self.target._pylustrator_offset
             else:
                 if getattr(self.target, "_pylustrator_offset", None) is None or update_offset:
-                    self.target._pylustrator_offset = points[1] - points[0]
+                    self.target._pylustrator_offset = np.array(points[1]) - np.array(points[0])
         elif isinstance(self.target, Axes):
             p1, p2 = np.array(self.target.get_position())
             points.append(p1)
