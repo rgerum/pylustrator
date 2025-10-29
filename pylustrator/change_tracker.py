@@ -253,7 +253,13 @@ def getReference(element: Artist, allow_using_variable_names=True):
 
     if isinstance(element, matplotlib.axes._axes.Axes):
         if element.get_label():
-            return getReference(element.figure) + ".ax_dict[\"%s\"]" % escape_string(element.get_label())
+            def check_fig_has_label(fig):
+                for ax in element.figure.axes:
+                    if ax != element and ax.get_label() == element.get_label():
+                        return True
+                return False
+            if not check_fig_has_label(element.figure):
+                return getReference(element.figure) + ".ax_dict[\"%s\"]" % escape_string(element.get_label())
         index = element.figure.axes.index(element)
         return getReference(element.figure) + ".axes[%d]" % index
 
