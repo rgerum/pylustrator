@@ -435,7 +435,7 @@ class TextWidget(QtWidgets.QWidget, Linkable):
         if self.allow_literal_decoding:
             try:
                 return ast.literal_eval(self.text())
-            except ValueError:
+            except (ValueError, SyntaxError):
                 return self.text()
         return self.text()
 
