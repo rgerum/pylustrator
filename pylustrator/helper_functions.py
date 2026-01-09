@@ -21,13 +21,11 @@
 
 from __future__ import division
 import matplotlib.pyplot as plt
-from matplotlib.text import Text
 import numpy as np
-import traceback
 from .parse_svg import svgread
 try:  # starting from mpl version 3.6.0
     from matplotlib.axes import Axes
-except:
+except ImportError:
     from matplotlib.axes._subplots import Axes
 from matplotlib.figure import Figure
 from .pyjack import replace_all_refs
@@ -261,8 +259,6 @@ def loadFigureFromFile(filename: str, figure: Figure = None, offset: list = None
                 plt.figure = figure
 
             def __exit__(self, type, value, traceback):
-                from matplotlib.figure import Figure
-                from matplotlib.transforms import TransformedBbox, Affine2D
                 plt.figure = self.fig
 
         # get the size of the old figure
@@ -377,12 +373,12 @@ def mark_inset(parent_axes: Axes, inset_axes: Axes, loc1: Union[int, Sequence[in
     from mpl_toolkits.axes_grid1.inset_locator import TransformedBbox, BboxPatch, BboxConnector
     try:
         loc1a, loc1b = loc1
-    except:
+    except TypeError:
         loc1a = loc1
         loc1b = loc1
     try:
         loc2a, loc2b = loc2
-    except:
+    except TypeError:
         loc2a = loc2
         loc2b = loc2
     rect = TransformedBbox(inset_axes.viewLim, parent_axes.transData)
@@ -441,7 +437,7 @@ def VoronoiPlot(points: Sequence, values: Sequence, vmin: float = None, vmax:flo
     """ plot the voronoi regions of the poins with the given colormap """
     from matplotlib.patches import Polygon
     from matplotlib.collections import PatchCollection
-    from scipy.spatial import Voronoi, voronoi_plot_2d
+    from scipy.spatial import Voronoi
     from matplotlib import cm
 
     if cmap is None:

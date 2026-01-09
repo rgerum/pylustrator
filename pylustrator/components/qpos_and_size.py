@@ -1,5 +1,5 @@
 from typing import Optional
-from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
+from matplotlib.backends.qt_compat import QtWidgets
 
 import matplotlib as mpl
 import matplotlib.transforms as transforms
@@ -7,10 +7,9 @@ from matplotlib.figure import Figure
 from matplotlib.artist import Artist
 try:  # starting from mpl version 3.6.0
     from matplotlib.axes import Axes
-except:
+except ImportError:
     from matplotlib.axes._subplots import Axes
 from matplotlib.text import Text
-import matplotlib.transforms as transforms
 
 from pylustrator.helper_functions import changeFigureSize, main_figure
 from pylustrator.QLinkableWidgets import DimensionsWidget, ComboWidget
@@ -261,7 +260,7 @@ class QPosAndSize(QtWidgets.QWidget):
             self.input_position.setTransform(self.getTransform(element))
             try:
                 self.input_position.setValue(pos)
-            except Exception as err:
+            except Exception:
                 self.input_position.setValue((pos.x0, pos.y0))
             self.input_transform.setEnabled(True)
             self.input_position.setEnabled(True)

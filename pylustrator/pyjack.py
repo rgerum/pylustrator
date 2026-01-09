@@ -234,7 +234,6 @@ def replace_all_refs(org_obj, new_obj):
         # OTHER (IN DEBUG, SEE WHAT IS NOT SUPPORTED).
         else:
             # debug:
-            import sys
             # print(type(referrer), file=sys.stderr)
             pass
 

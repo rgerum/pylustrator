@@ -20,12 +20,11 @@
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
 import numpy as np
-import matplotlib.pyplot as plt
 from matplotlib.artist import Artist
 from matplotlib.figure import Figure, SubFigure
 from matplotlib.axes import Axes
 from matplotlib.text import Text
-from matplotlib.patches import Rectangle, Ellipse
+from matplotlib.patches import Rectangle
 from matplotlib.backend_bases import MouseEvent, KeyEvent
 from typing import Sequence
 from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets

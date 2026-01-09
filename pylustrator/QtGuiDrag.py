@@ -28,7 +28,6 @@ import qtawesome as qta
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.axes._axes import Axes
-from matplotlib.text import Text
 from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets, _version_info
 
 if _version_info[0] == 6:
@@ -439,16 +438,16 @@ class PlotWindow(QtWidgets.QWidget):
                 self.undo_act.setText(f"Undo: {undo_text}")
                 button_undo.setToolTip(f"Undo: {undo_text}")
             else:
-                self.undo_act.setText(f"Undo")
-                button_undo.setToolTip(f"Undo")
+                self.undo_act.setText("Undo")
+                button_undo.setToolTip("Undo")
             button_redo.setDisabled(redo)
             self.redo_act.setDisabled(redo)
             if redo_text != "":
                 self.redo_act.setText(f"Redo: {redo_text}")
                 button_redo.setToolTip(f"Redo: {redo_text}")
             else:
-                self.redo_act.setText(f"Redo")
-                button_redo.setToolTip(f"Redo")
+                self.redo_act.setText("Redo")
+                button_redo.setToolTip("Redo")
 
         self.update_changes_signal.connect(updateChangesSignal)
 
