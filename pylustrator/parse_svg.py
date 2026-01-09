@@ -35,13 +35,15 @@ import base64
 from .arc2bez import arcToBezier
 
 
-def deform(base_trans: mtransforms.Transform, x: float, y: float, sx: float = 0, sy: float = 0):
-    """ apply an affine transformation to the given transformation """
+def deform(
+    base_trans: mtransforms.Transform, x: float, y: float, sx: float = 0, sy: float = 0
+):
+    """apply an affine transformation to the given transformation"""
     return mtransforms.Affine2D([[x, sx, 0], [sy, y, 0], [0, 0, 1]]) + base_trans
 
 
 def parseTransformation(transform_text: str) -> mtransforms.Transform:
-    """ convert a transform string in the svg file to a matplotlib transformation """
+    """convert a transform string in the svg file to a matplotlib transformation"""
     base_trans = mtransforms.IdentityTransform()
     if transform_text is None or transform_text == "":
         return base_trans
@@ -54,39 +56,112 @@ def parseTransformation(transform_text: str) -> mtransforms.Transform:
                 ox, oy = data
             except ValueError:
                 ox, oy = data[0], data[0]
-            base_trans = mtransforms.Affine2D([[1, 0, ox], [0, 1, oy], [0, 0, 1]]) + base_trans
+            base_trans = (
+                mtransforms.Affine2D([[1, 0, ox], [0, 1, oy], [0, 0, 1]]) + base_trans
+            )
         elif command == "rotate":
             a = np.deg2rad(data[0])
             ca, sa = np.cos(a), np.sin(a)
-            base_trans = mtransforms.Affine2D([[ca, -sa, 0], [sa, ca, 0], [0, 0, 1]]) + base_trans
+            base_trans = (
+                mtransforms.Affine2D([[ca, -sa, 0], [sa, ca, 0], [0, 0, 1]])
+                + base_trans
+            )
         elif command == "scale":
             if len(data) >= 2:
                 x, y = data
             else:
                 x, y = data[0], data[0]
-            base_trans = mtransforms.Affine2D([[x, 0, 0], [0, y, 0], [0, 0, 1]]) + base_trans
+            base_trans = (
+                mtransforms.Affine2D([[x, 0, 0], [0, y, 0], [0, 0, 1]]) + base_trans
+            )
         elif command == "skewX":
-            x, = data
-            x = np.tan(x*np.pi/180)
-            base_trans = mtransforms.Affine2D([[1, x, 0], [0, 1, 0], [0, 0, 1]]) + base_trans
+            (x,) = data
+            x = np.tan(x * np.pi / 180)
+            base_trans = (
+                mtransforms.Affine2D([[1, x, 0], [0, 1, 0], [0, 0, 1]]) + base_trans
+            )
         elif command == "skewY":
-            y, = data
-            y = np.tan(y*np.pi/180)
-            base_trans = mtransforms.Affine2D([[1, 0, 0], [y, 1, 0], [0, 0, 1]]) + base_trans
+            (y,) = data
+            y = np.tan(y * np.pi / 180)
+            base_trans = (
+                mtransforms.Affine2D([[1, 0, 0], [y, 1, 0], [0, 0, 1]]) + base_trans
+            )
         elif command == "matrix":
             x, sy, sx, y, ox, oy = data
-            base_trans = mtransforms.Affine2D([[x, sx, ox], [sy, y, oy], [0, 0, 1]]) + base_trans
+            base_trans = (
+                mtransforms.Affine2D([[x, sx, ox], [sy, y, oy], [0, 0, 1]]) + base_trans
+            )
         else:
             print("ERROR: unknown transformation", transform_text)
     return base_trans
 
 
 def get_inline_style(node: minidom.Element, base_style: dict = None) -> dict:
-    """ update the basestyle with the style defined by the style property of the node """
+    """update the basestyle with the style defined by the style property of the node"""
     style = {}
     if base_style is not None:
         style.update(base_style)
-    attribute_names = ["alignment-baseline", "baseline-shift", "clip-path", "clip-rule", "color", "color-interpolation", "color-interpolation-filters", "color-rendering", "cursor", "direction", "display", "dominant-baseline", "fill", "fill-opacity", "fill-rule", "filter", "flood-color", "flood-opacity", "font-family", "font-size", "font-size-adjust", "font-stretch", "font-style", "font-variant", "font-weight", "glyph-orientation-horizontal", "glyph-orientation-vertical", "image-rendering", "letter-spacing", "lighting-color", "marker-end", "marker-mid", "marker-start", "mask", "opacity", "overflow", "paint-order", "pointer-events", "shape-rendering", "stop-color", "stop-opacity", "stroke", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke-width", "text-anchor", "text-decoration", "text-overflow", "text-rendering", "unicode-bidi", "vector-effect", "visibility", "white-space", "word-spacing", "writing-mode"]
+    attribute_names = [
+        "alignment-baseline",
+        "baseline-shift",
+        "clip-path",
+        "clip-rule",
+        "color",
+        "color-interpolation",
+        "color-interpolation-filters",
+        "color-rendering",
+        "cursor",
+        "direction",
+        "display",
+        "dominant-baseline",
+        "fill",
+        "fill-opacity",
+        "fill-rule",
+        "filter",
+        "flood-color",
+        "flood-opacity",
+        "font-family",
+        "font-size",
+        "font-size-adjust",
+        "font-stretch",
+        "font-style",
+        "font-variant",
+        "font-weight",
+        "glyph-orientation-horizontal",
+        "glyph-orientation-vertical",
+        "image-rendering",
+        "letter-spacing",
+        "lighting-color",
+        "marker-end",
+        "marker-mid",
+        "marker-start",
+        "mask",
+        "opacity",
+        "overflow",
+        "paint-order",
+        "pointer-events",
+        "shape-rendering",
+        "stop-color",
+        "stop-opacity",
+        "stroke",
+        "stroke-dasharray",
+        "stroke-dashoffset",
+        "stroke-linecap",
+        "stroke-linejoin",
+        "stroke-miterlimit",
+        "stroke-opacity",
+        "stroke-width",
+        "text-anchor",
+        "text-decoration",
+        "text-overflow",
+        "text-rendering",
+        "unicode-bidi",
+        "vector-effect",
+        "visibility",
+        "white-space",
+        "word-spacing",
+        "writing-mode",
+    ]
     for name in attribute_names:
         value = node.getAttribute(name)
         if value != "":
@@ -101,8 +176,8 @@ def get_inline_style(node: minidom.Element, base_style: dict = None) -> dict:
 
 
 def get_css_style(node: minidom.Element, css_list: list, base_style: dict) -> dict:
-    """ update the base_style with the style definitions from the stylesheet that are applicable to the node
-        defined by the classes or id of the node
+    """update the base_style with the style definitions from the stylesheet that are applicable to the node
+    defined by the classes or id of the node
     """
     style = {}
     if base_style is not None:
@@ -120,9 +195,11 @@ def get_css_style(node: minidom.Element, css_list: list, base_style: dict) -> di
 
 
 def apply_style(style: dict, patch: mpatches.Patch) -> dict:
-    """ apply the properties defined in style to the given patch """
+    """apply the properties defined in style to the given patch"""
     fill_opacity = float(style.get("opacity", 1)) * float(style.get("fill-opacity", 1))
-    stroke_opacity = float(style.get("opacity", 1)) * float(style.get("stroke-opacity", 1))
+    stroke_opacity = float(style.get("opacity", 1)) * float(
+        style.get("stroke-opacity", 1)
+    )
 
     def readColor(value):
         try:
@@ -130,7 +207,7 @@ def apply_style(style: dict, patch: mpatches.Patch) -> dict:
         except:
             # matplotlib cannot handle html colors in the form #000
             if len(value) == 4 and value[0] == "#":
-                return readColor("#"+value[1]*2+value[2]*2+value[3]*2)
+                return readColor("#" + value[1] * 2 + value[2] * 2 + value[3] * 2)
             raise
 
     # matplotlib defaults differ
@@ -143,7 +220,7 @@ def apply_style(style: dict, patch: mpatches.Patch) -> dict:
         try:
             if key == "opacity":
                 pass
-                #patch.set_alpha(float(value))
+                # patch.set_alpha(float(value))
             elif key == "fill":
                 if value == "none" or value == "transparent":
                     patch.set_facecolor("none")
@@ -173,12 +250,14 @@ def apply_style(style: dict, patch: mpatches.Patch) -> dict:
                     offset = 0
                     if isinstance(patch.get_linestyle(), tuple):
                         offset, dashes = patch.get_linestyle()
-                    patch.set_linestyle((offset, [float(s)*4 for s in value.split(",")]))
+                    patch.set_linestyle(
+                        (offset, [float(s) * 4 for s in value.split(",")])
+                    )
             elif key == "stroke-dashoffset":
                 dashes = [1, 0]
                 if isinstance(patch.get_linestyle(), tuple):
                     offset, dashes = patch.get_linestyle()
-                patch.set_linestyle((float(value)*4, dashes))
+                patch.set_linestyle((float(value) * 4, dashes))
             elif key == "stroke-linecap":
                 if value == "square":
                     value = "projecting"
@@ -222,7 +301,7 @@ def apply_style(style: dict, patch: mpatches.Patch) -> dict:
 
 
 def font_properties_from_style(style: dict) -> FontProperties:
-    """ convert a style to a FontProperties object """
+    """convert a style to a FontProperties object"""
     fp = FontProperties()
     for key, value in style.items():
         if key == "font-family":
@@ -241,18 +320,29 @@ def font_properties_from_style(style: dict) -> FontProperties:
 
 
 def styleNoDisplay(style: dict) -> bool:
-    """ check whether the style defines not to display the element """
-    return style.get("display", "inline") == "none" or \
-            style.get("visibility", "visible") == "hidden" or \
-            style.get("visibility", "visible") == "collapse"
+    """check whether the style defines not to display the element"""
+    return (
+        style.get("display", "inline") == "none"
+        or style.get("visibility", "visible") == "hidden"
+        or style.get("visibility", "visible") == "collapse"
+    )
 
 
-def plt_patch(node: minidom.Element, trans_parent_trans: mtransforms.Transform, style: dict, constructor: callable, ids: dict, no_draw: bool = False) -> mpatches.Patch:
-    """ add a node to the figure by calling the provided constructor """
+def plt_patch(
+    node: minidom.Element,
+    trans_parent_trans: mtransforms.Transform,
+    style: dict,
+    constructor: callable,
+    ids: dict,
+    no_draw: bool = False,
+) -> mpatches.Patch:
+    """add a node to the figure by calling the provided constructor"""
     trans_node = parseTransformation(node.getAttribute("transform"))
     style = get_inline_style(node, get_css_style(node, ids["css"], style))
 
-    patch = constructor(node, trans_node + trans_parent_trans + plt.gca().transData, style, ids)
+    patch = constructor(
+        node, trans_node + trans_parent_trans + plt.gca().transData, style, ids
+    )
     if not isinstance(patch, list):
         patch = [patch]
 
@@ -260,75 +350,103 @@ def plt_patch(node: minidom.Element, trans_parent_trans: mtransforms.Transform, 
         if not getattr(p, "is_marker", False):
             style = apply_style(style, p)
             p.style = style
-            #p.set_transform(p.get_transform() + plt.gca().transData)
+            # p.set_transform(p.get_transform() + plt.gca().transData)
         p.trans_parent = trans_parent_trans
         p.trans_node = parseTransformation(node.getAttribute("transform"))
 
         if not no_draw and not styleNoDisplay(style):
-                plt.gca().add_patch(p)
+            plt.gca().add_patch(p)
     if node.getAttribute("id") != "":
         ids[node.getAttribute("id")] = patch
     return patch
 
 
 def clone_patch(patch: mpatches.Patch) -> mpatches.Patch:
-    """ clone a patch element with the same properties as the given patch """
+    """clone a patch element with the same properties as the given patch"""
     if isinstance(patch, mpatches.Rectangle):
-        return mpatches.Rectangle(xy=patch.get_xy(),
-                                  width=patch.get_width(),
-                                  height=patch.get_height())
+        return mpatches.Rectangle(
+            xy=patch.get_xy(), width=patch.get_width(), height=patch.get_height()
+        )
     if isinstance(patch, mpatches.Circle):
-        return mpatches.Circle(xy=patch.get_xy(),
-                               radius=patch.get_radius())
+        return mpatches.Circle(xy=patch.get_xy(), radius=patch.get_radius())
     if isinstance(patch, mpatches.Ellipse):
-        return mpatches.Ellipse(xy=patch.get_xy(),
-                                width=patch.get_width(),
-                                height=patch.get_height())
+        return mpatches.Ellipse(
+            xy=patch.get_xy(), width=patch.get_width(), height=patch.get_height()
+        )
     if isinstance(patch, mpatches.PathPatch):
         return mpatches.PathPatch(patch.get_path())
 
 
-def patch_rect(node: minidom.Element, trans: mtransforms.Transform, style: dict, ids: dict) -> mpatches.Rectangle:
-    """ draw a svg rectangle node as a rectangle patch element into the figure (with the given transformation and style) """
+def patch_rect(
+    node: minidom.Element, trans: mtransforms.Transform, style: dict, ids: dict
+) -> mpatches.Rectangle:
+    """draw a svg rectangle node as a rectangle patch element into the figure (with the given transformation and style)"""
     if node.getAttribute("d") != "":
         return patch_path(node, trans, style, ids)
     if node.getAttribute("ry") != "" and node.getAttribute("ry") != 0:
-        return mpatches.FancyBboxPatch(xy=(float(node.getAttribute("x")), float(node.getAttribute("y"))),
-                                       width=float(node.getAttribute("width")),
-                                       height=float(node.getAttribute("height")),
-                                       boxstyle=mpatches.BoxStyle.Round(0, float(node.getAttribute("ry"))),
-                                       transform=trans)
-    return mpatches.Rectangle(xy=(float(node.getAttribute("x")), float(node.getAttribute("y"))),
-                              width=float(node.getAttribute("width")),
-                              height=float(node.getAttribute("height")),
-                              transform=trans)
+        return mpatches.FancyBboxPatch(
+            xy=(float(node.getAttribute("x")), float(node.getAttribute("y"))),
+            width=float(node.getAttribute("width")),
+            height=float(node.getAttribute("height")),
+            boxstyle=mpatches.BoxStyle.Round(0, float(node.getAttribute("ry"))),
+            transform=trans,
+        )
+    return mpatches.Rectangle(
+        xy=(float(node.getAttribute("x")), float(node.getAttribute("y"))),
+        width=float(node.getAttribute("width")),
+        height=float(node.getAttribute("height")),
+        transform=trans,
+    )
 
 
-def patch_ellipse(node: minidom.Element, trans: mtransforms.Transform, style: dict, ids: dict) -> mpatches.Ellipse:
-    """ draw a svg ellipse node as a ellipse patch element into the figure (with the given transformation and style) """
+def patch_ellipse(
+    node: minidom.Element, trans: mtransforms.Transform, style: dict, ids: dict
+) -> mpatches.Ellipse:
+    """draw a svg ellipse node as a ellipse patch element into the figure (with the given transformation and style)"""
     if node.getAttribute("d") != "":
         return patch_path(node, trans, style, ids)
-    return mpatches.Ellipse(xy=(float(node.getAttribute("cx")), float(node.getAttribute("cy"))),
-                            width=float(node.getAttribute("rx"))*2,
-                            height=float(node.getAttribute("ry"))*2,
-                            transform=trans)
+    return mpatches.Ellipse(
+        xy=(float(node.getAttribute("cx")), float(node.getAttribute("cy"))),
+        width=float(node.getAttribute("rx")) * 2,
+        height=float(node.getAttribute("ry")) * 2,
+        transform=trans,
+    )
 
 
-def patch_circle(node: minidom.Element, trans: mtransforms.Transform, style: dict, ids: dict) -> mpatches.Circle:
-    """ draw a svg circle node as a circle patch element into the figure (with the given transformation and style) """
+def patch_circle(
+    node: minidom.Element, trans: mtransforms.Transform, style: dict, ids: dict
+) -> mpatches.Circle:
+    """draw a svg circle node as a circle patch element into the figure (with the given transformation and style)"""
     if node.getAttribute("d") != "":
         return patch_path(node, trans, style, ids)
-    return mpatches.Circle(xy=(float(node.getAttribute("cx")), float(node.getAttribute("cy"))),
-                           radius=float(node.getAttribute("r")),
-                           transform=trans)
+    return mpatches.Circle(
+        xy=(float(node.getAttribute("cx")), float(node.getAttribute("cy"))),
+        radius=float(node.getAttribute("r")),
+        transform=trans,
+    )
 
 
-def plt_draw_text(node: minidom.Element, trans: mtransforms.Transform, style: dict, ids: dict, no_draw: bool = False):
-    """ draw a svg text node as a text patch element into the figure (with the given transformation and style) """
-    trans = parseTransformation(node.getAttribute("transform")) + trans + plt.gca().transData
+def plt_draw_text(
+    node: minidom.Element,
+    trans: mtransforms.Transform,
+    style: dict,
+    ids: dict,
+    no_draw: bool = False,
+):
+    """draw a svg text node as a text patch element into the figure (with the given transformation and style)"""
+    trans = (
+        parseTransformation(node.getAttribute("transform"))
+        + trans
+        + plt.gca().transData
+    )
     trans = mtransforms.Affine2D([[1, 0, 0], [0, -1, 0], [0, 0, 1]]) + trans
     if node.getAttribute("x") != "":
-        pos = np.array([svgUnitToMpl(node.getAttribute("x")), -svgUnitToMpl(node.getAttribute("y"))])
+        pos = np.array(
+            [
+                svgUnitToMpl(node.getAttribute("x")),
+                -svgUnitToMpl(node.getAttribute("y")),
+            ]
+        )
     else:
         pos = np.array([0, 0])
 
@@ -353,19 +471,26 @@ def plt_draw_text(node: minidom.Element, trans: mtransforms.Transform, style: di
             if child.firstChild is None:
                 continue
             partial_content = child.firstChild.nodeValue
-            style_child = get_inline_style(child, get_css_style(child, ids["css"], style))
+            style_child = get_inline_style(
+                child, get_css_style(child, ids["css"], style)
+            )
             pos_child = pos.copy()
             if child.getAttribute("x") != "":
-                pos_child = np.array([svgUnitToMpl(child.getAttribute("x")), -svgUnitToMpl(child.getAttribute("y"))])
+                pos_child = np.array(
+                    [
+                        svgUnitToMpl(child.getAttribute("x")),
+                        -svgUnitToMpl(child.getAttribute("y")),
+                    ]
+                )
             if child.getAttribute("dx") != "":
                 pos_child[0] += svgUnitToMpl(child.getAttribute("dx"))
             if child.getAttribute("dy") != "":
                 pos_child[1] -= svgUnitToMpl(child.getAttribute("dy"))
 
             text_content += partial_content
-            path1 = TextPath(pos_child,
-                             partial_content,
-                             prop=font_properties_from_style(style_child))
+            path1 = TextPath(
+                pos_child, partial_content, prop=font_properties_from_style(style_child)
+            )
             patch = mpatches.PathPatch(path1, transform=trans)
 
             apply_style(style_child, patch)
@@ -379,9 +504,10 @@ def plt_draw_text(node: minidom.Element, trans: mtransforms.Transform, style: di
         ids[node.getAttribute("id")] = patch_list
 
 
-def patch_path(node: minidom.Element, trans: mtransforms.Transform, style: dict, ids: dict) -> list:
-    """ draw a path svg node by using a matplotlib path patch (with the given transform and style) """
-
+def patch_path(
+    node: minidom.Element, trans: mtransforms.Transform, style: dict, ids: dict
+) -> list:
+    """draw a path svg node by using a matplotlib path patch (with the given transform and style)"""
 
     start_pos = None
     command = None
@@ -391,7 +517,12 @@ def patch_path(node: minidom.Element, trans: mtransforms.Transform, style: dict,
 
     current_pos = np.array([0, 0])
 
-    elements = [a[0] for a in re.findall(r'(([-+]?\d*\.?\d+(?:e[-+]?\d*\.?\d+)?)|\w)', node.getAttribute("d"))]
+    elements = [
+        a[0]
+        for a in re.findall(
+            r"(([-+]?\d*\.?\d+(?:e[-+]?\d*\.?\d+)?)|\w)", node.getAttribute("d")
+        )
+    ]
     elements.reverse()
 
     def popPos():
@@ -416,8 +547,8 @@ def patch_path(node: minidom.Element, trans: mtransforms.Transform, style: dict,
 
         if not no_angle:
             n = len(positions)
-            angles[-1].append(vec2angle(verts[-n] - verts[-n-1]))
-            for i in range(n-1):
+            angles[-1].append(vec2angle(verts[-n] - verts[-n - 1]))
+            for i in range(n - 1):
                 angles.append([])
             angles.append([vec2angle(verts[-1] - verts[-2])])
         else:
@@ -430,7 +561,7 @@ def patch_path(node: minidom.Element, trans: mtransforms.Transform, style: dict,
         i -= 1
         if i <= 0:
             break
-        if 'A' <= elements[-1] <= 'z':
+        if "A" <= elements[-1] <= "z":
             last_command = command
             command = elements.pop()
             absolute = command.isupper()
@@ -450,27 +581,37 @@ def patch_path(node: minidom.Element, trans: mtransforms.Transform, style: dict,
             start_pos = None
             command = None  # You can't have implicit commands after closing.
         # lineto
-        elif command == 'l':
+        elif command == "l":
             current_pos = addPathElement(mpath.Path.LINETO, popPos())
 
         # horizontal lineto
-        elif command == 'h':
-            current_pos = addPathElement(mpath.Path.LINETO,
-                                         np.array([popValue()+current_pos[0]*(1-absolute), current_pos[1]]))
+        elif command == "h":
+            current_pos = addPathElement(
+                mpath.Path.LINETO,
+                np.array(
+                    [popValue() + current_pos[0] * (1 - absolute), current_pos[1]]
+                ),
+            )
         # vertical lineto
-        elif command == 'v':
-            current_pos = addPathElement(mpath.Path.LINETO,
-                                         np.array([current_pos[0], popValue() + current_pos[1] * (1 - absolute)]))
+        elif command == "v":
+            current_pos = addPathElement(
+                mpath.Path.LINETO,
+                np.array(
+                    [current_pos[0], popValue() + current_pos[1] * (1 - absolute)]
+                ),
+            )
         # cubic bezier curveto
-        elif command == 'c':
-            current_pos = addPathElement(mpath.Path.CURVE4, popPos(), popPos(), popPos())
+        elif command == "c":
+            current_pos = addPathElement(
+                mpath.Path.CURVE4, popPos(), popPos(), popPos()
+            )
 
         # smooth cubic bezier curveto
-        elif command == 's':
+        elif command == "s":
             # Smooth curve. First control point is the "reflection" of
             # the second control point in the previous path.
 
-            if last_command not in 'cs':
+            if last_command not in "cs":
                 # If there is no previous command or if the previous command
                 # was not an C, c, S or s, assume the first control point is
                 # coincident with the current point.
@@ -481,18 +622,20 @@ def patch_path(node: minidom.Element, trans: mtransforms.Transform, style: dict,
                 # to the current point.
                 control1 = current_pos + (current_pos - verts[-2])
 
-            current_pos = addPathElement(mpath.Path.CURVE4, control1, popPos(), popPos())
+            current_pos = addPathElement(
+                mpath.Path.CURVE4, control1, popPos(), popPos()
+            )
 
         # quadratic bezier curveto
-        elif command == 'q':
+        elif command == "q":
             current_pos = addPathElement(mpath.Path.CURVE3, popPos(), popPos())
 
         # smooth quadratic bezier curveto
-        elif command == 't':
+        elif command == "t":
             # Smooth curve. Control point is the "reflection" of
             # the second control point in the previous path.
 
-            if last_command not in 'qt':
+            if last_command not in "qt":
                 # If there is no previous command or if the previous command
                 # was not an Q, q, T or t, assume the first control point is
                 # coincident with the current point.
@@ -505,21 +648,27 @@ def patch_path(node: minidom.Element, trans: mtransforms.Transform, style: dict,
             current_pos = addPathElement(mpath.Path.CURVE3, control1, popPos())
 
         # elliptical arc
-        elif command == 'a':
+        elif command == "a":
             radius1, radius2, rotation, arc, sweep = popValue(5)
             end = popPos()
 
-            current_pos = addPathElement(mpath.Path.CURVE4, *arcToBezier(current_pos, end, radius1, radius2, rotation, arc, sweep))
+            current_pos = addPathElement(
+                mpath.Path.CURVE4,
+                *arcToBezier(current_pos, end, radius1, radius2, rotation, arc, sweep),
+            )
 
     # average angles when a point has more than one line
     for i in range(len(angles)):
         if len(angles[i]) == 1:
             angles[i] = angles[i][0]
         else:
-            angles[i] = np.arctan2(np.mean(np.sin(angles[i])), np.mean(np.cos(angles[i])))
+            angles[i] = np.arctan2(
+                np.mean(np.sin(angles[i])), np.mean(np.cos(angles[i]))
+            )
 
     def addMarker(i, name):
         marker_style, patches = ids[name]
+
         def add_list_elements(element):
             if isinstance(element, list):
                 for e in element:
@@ -532,13 +681,21 @@ def patch_path(node: minidom.Element, trans: mtransforms.Transform, style: dict,
                 a = angles[i]
                 ca, sa = np.cos(a), np.sin(a)
                 ox, oy = verts[i]
-                trans2 = parent_patch.trans_node + mtransforms.Affine2D([[ca, -sa, ox], [sa, ca, oy], [0, 0, 1]]) + parent_patch.trans_parent + trans#+ plt.gca().transAxes
+                trans2 = (
+                    parent_patch.trans_node
+                    + mtransforms.Affine2D([[ca, -sa, ox], [sa, ca, oy], [0, 0, 1]])
+                    + parent_patch.trans_parent
+                    + trans
+                )  # + plt.gca().transAxes
                 if marker_style.get("markerUnits", "strokeWidth") == "strokeWidth":
                     s = svgUnitToMpl(style["stroke-width"])
-                    trans2 = mtransforms.Affine2D([[s, 0, 0], [0, s, 0], [0, 0, 1]]) + trans2
+                    trans2 = (
+                        mtransforms.Affine2D([[s, 0, 0], [0, s, 0], [0, 0, 1]]) + trans2
+                    )
                 patch.set_transform(trans2)
                 patch.is_marker = True
                 patch_list.append(patch)
+
         add_list_elements(patches)
 
     patch_list = []
@@ -550,27 +707,28 @@ def patch_path(node: minidom.Element, trans: mtransforms.Transform, style: dict,
 
     if style.get("marker-start"):
         if style.get("marker-start").startswith("url(#"):
-            name = style.get("marker-start")[len("url(#"):-1]
+            name = style.get("marker-start")[len("url(#") : -1]
             if name in ids:
                 addMarker(0, name)
     if style.get("marker-mid"):
         if style.get("marker-mid").startswith("url(#"):
-            name = style.get("marker-mid")[len("url(#"):-1]
+            name = style.get("marker-mid")[len("url(#") : -1]
             if name in ids:
-                for i in range(1, len(angles)-1):
+                for i in range(1, len(angles) - 1):
                     addMarker(i, name)
     if style.get("marker-end"):
         if style.get("marker-end").startswith("url(#"):
-            name = style.get("marker-end")[len("url(#"):-1]
+            name = style.get("marker-end")[len("url(#") : -1]
             if name in ids:
-                addMarker(len(angles)-1, name)
+                addMarker(len(angles) - 1, name)
 
     return patch_list
 
 
 def svgUnitToMpl(unit: str, default=None) -> float:
-    """ convert a unit text to svg pixels """
+    """convert a unit text to svg pixels"""
     import re
+
     if unit == "":
         return default
     match = re.match(r"^([-.\d]*)(\w*).*$", unit)
@@ -593,9 +751,9 @@ def svgUnitToMpl(unit: str, default=None) -> float:
 
 
 def openImageFromLink(link: str) -> np.ndarray:
-    """ load an embedded image file or an externally liked image file"""
+    """load an embedded image file or an externally liked image file"""
     if link.startswith("file:///"):
-        return plt.imread(link[len("file:///"):])
+        return plt.imread(link[len("file:///") :])
     else:
         type, data = re.match(r"data:image/(\w*);base64,(.*)", link).groups()
 
@@ -610,7 +768,7 @@ def openImageFromLink(link: str) -> np.ndarray:
 
 
 def parseStyleSheet(text: str) -> list:
-    """ parse a style sheet text """
+    """parse a style sheet text"""
     # remove line comments
     text = re.sub("//.*?\n", "", text)
     # remove multiline comments
@@ -622,15 +780,25 @@ def parseStyleSheet(text: str) -> list:
     styles = re.findall("[^}]*{[^}]*}", text)
     for style in styles:
         condition, main = style.split("{", 1)
-        parts = [part.strip().split(":", 1) for part in main[:-1].split(";") if part.strip() != ""]
+        parts = [
+            part.strip().split(":", 1)
+            for part in main[:-1].split(";")
+            if part.strip() != ""
+        ]
         style_dict = {k: v.strip() for k, v in parts}
         for cond in condition.split(","):
             style_definitions.append([cond.strip(), style_dict])
     return style_definitions
 
 
-def parseGroup(node: minidom.Element, trans: mtransforms.Transform, style: dict, ids: dict, no_draw: bool = False) -> list:
-    """ parse the children of a group node with the inherited transformation and style """
+def parseGroup(
+    node: minidom.Element,
+    trans: mtransforms.Transform,
+    style: dict,
+    ids: dict,
+    no_draw: bool = False,
+) -> list:
+    """parse the children of a group node with the inherited transformation and style"""
     trans = parseTransformation(node.getAttribute("transform")) + trans
     style = get_inline_style(node, style)
 
@@ -643,25 +811,53 @@ def parseGroup(node: minidom.Element, trans: mtransforms.Transform, style: dict,
                 if childchild.nodeType == childchild.CDATA_SECTION_NODE:
                     ids["css"].extend(parseStyleSheet(childchild.wholeText))
         elif child.tagName == "rect":
-            patch_list.append(plt_patch(child, trans, style, patch_rect, ids, no_draw=no_draw))
+            patch_list.append(
+                plt_patch(child, trans, style, patch_rect, ids, no_draw=no_draw)
+            )
         elif child.tagName == "ellipse":
-            patch_list.append(plt_patch(child, trans, style, patch_ellipse, ids, no_draw=no_draw))
+            patch_list.append(
+                plt_patch(child, trans, style, patch_ellipse, ids, no_draw=no_draw)
+            )
         elif child.tagName == "circle":
-            patch_list.append(plt_patch(child, trans, style, patch_circle, ids, no_draw=no_draw))
+            patch_list.append(
+                plt_patch(child, trans, style, patch_circle, ids, no_draw=no_draw)
+            )
         elif child.tagName == "path":
-            patch_list.append(plt_patch(child, trans, style, patch_path, ids, no_draw=no_draw))
+            patch_list.append(
+                plt_patch(child, trans, style, patch_path, ids, no_draw=no_draw)
+            )
         elif child.tagName == "polygon":
             # matplotlib has a designated polygon patch, but it is easier to just convert it to a path
             child.setAttribute("d", "M " + child.getAttribute("points") + " Z")
-            patch_list.append(plt_patch(child, trans, style, patch_path, ids, no_draw=no_draw))
+            patch_list.append(
+                plt_patch(child, trans, style, patch_path, ids, no_draw=no_draw)
+            )
         elif child.tagName == "polyline":
             child.setAttribute("d", "M " + child.getAttribute("points"))
-            patch_list.append(plt_patch(child, trans, style, patch_path, ids, no_draw=no_draw))
+            patch_list.append(
+                plt_patch(child, trans, style, patch_path, ids, no_draw=no_draw)
+            )
         elif child.tagName == "line":
-            child.setAttribute("d", "M " + child.getAttribute("x1") + "," + child.getAttribute("y1") + " " + child.getAttribute("x2") + "," + child.getAttribute("y2"))
-            patch_list.append(plt_patch(child, trans, style, patch_path, ids, no_draw=no_draw))
+            child.setAttribute(
+                "d",
+                "M "
+                + child.getAttribute("x1")
+                + ","
+                + child.getAttribute("y1")
+                + " "
+                + child.getAttribute("x2")
+                + ","
+                + child.getAttribute("y2"),
+            )
+            patch_list.append(
+                plt_patch(child, trans, style, patch_path, ids, no_draw=no_draw)
+            )
         elif child.tagName == "g":
-            patch_list.append(parseGroup(child, trans, style, ids, no_draw=(no_draw or styleNoDisplay(style))))
+            patch_list.append(
+                parseGroup(
+                    child, trans, style, ids, no_draw=(no_draw or styleNoDisplay(style))
+                )
+            )
         elif child.tagName == "text":
             patch_list.append(plt_draw_text(child, trans, style, ids, no_draw=no_draw))
         elif child.tagName == "defs":
@@ -679,12 +875,21 @@ def parseGroup(node: minidom.Element, trans: mtransforms.Transform, style: dict,
             im = openImageFromLink(link)
             if no_draw is False:
                 if child.getAttribute("x") != "":
-                    im_patch = plt.imshow(im[::-1], extent=[svgUnitToMpl(child.getAttribute("x")), svgUnitToMpl(child.getAttribute("x")) + svgUnitToMpl(child.getAttribute("width")),
-                                                            svgUnitToMpl(child.getAttribute("y")), svgUnitToMpl(child.getAttribute("y")) + svgUnitToMpl(child.getAttribute("height")),
-                                                            ], zorder=1)
+                    im_patch = plt.imshow(
+                        im[::-1],
+                        extent=[
+                            svgUnitToMpl(child.getAttribute("x")),
+                            svgUnitToMpl(child.getAttribute("x"))
+                            + svgUnitToMpl(child.getAttribute("width")),
+                            svgUnitToMpl(child.getAttribute("y")),
+                            svgUnitToMpl(child.getAttribute("y"))
+                            + svgUnitToMpl(child.getAttribute("height")),
+                        ],
+                        zorder=1,
+                    )
                 else:
-                    pass#im_patch = plt.imshow(im[::-1], zorder=1)
-                #patch_list.append(im_patch)
+                    pass  # im_patch = plt.imshow(im[::-1], zorder=1)
+                # patch_list.append(im_patch)
         elif child.tagName == "metadata":
             pass  # we do not have to draw metadata
         else:
@@ -697,16 +902,18 @@ def parseGroup(node: minidom.Element, trans: mtransforms.Transform, style: dict,
 
 
 def svgread(filename: str):
-    """ read an SVG file """
+    """read an SVG file"""
     doc = minidom.parse(filename)
 
     svg = doc.getElementsByTagName("svg")[0]
     try:
-        x1, y1, x2, y2 = [svgUnitToMpl(s.strip()) for s in svg.getAttribute("viewBox").split()]
-        width, height = (x2 - x1)/plt.gcf().dpi, (y2 - y1)/plt.gcf().dpi
+        x1, y1, x2, y2 = [
+            svgUnitToMpl(s.strip()) for s in svg.getAttribute("viewBox").split()
+        ]
+        width, height = (x2 - x1) / plt.gcf().dpi, (y2 - y1) / plt.gcf().dpi
         if max([width, height]) > 8:
-            f = 8/max([width, height])
-            plt.gcf().set_size_inches(width*f, height*f)
+            f = 8 / max([width, height])
+            plt.gcf().set_size_inches(width * f, height * f)
         else:
             plt.gcf().set_size_inches(width, height)
     except ValueError:
@@ -716,8 +923,8 @@ def svgread(filename: str):
         width /= plt.gcf().dpi
         height /= plt.gcf().dpi
         if max([width, height]) > 8:
-            f = 8/max([width, height])
-            plt.gcf().set_size_inches(width*f, height*f)
+            f = 8 / max([width, height])
+            plt.gcf().set_size_inches(width * f, height * f)
         else:
             plt.gcf().set_size_inches(width, height)
     ax = plt.axes([0, 0, 1, 1], label=filename, frameon=False)
@@ -728,4 +935,9 @@ def svgread(filename: str):
     plt.xlim(x1, x2)
     plt.ylim(y2, y1)
 
-    parseGroup(doc.getElementsByTagName("svg")[0], mtransforms.IdentityTransform(), {}, {"css": []})
+    parseGroup(
+        doc.getElementsByTagName("svg")[0],
+        mtransforms.IdentityTransform(),
+        {},
+        {"css": []},
+    )

@@ -25,7 +25,8 @@ from matplotlib.axis import Axis
 
 
 class Dummy:
-    """ a dummy object that provides dummy attributes, dummy items and dummy returns """
+    """a dummy object that provides dummy attributes, dummy items and dummy returns"""
+
     def __getattr__(self, item):
         return Dummy()
 
@@ -37,7 +38,8 @@ class Dummy:
 
 
 class SaveList(list):
-    """ a list that returns dummy objects when an invalid item is requested """
+    """a list that returns dummy objects when an invalid item is requested"""
+
     def __init__(self, target):
         list.__init__(self, target)
 
@@ -49,7 +51,8 @@ class SaveList(list):
 
 
 class SaveDict(dict):
-    """ a dictionary that returns dummy objects when an invalid item is requested """
+    """a dictionary that returns dummy objects when an invalid item is requested"""
+
     def __init__(self, target):
         dict.__init__(self, target)
 
@@ -61,7 +64,8 @@ class SaveDict(dict):
 
 
 class SaveTuple(tuple):
-    """ a tuple that returns dummy objects when an invalid item is requested """
+    """a tuple that returns dummy objects when an invalid item is requested"""
+
     def __init__(self, target):
         tuple.__init__(self, target)
 
@@ -73,7 +77,8 @@ class SaveTuple(tuple):
 
 
 class SaveListDescriptor:
-    """ a descriptor that wraps the target value with a SaveList, SaveDict or SaveTuple """
+    """a descriptor that wraps the target value with a SaveList, SaveDict or SaveTuple"""
+
     def __init__(self, variable_name):
         self.variable_name = variable_name
 
@@ -84,11 +89,11 @@ class SaveListDescriptor:
             value = SaveDict(value)
         if isinstance(value, tuple):
             value = SaveTuple(value)
-        setattr(instance, "_pylustrator_"+self.variable_name, value)
+        setattr(instance, "_pylustrator_" + self.variable_name, value)
 
     def __get__(self, instance, owner):
         try:
-            return getattr(instance, "_pylustrator_"+self.variable_name)
+            return getattr(instance, "_pylustrator_" + self.variable_name)
         except AttributeError:
             if self.variable_name in instance.__dict__:
                 return instance.__dict__[self.variable_name]
@@ -97,21 +102,23 @@ class SaveListDescriptor:
 
 
 def get_axes(self):
-    """ a function that returns the axes of a figure as a SaveList """
+    """a function that returns the axes of a figure as a SaveList"""
     return SaveList(self._axstack.as_list())
 
 
 def return_save_list(func):
-    """ a decorator to wrap the output of a function as a SaveList """
+    """a decorator to wrap the output of a function as a SaveList"""
+
     def wrap(*args, **kwargs):
         return SaveList(func(*args, **kwargs))
+
     return wrap
 
 
 def swallow_get_exceptions():
-    """ replace lists with lists that return dummy objects when items are not present.
-        this is to ensure that the pylustrator generated code does not fail, even if the user removes some elements
-        from the figure.
+    """replace lists with lists that return dummy objects when items are not present.
+    this is to ensure that the pylustrator generated code does not fail, even if the user removes some elements
+    from the figure.
     """
     Figure._get_axes = get_axes
     Figure.axes = property(fget=get_axes)
@@ -122,6 +129,7 @@ def swallow_get_exceptions():
     Axis.get_minor_ticks = return_save_list(Axis.get_minor_ticks)
     Axis.get_major_ticks = return_save_list(Axis.get_major_ticks)
     l = _AxesBase.get_legend
+
     def get_legend(*args, **kwargs):
         leg = l(*args, **kwargs)
         if leg is None:

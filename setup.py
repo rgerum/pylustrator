@@ -23,24 +23,20 @@ from setuptools import setup
 
 # read the contents of your README file
 from pathlib import Path
+
 this_directory = Path(__file__).parent
 long_description = (this_directory / "README.md").read_text()
 
-setup(name='pylustrator',
-      version="1.3.0",
-      description='Adds interactivity to arrange panels in matplotlib',
-      long_description=long_description,
-      url='https://github.com/rgerum/pylustrator',
-      license="GPLv3",
-      author='Richard Gerum',
-      author_email='richard.gerum@fau.de',
-      packages=['pylustrator', 'pylustrator.components'],
-      include_package_data=True,
-      install_requires=[
-          'natsort',
-          'numpy',
-          'matplotlib',
-          'qtawesome',
-          'scikit-image'
-      ],
-      )
+setup(
+    name="pylustrator",
+    version="1.3.0",
+    description="Adds interactivity to arrange panels in matplotlib",
+    long_description=long_description,
+    url="https://github.com/rgerum/pylustrator",
+    license="GPLv3",
+    author="Richard Gerum",
+    author_email="richard.gerum@fau.de",
+    packages=["pylustrator", "pylustrator.components"],
+    include_package_data=True,
+    install_requires=["natsort", "numpy", "matplotlib", "qtawesome", "scikit-image"],
+)

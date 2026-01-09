@@ -11,7 +11,8 @@ def ensure_list(obj, count=1):
     if isinstance(obj, list):
         return obj
     else:
-        return [obj]*count
+        return [obj] * count
+
 
 def select_elements(fig, get_obj_list):
     if not isinstance(get_obj_list, list):
@@ -26,14 +27,18 @@ def select_elements(fig, get_obj_list):
         if index == 0:
             fig.figure_dragger.select_element(get_obj)
         else:
-            fig.figure_dragger.select_element(get_obj, MouseEvent("select", fig.canvas, 0, 0, key="shift"))
+            fig.figure_dragger.select_element(
+                get_obj, MouseEvent("select", fig.canvas, 0, 0, key="shift")
+            )
 
 
 class Undefined:
     pass
 
+
 class NotInSave:
     pass
+
 
 class Value:
     def __init__(self, value, value_saved=Undefined):
@@ -92,7 +97,7 @@ plt.show(hide_window=True)
 
     def run_plot_script(self):
         text = self.get_script_text()
-        exec(compile(text, self.filename, 'exec'), globals())
+        exec(compile(text, self.filename, "exec"), globals())
         self.fig = plt.gcf()
         return plt.gcf(), text
 
@@ -114,9 +119,13 @@ plt.show(hide_window=True)
                         def grab_args(*args, **kwargs):
                             return args, kwargs
 
-                        arguments = re.match(re.escape(line_start)+r"(.*)\)", line).groups()[0]
+                        arguments = re.match(
+                            re.escape(line_start) + r"(.*)\)", line
+                        ).groups()[0]
                         return line, eval(f"grab_args({arguments})")
-                if line.startswith("#% start: automatic generated code from pylustrator"):
+                if line.startswith(
+                    "#% start: automatic generated code from pylustrator"
+                ):
                     in_block = True
                 if line.startswith("#% end: automatic generated code from pylustrator"):
                     in_block = False
@@ -138,7 +147,9 @@ plt.show(hide_window=True)
         elif isinstance(first, list) and isinstance(first[0], str):
             self.assertEqual(first, second)
         else:
-            np.testing.assert_allclose(np.asarray(second), np.asarray(first), rtol=1e-3, err_msg=msg)
+            np.testing.assert_allclose(
+                np.asarray(second), np.asarray(first), rtol=1e-3, err_msg=msg
+            )
 
     def check_saved_property(self, property_name, line_command, value2, test_run=""):
         # find the saved string and check the numbers
@@ -165,15 +176,36 @@ plt.show(hide_window=True)
             kwargs["grid"] = args[0]
         if property_name == "despine":
             kwargs["despine"] = args[0]
-        self.assertEqualStringOrArray(value2, kwargs.get(property_name),
-                                      f"Property '{property_name}' not saved correctly. [{test_run}]")
+        self.assertEqualStringOrArray(
+            value2,
+            kwargs.get(property_name),
+            f"Property '{property_name}' not saved correctly. [{test_run}]",
+        )
 
-    def change_property(self, property_name, value, call, get_obj, line_command, test_run, value2: Any = "undefined", get_function=None, test_saved_value=None):
+    def change_property(
+        self,
+        property_name,
+        value,
+        call,
+        get_obj,
+        line_command,
+        test_run,
+        value2: Any = "undefined",
+        get_function=None,
+        test_saved_value=None,
+    ):
         if value2 == "undefined":
             value2 = value
         if isinstance(get_obj, list):
-            return self.change_property2(property_name, value, call, get_obj, line_command, test_run,
-                                         value2_list=value2)
+            return self.change_property2(
+                property_name,
+                value,
+                call,
+                get_obj,
+                line_command,
+                test_run,
+                value2_list=value2,
+            )
 
         if get_function is None:
             get_function = lambda: getattr(get_obj(), f"get_{property_name}")()
@@ -196,24 +228,37 @@ plt.show(hide_window=True)
         fig.change_tracker.save()
 
         # test if the text has the right weight
-        self.assertEqualStringOrArray(value, get_function(),
-                                      f"Property '{property_name}' not set correctly. [{test_run}]")
+        self.assertEqualStringOrArray(
+            value,
+            get_function(),
+            f"Property '{property_name}' not set correctly. [{test_run}]",
+        )
 
         # test undo and redo
         fig.window.undo()
         print("current_value", current_value, get_function())
-        self.assertEqualStringOrArray(current_value, get_function(),
-                                      f"Property '{property_name}' undo failed. [{test_run}]")
+        self.assertEqualStringOrArray(
+            current_value,
+            get_function(),
+            f"Property '{property_name}' undo failed. [{test_run}]",
+        )
 
         # the output after undo should be the same as the beginning
         if self.no_undo_save_test is False:
             print("---- save after undo ----", end="")
             fig.change_tracker.save()
-            self.assertEqual(text0, self.get_script_text(), f"Saved differently after undo. Property '{property_name}'. [{test_run}]")
+            self.assertEqual(
+                text0,
+                self.get_script_text(),
+                f"Saved differently after undo. Property '{property_name}'. [{test_run}]",
+            )
 
         fig.window.redo()
-        self.assertEqualStringOrArray(value, get_function(),
-                                      f"Property '{property_name}' redo failed. [{test_run}]")
+        self.assertEqualStringOrArray(
+            value,
+            get_function(),
+            f"Property '{property_name}' redo failed. [{test_run}]",
+        )
 
         print("---- save after redo ----", end="")
         fig.change_tracker.save()
@@ -229,8 +274,11 @@ plt.show(hide_window=True)
 
         # test if the text has the right weight
         try:
-            self.assertEqualStringOrArray(value, get_function(),
-                                          f"Property '{property_name}' not restored correctly. [{test_run}]")
+            self.assertEqualStringOrArray(
+                value,
+                get_function(),
+                f"Property '{property_name}' not restored correctly. [{test_run}]",
+            )
             # when the task is to delete then finding it is an error
             if property_name == "visible" and line_command.endswith(".text("):
                 raise IndexError
@@ -247,19 +295,40 @@ plt.show(hide_window=True)
                 raise err
 
         # the output should still be the same
-        self.assertEqual(text, self.get_script_text(), f"Saved differently. Property '{property_name}'. [{test_run}]")
+        self.assertEqual(
+            text,
+            self.get_script_text(),
+            f"Saved differently. Property '{property_name}'. [{test_run}]",
+        )
 
     def check_property(self, get_obj_list, property_name_list, current_values, desc):
-        for get_obj, property_name, current_value in zip(get_obj_list, property_name_list, current_values):
-            self.assertEqualStringOrArray(current_value, getattr(get_obj(), f"get_{property_name}")(),
-                                          desc)
+        for get_obj, property_name, current_value in zip(
+            get_obj_list, property_name_list, current_values
+        ):
+            self.assertEqualStringOrArray(
+                current_value, getattr(get_obj(), f"get_{property_name}")(), desc
+            )
 
     def compare_list(self, get_obj_list, current_values, target_values, desc):
-        for get_obj, target_value, current_value in zip(get_obj_list, target_values, current_values):
+        for get_obj, target_value, current_value in zip(
+            get_obj_list, target_values, current_values
+        ):
             self.assertEqualStringOrArray(target_value, current_value, desc)
 
-    def change_property2(self, property_name_list, value_list, call, get_obj_list, line_command_list,
-                         test_run, value2_list="undefined", show=False, get_function=None, delete=False, test_saved_value=None):
+    def change_property2(
+        self,
+        property_name_list,
+        value_list,
+        call,
+        get_obj_list,
+        line_command_list,
+        test_run,
+        value2_list="undefined",
+        show=False,
+        get_function=None,
+        delete=False,
+        test_saved_value=None,
+    ):
         if value2_list == "undefined":
             value2_list = value_list
         get_obj_list = ensure_list(get_obj_list)
@@ -269,8 +338,10 @@ plt.show(hide_window=True)
         line_command_list = ensure_list(line_command_list, len(get_obj_list))
 
         if get_function is None:
-            get_function = lambda: [getattr(get_obj(), f"get_{property_name}")()
-                                    for get_obj, property_name in zip(get_obj_list, property_name_list)]
+            get_function = lambda: [
+                getattr(get_obj(), f"get_{property_name}")()
+                for get_obj, property_name in zip(get_obj_list, property_name_list)
+            ]
 
         fig = self.fig
 
@@ -290,24 +361,39 @@ plt.show(hide_window=True)
         fig.change_tracker.save()
 
         # test if the text has the right weight
-        self.compare_list(get_obj_list, get_function(), value_list,
-                            f"Property '{property_name_list[0]}' not set correctly. [{test_run}]")
+        self.compare_list(
+            get_obj_list,
+            get_function(),
+            value_list,
+            f"Property '{property_name_list[0]}' not set correctly. [{test_run}]",
+        )
 
         # test undo and redo
         fig.window.undo()
-        self.compare_list(get_obj_list, get_function(), current_values,
-                            f"Property '{property_name_list[0]}' undo failed. [{test_run}]")
+        self.compare_list(
+            get_obj_list,
+            get_function(),
+            current_values,
+            f"Property '{property_name_list[0]}' undo failed. [{test_run}]",
+        )
 
         if self.no_undo_save_test is False:
             # the output after undo should be the same as the beginning
             print("\n---- save after undo ----", end="")
             fig.change_tracker.save()
-            self.assertEqual(text0, self.get_script_text(),
-                             f"Saved differently after undo. Property '{property_name_list[0]}'. [{test_run}]")
+            self.assertEqual(
+                text0,
+                self.get_script_text(),
+                f"Saved differently after undo. Property '{property_name_list[0]}'. [{test_run}]",
+            )
 
         fig.window.redo()
-        self.compare_list(get_obj_list, get_function(), value_list,
-                            f"Property '{property_name_list[0]}' redo failed. [{test_run}]")
+        self.compare_list(
+            get_obj_list,
+            get_function(),
+            value_list,
+            f"Property '{property_name_list[0]}' redo failed. [{test_run}]",
+        )
 
         print("\n---- save after redo ----", end="")
         fig.change_tracker.save()
@@ -315,7 +401,9 @@ plt.show(hide_window=True)
         # find the saved string and check the numbers
         # find the saved string and check the numbers
         if test_saved_value is None:
-            for command, value2, property_name in zip(line_command_list, value2_list, property_name_list):
+            for command, value2, property_name in zip(
+                line_command_list, value2_list, property_name_list
+            ):
                 self.check_saved_property(property_name, command, value2, test_run)
         else:
             test_saved_value()
@@ -325,8 +413,12 @@ plt.show(hide_window=True)
 
         try:
             # test if the text has the right weight
-            self.compare_list(get_obj_list, get_function(), value_list,
-                                f"Property '{property_name_list[0]}' not set failed. [{test_run}]")
+            self.compare_list(
+                get_obj_list,
+                get_function(),
+                value_list,
+                f"Property '{property_name_list[0]}' not set failed. [{test_run}]",
+            )
 
             # don't move it and save the result
             self.move_element((0, 0), get_obj_list)
@@ -341,5 +433,8 @@ plt.show(hide_window=True)
         fig.change_tracker.save()
 
         # the output should still be the same
-        self.assertEqual(text, self.get_script_text(),
-                         f"Saved differently. Property '{property_name_list}'. [{test_run}]")
+        self.assertEqual(
+            text,
+            self.get_script_text(),
+            f"Saved differently. Property '{property_name_list}'. [{test_run}]",
+        )

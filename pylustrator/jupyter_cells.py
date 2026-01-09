@@ -24,11 +24,14 @@ This file implements pylustrator for jupyter notebooks. Basically it provides an
 the file is instead of a normal file a jupyter notebook and redirects writes accordingly.
 """
 
+
 def setJupyterCellText(text: str):
-    """ the function replaces the text in the current jupyter cell with the given text """
+    """the function replaces the text in the current jupyter cell with the given text"""
     from IPython.display import Javascript, display
+
     text = text.replace("\n", "\\n").replace("'", "\\'")
-    js = """
+    js = (
+        """
     var output_area = this;
     // find my cell element
     var cell_element = output_area.element.parents('.cell');
@@ -37,25 +40,38 @@ def setJupyterCellText(text: str):
     // get the cell object
     var cell = Jupyter.notebook.get_cell(cell_idx);
     cell.get_text();
-    cell.set_text('"""+text+"""');
-    console.log('"""+text+"""');
+    cell.set_text('"""
+        + text
+        + """');
+    console.log('"""
+        + text
+        + """');
     """
+    )
     display(Javascript(js))
 
 
 def getIpythonCurrentCell() -> str:
-    """ this function returns the text of the current jupyter cell """
+    """this function returns the text of the current jupyter cell"""
     import inspect
+
     # get the first stack which has a filename starting with "<ipython-input" (e.g. an ipython cell) and from
     # this stack get the globals, there get the executed cells history and the last element from it
-    return [stack for stack in inspect.stack() if stack.filename.startswith("<ipython-input") or "ipykernel" in stack.filename][0][0].f_globals["_ih"][-1]
+    return [
+        stack
+        for stack in inspect.stack()
+        if stack.filename.startswith("<ipython-input") or "ipykernel" in stack.filename
+    ][0][0].f_globals["_ih"][-1]
 
 
 global_files = {}
 build_in_open = open
+
+
 def open(filename: str, *args, **kwargs):
-    """ open a file and if its a jupyter cell then mock a filepointer to that cell """
+    """open a file and if its a jupyter cell then mock a filepointer to that cell"""
     if filename.startswith("<ipython") or "ipykernel" in filename:
+
         class IPythonCell:
             text = None
             write_text = None
@@ -65,7 +81,9 @@ def open(filename: str, *args, **kwargs):
                 self.filename = filename.strip()
 
                 if mode == "r":
-                    if (self.filename[0] == "<" and self.filename[-1] == ">") or ("ipykernel" in filename and not filename.endswith(".tmp")):
+                    if (self.filename[0] == "<" and self.filename[-1] == ">") or (
+                        "ipykernel" in filename and not filename.endswith(".tmp")
+                    ):
                         self.is_cell = True
                         self.text = getIpythonCurrentCell()
                     else:
@@ -80,8 +98,8 @@ def open(filename: str, *args, **kwargs):
                     if pos == -1:
                         yield text
                         break
-                    yield text[:pos+1]
-                    text = text[pos+1:]
+                    yield text[: pos + 1]
+                    text = text[pos + 1 :]
 
             def write(self, line):
                 if self.write_text is None:
@@ -93,7 +111,11 @@ def open(filename: str, *args, **kwargs):
 
             def __exit__(self, exc_type, exc_val, exc_tb):
                 if self.write_text is not None:
-                    if self.filename[0] == "<" and self.filename[-1] == ">" or ("ipykernel" in filename and not filename.endswith(".tmp")):
+                    if (
+                        self.filename[0] == "<"
+                        and self.filename[-1] == ">"
+                        or ("ipykernel" in filename and not filename.endswith(".tmp"))
+                    ):
                         setJupyterCellText(self.write_text)
                     else:
                         global_files[self.filename] = self.write_text

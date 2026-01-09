@@ -33,23 +33,29 @@ package_name = properties["name"]
 try:
     new_version = sys.argv[1]
 except IndexError:
-    print(f"ERROR: no new version number supplied. Current {package_name} version is {current_version}", file=sys.stderr)
+    print(
+        f"ERROR: no new version number supplied. Current {package_name} version is {current_version}",
+        file=sys.stderr,
+    )
     sys.exit(1)
 
 # check if new version name differs
 if current_version == new_version:
-    print(f"ERROR: new {package_name} version {new_version} is the same as old version {current_version}.", file=sys.stderr)
+    print(
+        f"ERROR: new {package_name} version {new_version} is the same as old version {current_version}.",
+        file=sys.stderr,
+    )
     sys.exit(1)
 
 print(f"setting {package_name} version number from {current_version} to {new_version}")
 
-files = ["setup.py", "meta.yaml", "docs/conf.py", package_name+"/__init__.py"]
+files = ["setup.py", "meta.yaml", "docs/conf.py", package_name + "/__init__.py"]
 
 # Let's go
 for file in files:
     if replace_version(file, current_version, new_version):
         os.system(f"git add {file}")
-    
+
 # commit changes
-os.system("git commit -m \"set version to v%s\"" % new_version)
-os.system("git tag \"v%s\"" % new_version)
+os.system('git commit -m "set version to v%s"' % new_version)
+os.system('git tag "v%s"' % new_version)

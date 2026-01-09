@@ -20,9 +20,24 @@
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
 from .QtGuiDrag import initialize as start
-from .helper_functions import fig_text, add_axes, add_image, despine, changeFigureSize, mark_inset, VoronoiPlot, selectRectangle, mark_inset_pos, draw_from_point_to_bbox, draw_from_point_to_point, loadFigureFromFile, add_letter, add_letters
+from .helper_functions import (
+    fig_text,
+    add_axes,
+    add_image,
+    despine,
+    changeFigureSize,
+    mark_inset,
+    VoronoiPlot,
+    selectRectangle,
+    mark_inset_pos,
+    draw_from_point_to_bbox,
+    draw_from_point_to_point,
+    loadFigureFromFile,
+    add_letter,
+    add_letters,
+)
 from .QtGui import initialize as StartColorChooser
 from .lab_colormap import LabColormap
 from .helper_functions import loadFigureFromFile as load
 
-__version__ = '1.3.0'
+__version__ = "1.3.0"
