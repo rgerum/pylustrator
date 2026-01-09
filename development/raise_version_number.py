@@ -49,7 +49,7 @@ if current_version == new_version:
 
 print(f"setting {package_name} version number from {current_version} to {new_version}")
 
-files = ["setup.py", "meta.yaml", "docs/conf.py", package_name + "/__init__.py"]
+files = ["pyproject.toml", "meta.yaml", "docs/conf.py", package_name + "/__init__.py"]
 
 # Let's go
 for file in files:

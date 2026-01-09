@@ -37,7 +37,7 @@ __version__ = "1.0.0"
 import time
 
 import qtawesome as qta
-from matplotlib.backends.qt_compat import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore
 
 try:  # for matplotlib > 3.0
     from matplotlib.backends.backend_qtagg import (

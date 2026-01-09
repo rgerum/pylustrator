@@ -27,7 +27,7 @@ from matplotlib.text import Text
 from matplotlib.patches import Rectangle
 from matplotlib.backend_bases import MouseEvent, KeyEvent
 from typing import Sequence
-from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
+from qtpy import QtCore, QtGui, QtWidgets
 
 from .snap import TargetWrapper, getSnaps, checkSnaps, checkSnapsActive, SnapBase
 from .change_tracker import ChangeTracker

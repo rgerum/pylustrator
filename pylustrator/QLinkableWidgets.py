@@ -27,12 +27,14 @@ import numpy as np
 from matplotlib.artist import Artist
 from matplotlib.text import Text
 from matplotlib.axes import Axes
-from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
+from qtpy import QtCore, QtGui, QtWidgets
 from .helper_functions import main_figure
 
 
 class Linkable:
     """a class that automatically links a widget with the property of a matplotlib artist"""
+
+    editingFinished = QtCore.Signal()
 
     def link(
         self,
@@ -111,7 +113,9 @@ class Linkable:
                     if elm != self.element:
                         try:
                             index += 1
-                            getattr(elm, "set_" + property_name, None)(v[index])
+                            getattr(elm, "set_" + property_name, lambda x: None)(
+                                v[index]
+                            )
                         except TypeError:
                             pass
                         else:
@@ -164,7 +168,9 @@ class Linkable:
                                 [
                                     elm,
                                     property_name,
-                                    getattr(elm, "get_" + property_name, None)(),
+                                    getattr(
+                                        elm, "get_" + property_name, lambda: None
+                                    )(),
                                 ]
                             )
                         except TypeError:
@@ -200,6 +206,15 @@ class Linkable:
             self.hide()
         else:
             self.show()
+
+    def setEnabled(self, enabled):
+        pass
+
+    def hide(self):
+        pass
+
+    def show(self):
+        pass
 
     def updateLink(self):
         """update the linked property"""
@@ -237,12 +252,12 @@ class Linkable:
 
         def undo():
             for elem, property_name, value in old_value:
-                getattr(elem, "set_" + property_name, None)(value)
+                getattr(elem, "set_" + property_name, lambda x: None)(value)
                 save_change(elem)
 
         def redo():
             for elem, property_name, value in new_value:
-                getattr(elem, "set_" + property_name, None)(value)
+                getattr(elem, "set_" + property_name, lambda x: None)(value)
                 save_change(elem)
 
         element = elements[0]
@@ -264,7 +279,7 @@ class Linkable:
         """get the value"""
         return None
 
-    def getSerialized(self):
+    def getSerialized(self, element):
         """serialize the value for saving as a command"""
         return ""
 
@@ -526,7 +541,7 @@ class TextWidget(QtWidgets.QWidget, Linkable):
         """set the value (used for the Linkable parent class)"""
         self.setText(str(value))
 
-    def getSerialized(self) -> str:
+    def getSerialized(self, element) -> str:
         """serialize the value (used for the Linkable parent class)"""
         return '"' + str(self.get()) + '"'
 
@@ -539,7 +554,7 @@ class NumberWidget(QtWidgets.QWidget, Linkable):
         self,
         layout: QtWidgets.QLayout,
         text: str,
-        min: float = None,
+        min: float | None = None,
         use_float: bool = True,
     ):
         """A spin box with a label next to it.
@@ -597,7 +612,7 @@ class NumberWidget(QtWidgets.QWidget, Linkable):
         """set the value (used for the Linkable parent class)"""
         self.setValue(value)
 
-    def getSerialized(self) -> str:
+    def getSerialized(self, element) -> str:
         """serialize the value (used for the Linkable parent class)"""
         return str(self.get())
 
@@ -661,7 +676,7 @@ class ComboWidget(QtWidgets.QWidget, Linkable):
         """set the value (used for the Linkable parent class)"""
         self.setText(value)
 
-    def getSerialized(self) -> str:
+    def getSerialized(self, element) -> str:
         """serialize the value (used for the Linkable parent class)"""
         return '"' + str(self.get()) + '"'
 
@@ -717,7 +732,7 @@ class CheckWidget(QtWidgets.QWidget, Linkable):
         """get the value (used for the Linkable parent class)"""
         self.setChecked(value)
 
-    def getSerialized(self) -> str:
+    def getSerialized(self, element) -> str:
         """serialize the value (used for the Linkable parent class)"""
         return "True" if self.get() else "False"
 
@@ -774,7 +789,12 @@ class RadioWidget(QtWidgets.QWidget):
 class QColorWidget(QtWidgets.QWidget, Linkable):
     valueChanged = QtCore.Signal(str)
 
-    def __init__(self, layout: QtWidgets.QLayout, text: str = None, value: str = None):
+    def __init__(
+        self,
+        layout: QtWidgets.QLayout,
+        text: str | None = None,
+        value: str | None = None,
+    ):
         """A colored button what acts as an color input
 
         Args:
@@ -853,7 +873,7 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
             self.setColor(color)
             self.valueChanged.emit(self.color)
 
-    def setColor(self, value: str):
+    def setColor(self, value: str | None):
         """set the color"""
         # display and save the new color
         if value is None:
@@ -892,6 +912,6 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
         except ValueError:
             self.setColor(None)
 
-    def getSerialized(self) -> str:
+    def getSerialized(self, element) -> str:
         """serialize the value (used for the Linkable parent class)"""
         return '"' + self.color + '"'

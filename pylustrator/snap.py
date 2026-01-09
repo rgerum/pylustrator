@@ -21,7 +21,7 @@
 
 from typing import List, Optional
 from packaging import version
-from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
+from qtpy import QtCore, QtGui, QtWidgets
 
 import matplotlib as mpl
 import numpy as np

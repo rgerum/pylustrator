@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
-from matplotlib.backends.qt_compat import QtGui, QtWidgets
+from qtpy import QtGui, QtWidgets
 
 import numpy as np
 import matplotlib.pyplot as plt
