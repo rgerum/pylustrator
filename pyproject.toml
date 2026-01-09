@@ -13,12 +13,11 @@ dependencies = [
     "PyQt5>=5.6",
     "qtawesome>=0.5.0",
     "scikit-image>=0.7.0",
-    "ty>=0.0.10",
-    "ruff>=0.14.11",
     "qtpy>=2.4.3",
 ]
 
 [project.optional-dependencies]
+dev = ["ruff>=0.14.11", "ty>=0.0.10"]
 test = ["pytest>=7.2.0,<8.0.0"]
 
 [tool.ruff]
