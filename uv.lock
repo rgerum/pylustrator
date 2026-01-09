@@ -2138,7 +2138,7 @@ test = [
 ]
 
 [package.dev-dependencies]
-doc = [
+docs = [
     { name = "nbsphinx" },
     { name = "sphinx-rtd-theme" },
     { name = "sphinxcontrib-bibtex" },
@@ -2160,7 +2160,7 @@ requires-dist = [
 provides-extras = ["dev", "test"]
 
 [package.metadata.requires-dev]
-doc = [
+docs = [
     { name = "nbsphinx", specifier = ">=0.9.8" },
     { name = "sphinx-rtd-theme", specifier = ">=3.0.2" },
     { name = "sphinxcontrib-bibtex", specifier = ">=2.6.5" },
