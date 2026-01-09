@@ -63,7 +63,9 @@ keys_for_lines = {}
 no_save_allowed = False
 
 
-def initialize(use_global_variable_names=False, use_exception_silencer=False, disable_save=False):
+def initialize(
+    use_global_variable_names=False, use_exception_silencer=False, disable_save=False
+):
     """
     This will overload the commands ``plt.figure()`` and ``plt.show()``.
     If a figure is created after this command was called (directly or indirectly), a GUI window will be initialized
@@ -77,18 +79,39 @@ def initialize(use_global_variable_names=False, use_exception_silencer=False, di
     use_global_variable_names : bool, optional
         if used, try to find global variables that reference a figure and use them in the generated code.
     """
-    global app, keys_for_lines, old_pltshow, old_pltfigure, setting_use_global_variable_names, no_save_allowed
+    global \
+        app, \
+        keys_for_lines, \
+        old_pltshow, \
+        old_pltfigure, \
+        setting_use_global_variable_names, \
+        no_save_allowed
 
     # remember line-numbers where texts are created
     def wrap_text_function(text):
         def wrapped_text(*args, **kwargs):
-            element = text(*args, fontdict=kwargs["fontdict"] if "fontdict" in kwargs else None)
+            element = text(
+                *args, fontdict=kwargs["fontdict"] if "fontdict" in kwargs else None
+            )
             from pylustrator.change_tracker import getReference
+
             stack_position = traceback.extract_stack()[-2]
-            element._pylustrator_reference = dict(reference=getReference(element), stack_position=stack_position)
+            element._pylustrator_reference = dict(
+                reference=getReference(element), stack_position=stack_position
+            )
             old_args = {}
-            properties_to_save = ["position", "text", "ha", "va", "fontsize", "color", "style", "weight", "fontname",
-                                  "rotation"]
+            properties_to_save = [
+                "position",
+                "text",
+                "ha",
+                "va",
+                "fontsize",
+                "color",
+                "style",
+                "weight",
+                "fontname",
+                "rotation",
+            ]
             for name in properties_to_save:
                 try:
                     old_args[name] = getattr(element, f"get_{name}")()
@@ -110,17 +133,20 @@ def initialize(use_global_variable_names=False, use_exception_silencer=False, di
     Axes.text = wrap_text_function(Axes.text)
     Figure.text = wrap_text_function(Figure.text)
 
-    setattr(Figure, '_pylustrator_init', init_figure)
+    setattr(Figure, "_pylustrator_init", init_figure)
 
     # store write only attribute
     no_save_allowed = disable_save
 
     # warning for shell session
     stack_pos = traceback.extract_stack()[-2]
-    if not stack_pos.filename.endswith('.py') and not stack_pos.filename.startswith("<ipython-input-"):
+    if not stack_pos.filename.endswith(".py") and not stack_pos.filename.startswith(
+        "<ipython-input-"
+    ):
         print(
             "WARNING: you are using pylustartor in a shell session. Changes cannot be saved to a file. They will just be printed.",
-            file=sys.stderr)
+            file=sys.stderr,
+        )
 
     setting_use_global_variable_names = use_global_variable_names
 
@@ -143,21 +169,24 @@ def initialize(use_global_variable_names=False, use_exception_silencer=False, di
     sf = Figure.savefig
 
     def savefig(self, filename, *args, **kwargs):
-        self._last_saved_figure = getattr(self, "_last_saved_figure", []) + [(filename, args, kwargs)]
+        self._last_saved_figure = getattr(self, "_last_saved_figure", []) + [
+            (filename, args, kwargs)
+        ]
         sf(self, filename, *args, **kwargs)
 
     Figure.savefig = savefig
 
 
 def pyl_show(hide_window: bool = False):
-    """ the function overloads the matplotlib show function.
+    """the function overloads the matplotlib show function.
     It opens a DragManager window instead of the default matplotlib window.
     """
     global figures, app
     # set an application id, so that windows properly stacks them in the task bar
-    if sys.platform[:3] == 'win':
+    if sys.platform[:3] == "win":
         import ctypes
-        myappid = 'rgerum.pylustrator'  # arbitrary string
+
+        myappid = "rgerum.pylustrator"  # arbitrary string
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 
     if app is None:
@@ -188,14 +217,15 @@ def pyl_show(hide_window: bool = False):
 
 
 def show(hide_window: bool = False):
-    """ the function overloads the matplotlib show function.
+    """the function overloads the matplotlib show function.
     It opens a DragManager window instead of the default matplotlib window.
     """
     global figures
     # set an application id, so that windows properly stacks them in the task bar
-    if sys.platform[:3] == 'win':
+    if sys.platform[:3] == "win":
         import ctypes
-        myappid = 'rgerum.pylustrator'  # arbitrary string
+
+        myappid = "rgerum.pylustrator"  # arbitrary string
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
     # iterate over figures
     for figure in _pylab_helpers.Gcf.figs.copy():
@@ -224,7 +254,7 @@ def show(hide_window: bool = False):
 
 
 class CmapColor(list):
-    """ a color like object that has the colormap as metadata """
+    """a color like object that has the colormap as metadata"""
 
     def setMeta(self, value, cmap):
         self.value = value
@@ -232,7 +262,7 @@ class CmapColor(list):
 
 
 def patchColormapsWithMetaInfo():
-    """ all colormaps now return color with metadata from which colormap the color came from """
+    """all colormaps now return color with metadata from which colormap the color came from"""
     from matplotlib.colors import Colormap
 
     cm_call = Colormap.__call__
@@ -248,7 +278,7 @@ def patchColormapsWithMetaInfo():
 
 
 def figure(num=None, figsize=None, force_add=False, *args, **kwargs):
-    """ overloads the matplotlib figure call and wraps the Figure in a PlotWindow """
+    """overloads the matplotlib figure call and wraps the Figure in a PlotWindow"""
     global figures
     # if num is not defined create a new number
     if num is None:
@@ -265,7 +295,9 @@ def figure(num=None, figsize=None, force_add=False, *args, **kwargs):
     manager = _pylab_helpers.Gcf.figs[num]
     # set the size if it is defined
     if figsize is not None:
-        _pylab_helpers.Gcf.figs[num].window.setGeometry(100, 100, figsize[0] * 80, figsize[1] * 80)
+        _pylab_helpers.Gcf.figs[num].window.setGeometry(
+            100, 100, figsize[0] * 80, figsize[1] * 80
+        )
     # set the figure as the active figure
     _pylab_helpers.Gcf.set_active(manager)
     # return the figure
@@ -273,8 +305,9 @@ def figure(num=None, figsize=None, force_add=False, *args, **kwargs):
 
 
 def warnAboutTicks(fig):
-    """ warn if the tick labels and tick values do not match, to prevent users from accidentally setting wrong tick values """
+    """warn if the tick labels and tick values do not match, to prevent users from accidentally setting wrong tick values"""
     import sys
+
     for index, ax in enumerate(fig.axes):
         ticks = ax.get_yticks()
         labels = [t.get_text() for t in ax.get_yticklabels()]
@@ -293,7 +326,14 @@ def warnAboutTicks(fig):
                     ax_name = "#%d" % index
                 else:
                     ax_name = '"' + ax_name + '"'
-                print("Warning tick and label differ", t, l, "for axes", ax_name, file=sys.stderr)
+                print(
+                    "Warning tick and label differ",
+                    t,
+                    l,
+                    "for axes",
+                    ax_name,
+                    file=sys.stderr,
+                )
 
 
 """ Window """
@@ -392,7 +432,7 @@ class PlotWindow(QtWidgets.QWidget):
         self.fig.figure_dragger.redo()
 
     def __init__(self, number: int = 0):
-        """ The main window of pylustrator
+        """The main window of pylustrator
 
         Args:
             number: the id of the figure
@@ -404,13 +444,17 @@ class PlotWindow(QtWidgets.QWidget):
 
         self.signals = Signals()
         self.signals.canvas_changed.connect(self.setCanvas)
-        self.signals.figure_selection_property_changed.connect(self.selectionProperyChanged)
+        self.signals.figure_selection_property_changed.connect(
+            self.selectionProperyChanged
+        )
 
         self.plot_layout = PlotLayout(self.signals)
 
         # widget layout and elements
         self.setWindowTitle("Figure %s - Pylustrator" % number)
-        self.setWindowIcon(QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", "logo.ico")))
+        self.setWindowIcon(
+            QtGui.QIcon(os.path.join(os.path.dirname(__file__), "icons", "logo.ico"))
+        )
         layout_parent = QtWidgets.QVBoxLayout(self)
         layout_parent.setContentsMargins(0, 0, 0, 0)
 
@@ -459,7 +503,9 @@ class PlotWindow(QtWidgets.QWidget):
             layout_parent.addLayout(self.layout_main)
         else:
             self.layout_main = QtWidgets.QSplitter()
-            self.layout_main.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+            self.layout_main.setSizePolicy(
+                QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
+            )
             layout_parent.addWidget(self.layout_main)
 
         # self.preview = FigurePreviews(self)
@@ -467,7 +513,9 @@ class PlotWindow(QtWidgets.QWidget):
         #
         widget = QtWidgets.QWidget()
         self.layout_tools = QtWidgets.QVBoxLayout(widget)
-        widget.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+        widget.setSizePolicy(
+            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred
+        )
         # widget.setMaximumWidth(350)
         # widget.setMinimumWidth(350)
         self.layout_main.addWidget(widget)
@@ -501,6 +549,7 @@ class PlotWindow(QtWidgets.QWidget):
         self.layout_main.addWidget(self.plot_layout)
 
         from .QtGui import ColorChooserWidget
+
         self.colorWidget = ColorChooserWidget(self, None, self.signals)
         self.colorWidget.setMaximumWidth(150)
         self.layout_main.addWidget(self.colorWidget)
@@ -510,7 +559,7 @@ class PlotWindow(QtWidgets.QWidget):
         self.layout_main.setStretchFactor(2, 0)
 
     def rasterize(self, rasterize: bool):
-        """ convert the figur elements to an image """
+        """convert the figur elements to an image"""
         if len(self.fig.selection.targets):
             self.fig.figure_dragger.select_element(None)
         if rasterize:
@@ -522,16 +571,21 @@ class PlotWindow(QtWidgets.QWidget):
         self.fig.canvas.draw()
 
     def actionSave(self):
-        """ save the code for the figure """
+        """save the code for the figure"""
         self.fig.change_tracker.save()
-        for _last_saved_figure, args, kwargs in getattr(self.fig, "_last_saved_figure", []):
+        for _last_saved_figure, args, kwargs in getattr(
+            self.fig, "_last_saved_figure", []
+        ):
             self.fig.savefig(_last_saved_figure, *args, **kwargs)
 
     def actionSaveImage(self):
-        """ save figure as an image """
-        path = QtWidgets.QFileDialog.getSaveFileName(self, "Save Image",
-                                                     str(getattr(self.fig, "_last_saved_figure", [(None,)])[0][0]),
-                                                     "Images (*.png *.jpg *.pdf)")
+        """save figure as an image"""
+        path = QtWidgets.QFileDialog.getSaveFileName(
+            self,
+            "Save Image",
+            str(getattr(self.fig, "_last_saved_figure", [(None,)])[0][0]),
+            "Images (*.png *.jpg *.pdf)",
+        )
         if isinstance(path, tuple):
             path = str(path[0])
         else:
@@ -545,16 +599,16 @@ class PlotWindow(QtWidgets.QWidget):
         print("Saved plot image as", path)
 
     def showInfo(self):
-        """ show the info dialog """
+        """show the info dialog"""
         self.info_dialog = InfoDialog(self)
         self.info_dialog.show()
 
     def showEvent(self, event: QtCore.QEvent):
-        """ when the window is shown """
+        """when the window is shown"""
         self.colorWidget.updateColorsText()
 
     def update(self):
-        """ update the tree view """
+        """update the tree view"""
 
         # self.input_size.setValue(np.array(self.fig.get_size_inches()) * 2.54)
 
@@ -584,19 +638,25 @@ class PlotWindow(QtWidgets.QWidget):
         self.signals.figure_element_selected.emit(self.fig)
 
     def updateTitle(self):
-        """ update the title of the window to display if it is saved or not """
+        """update the title of the window to display if it is saved or not"""
         if self.fig.change_tracker.saved:
             self.setWindowTitle("Figure %s - Pylustrator" % self.fig.number)
         else:
             self.setWindowTitle("Figure %s* - Pylustrator" % self.fig.number)
 
     def closeEvent(self, event: QtCore.QEvent):
-        """ when the window is closed, ask the user to save """
+        """when the window is closed, ask the user to save"""
         if not self.fig.change_tracker.saved and not no_save_allowed:
-            reply = QtWidgets.QMessageBox.question(self, 'Warning - Pylustrator', 'The figure has not been saved. '
-                                                                                  'All data will be lost.\nDo you want to save it?',
-                                                   QtWidgets.QMessageBox.Cancel | QtWidgets.QMessageBox.No | QtWidgets.QMessageBox.Yes,
-                                                   QtWidgets.QMessageBox.Yes)
+            reply = QtWidgets.QMessageBox.question(
+                self,
+                "Warning - Pylustrator",
+                "The figure has not been saved. "
+                "All data will be lost.\nDo you want to save it?",
+                QtWidgets.QMessageBox.Cancel
+                | QtWidgets.QMessageBox.No
+                | QtWidgets.QMessageBox.Yes,
+                QtWidgets.QMessageBox.Yes,
+            )
 
             if reply == QtWidgets.QMessageBox.Cancel:
                 event.ignore()

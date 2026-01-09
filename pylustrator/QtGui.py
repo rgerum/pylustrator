@@ -23,10 +23,18 @@ from matplotlib.backends.qt_compat import QtGui, QtWidgets
 
 import numpy as np
 import matplotlib.pyplot as plt
+
 try:  # for matplotlib > 3.0
-    from matplotlib.backends.backend_qtagg import (FigureCanvas, FigureManager, NavigationToolbar2QT as NavigationToolbar)
+    from matplotlib.backends.backend_qtagg import (
+        FigureCanvas,
+        FigureManager,
+        NavigationToolbar2QT as NavigationToolbar,
+    )
 except ModuleNotFoundError:
-    from matplotlib.backends.backend_qt5agg import (FigureCanvas, NavigationToolbar2QT as NavigationToolbar)
+    from matplotlib.backends.backend_qt5agg import (
+        FigureCanvas,
+        NavigationToolbar2QT as NavigationToolbar,
+    )
 from pylustrator.components.matplotlibwidget import MatplotlibWidget
 from matplotlib import _pylab_helpers
 from matplotlib.figure import Figure
@@ -51,7 +59,7 @@ app = None
 
 
 def initialize():
-    """ patch figure and show to display the color chooser GUI """
+    """patch figure and show to display the color chooser GUI"""
     global app
     if app is None:
         app = QtWidgets.QApplication(sys.argv)
@@ -60,7 +68,7 @@ def initialize():
 
 
 def show():
-    """ the patched show to display the color choose gui """
+    """the patched show to display the color choose gui"""
     global figures
     # iterate over figures
     for figure in figures:
@@ -73,7 +81,7 @@ def show():
 
 
 def figure(num=None, figsize=None, *args, **kwargs):
-    """ the patched figure to initialize to color chooser GUI """
+    """the patched figure to initialize to color chooser GUI"""
     global figures
     # if num is not defined create a new number
     if num is None:
@@ -98,7 +106,7 @@ def figure(num=None, figsize=None, *args, **kwargs):
 
 
 def addChildren(color_artists: list, parent: Artist):
-    """ find all the children of an Artist that use a color """
+    """find all the children of an Artist that use a color"""
     for artist in parent.get_children():
         # ignore empty texts
         if isinstance(artist, mpl.text.Text) and artist.get_text() == "":
@@ -113,15 +121,23 @@ def addChildren(color_artists: list, parent: Artist):
             addChildren(color_artists, artist)
 
         # iterate over the elements
-        for color_type_name in ["edgecolor", "facecolor", "color", "markeredgecolor", "markerfacecolor"]:
+        for color_type_name in [
+            "edgecolor",
+            "facecolor",
+            "color",
+            "markeredgecolor",
+            "markerfacecolor",
+        ]:
             colors = getattr(artist, "get_" + color_type_name, lambda: None)()
             # ignore colors that are not set
             if colors is None or len(colors) == 0:
                 continue
 
             # convert to array
-            if (not (isinstance(colors, np.ndarray) and len(colors.shape) > 1) and not isinstance(colors, list)) or \
-                    getattr(colors, "cmap", None) is not None:
+            if (
+                not (isinstance(colors, np.ndarray) and len(colors.shape) > 1)
+                and not isinstance(colors, list)
+            ) or getattr(colors, "cmap", None) is not None:
                 colors = [colors]
 
             # iterate over the colors
@@ -139,7 +155,10 @@ def addChildren(color_artists: list, parent: Artist):
                     continue
 
                 # omit blacks and whites
-                if mpl.colors.to_hex(color) == "#000000" or mpl.colors.to_hex(color) == "#ffffff":
+                if (
+                    mpl.colors.to_hex(color) == "#000000"
+                    or mpl.colors.to_hex(color) == "#ffffff"
+                ):
                     continue
 
                 # if we have a colormap
@@ -153,12 +172,16 @@ def addChildren(color_artists: list, parent: Artist):
                             if color not in color_artists:
                                 color_artists[color] = []
                             # add the artist
-                            color_artists[color].append([color_type_name, artist, value, cmap, index])
+                            color_artists[color].append(
+                                [color_type_name, artist, value, cmap, index]
+                            )
                     else:
                         # check if it is already in the dictionary
                         if cmap not in color_artists:
                             color_artists[cmap] = []
-                        color_artists[cmap].append([color_type_name, artist, value, cmap, value])
+                        color_artists[cmap].append(
+                            [color_type_name, artist, value, cmap, value]
+                        )
                 else:
                     # ignore transparent colors
                     if mpl.colors.to_rgba(color)[3] == 0:
@@ -169,17 +192,19 @@ def addChildren(color_artists: list, parent: Artist):
                     if color not in color_artists:
                         color_artists[color] = []
                     # add the artist
-                    color_artists[color].append([color_type_name, artist, None, None, None])
+                    color_artists[color].append(
+                        [color_type_name, artist, None, None, None]
+                    )
 
 
 def figureListColors(figure: Figure):
-    """ add all artist with colors to a list in the figure """
+    """add all artist with colors to a list in the figure"""
     figure.color_artists = {}
     addChildren(figure.color_artists, figure)
 
 
 def figureSwapColor(figure: Figure, new_color: str, color_base: str):
-    """ swap two colors of a figure """
+    """swap two colors of a figure"""
     if getattr(figure, "color_artists", None) is None:
         figureListColors(figure)
     changed_cmaps = []
@@ -199,24 +224,34 @@ def figureSwapColor(figure: Figure, new_color: str, color_base: str):
                     cmap = plt.get_cmap(new_color)
                 else:
                     getattr(artist, "set_" + color_type_name)(new_color)
-                    artist.figure.change_tracker.addChange(artist,
-                                                           ".set_" + color_type_name + "(\"%s\")" % (new_color,))
+                    artist.figure.change_tracker.addChange(
+                        artist, ".set_" + color_type_name + '("%s")' % (new_color,)
+                    )
                     continue
             # use the attributes setter method
             getattr(artist, "set_" + color_type_name)(cmap(value))
-            artist.figure.change_tracker.addChange(artist, ".set_" + color_type_name + "(plt.get_cmap(\"%s\")(%s))" % (
-            cmap.name, str(value)))
+            artist.figure.change_tracker.addChange(
+                artist,
+                ".set_"
+                + color_type_name
+                + '(plt.get_cmap("%s")(%s))' % (cmap.name, str(value)),
+            )
         else:
             if new_color in maps:
                 cmap = plt.get_cmap(new_color)
                 getattr(artist, "set_" + color_type_name)(cmap(0))
-                artist.figure.change_tracker.addChange(artist,
-                                                       ".set_" + color_type_name + "(plt.get_cmap(\"%s\")(%s))" % (
-                                                           cmap.name, str(0)))
+                artist.figure.change_tracker.addChange(
+                    artist,
+                    ".set_"
+                    + color_type_name
+                    + '(plt.get_cmap("%s")(%s))' % (cmap.name, str(0)),
+                )
             else:
                 # use the attributes setter method
                 getattr(artist, "set_" + color_type_name)(new_color)
-                artist.figure.change_tracker.addChange(artist, ".set_" + color_type_name + "(\"%s\")" % (new_color,))
+                artist.figure.change_tracker.addChange(
+                    artist, ".set_" + color_type_name + '("%s")' % (new_color,)
+                )
 
 
 """ Window """
@@ -225,8 +260,10 @@ def figureSwapColor(figure: Figure, new_color: str, color_base: str):
 class ColorChooserWidget(QtWidgets.QWidget):
     trigger_no_update = False
 
-    def __init__(self, parent: QtWidgets, canvas: FigureCanvas, signals: "Signals"=None):
-        """ A widget to display all curently used colors and let the user switch them.
+    def __init__(
+        self, parent: QtWidgets, canvas: FigureCanvas, signals: "Signals" = None
+    ):
+        """A widget to display all curently used colors and let the user switch them.
 
         Args:
             parent: the parent widget
@@ -265,7 +302,7 @@ class ColorChooserWidget(QtWidgets.QWidget):
         self.layout_buttons.addWidget(self.button_load)
 
         self.canvas = canvas
-        #self.updateColors()
+        # self.updateColors()
 
         # add a text widget to allow easy copy and paste
         self.colors_text_widget = QtWidgets.QTextEdit()
@@ -280,11 +317,17 @@ class ColorChooserWidget(QtWidgets.QWidget):
         self.canvas = canvas
 
     def saveColors(self):
-        """ save the colors to a .txt file """
+        """save the colors to a .txt file"""
         options = QtWidgets.QFileDialog.Options()
         #  options |= QtWidgets.QFileDialog.DontUseNativeDialog
 
-        path = QtWidgets.QFileDialog.getSaveFileName(self, "Save Color File", getattr(self, "last_save_folder", None),"Text Files (*.txt);;All Files (*)", options=options)
+        path = QtWidgets.QFileDialog.getSaveFileName(
+            self,
+            "Save Color File",
+            getattr(self, "last_save_folder", None),
+            "Text Files (*.txt);;All Files (*)",
+            options=options,
+        )
 
         if isinstance(path, tuple):
             path = str(path[0])
@@ -297,11 +340,17 @@ class ColorChooserWidget(QtWidgets.QWidget):
             fp.write(self.colors_text_widget.toPlainText())
 
     def loadColors(self):
-        """ load a list of colors from a .txt file """
+        """load a list of colors from a .txt file"""
         options = QtWidgets.QFileDialog.Options()
         #  options |= QtWidgets.QFileDialog.DontUseNativeDialog
 
-        path = QtWidgets.QFileDialog.getOpenFileName(self, "Open Color File", getattr(self, "last_save_folder", None), "Text File (*.txt);;All Files (*)", options=options)
+        path = QtWidgets.QFileDialog.getOpenFileName(
+            self,
+            "Open Color File",
+            getattr(self, "last_save_folder", None),
+            "Text File (*.txt);;All Files (*)",
+            options=options,
+        )
         if isinstance(path, tuple):
             path = str(path[0])
         else:
@@ -315,20 +364,22 @@ class ColorChooserWidget(QtWidgets.QWidget):
             self.colors_text_widget.setText(fp.read())
 
     def addColorButton(self, color: str, basecolor: str = None):
-        """ add a button for the given color """
+        """add a button for the given color"""
         try:
             button = QDragableColor(mpl.colors.to_hex(color))
         except ValueError:
             button = QDragableColor(color)
         self.layout_colors.addWidget(button)
-        button.color_changed.connect(lambda c: self.colorChanged(c, color_base=basecolor))
+        button.color_changed.connect(
+            lambda c: self.colorChanged(c, color_base=basecolor)
+        )
         button.color_changed_by_color_picker.connect(lambda e: self.resetSwapcounter(e))
         if basecolor:
             self.color_buttons[basecolor] = button
         self.color_buttons_list.append(button)
 
     def colorChanged(self, c, color_base):
-        """ update a color when it is changed
+        """update a color when it is changed
         if colors are swapped then first change both colors
         and then update the text list of colors
         """
@@ -341,12 +392,12 @@ class ColorChooserWidget(QtWidgets.QWidget):
             self.updateColorsText()
 
     def resetSwapcounter(self, _):
-        """ when a color changed using the color picker the swap counter is reset """
+        """when a color changed using the color picker the swap counter is reset"""
         self.swap_counter = 0
         self.updateColorsText()
 
     def updateColorsText(self):
-        """ update the text list of colors """
+        """update the text list of colors"""
         # add recursively all artists of the figure
         figureListColors(self.canvas.figure)
         self.color_artists = list(self.canvas.figure.color_artists)
@@ -362,13 +413,16 @@ class ColorChooserWidget(QtWidgets.QWidget):
 
         self.trigger_no_update = True
         try:
+
             def colorToText(color):
                 try:
                     return mpl.colors.to_hex(color)
                 except ValueError:
                     return color
 
-            self.colors_text_widget.setText("\n".join([colorToText(color) for color in self.color_artists[:10]]))
+            self.colors_text_widget.setText(
+                "\n".join([colorToText(color) for color in self.color_artists[:10]])
+            )
         finally:
             self.trigger_no_update = False
 
@@ -376,7 +430,7 @@ class ColorChooserWidget(QtWidgets.QWidget):
         self.canvas.updateGeometry()
 
     def colorsTextChanged(self):
-        """ when the colors in the text widget changed
+        """when the colors in the text widget changed
         after loading new colors or manually editing the text field
         """
         if self.trigger_no_update:
@@ -385,7 +439,9 @@ class ColorChooserWidget(QtWidgets.QWidget):
         maps = plt.colormaps()
 
         # when the colors in the text edit changed
-        for index, color in enumerate(self.colors_text_widget.toPlainText().split("\n")):
+        for index, color in enumerate(
+            self.colors_text_widget.toPlainText().split("\n")
+        ):
             try:
                 color = mpl.colors.to_hex(color.strip())
             except ValueError:
@@ -396,7 +452,7 @@ class ColorChooserWidget(QtWidgets.QWidget):
             self.color_buttons_list[index].setColor(color)
 
     def color_selected(self, new_color: str, color_base: str):
-        """ switch two colors """
+        """switch two colors"""
         if color_base is None:
             return
         figureSwapColor(self.canvas.figure, new_color, color_base)
@@ -411,7 +467,7 @@ class ColorChooserWidget(QtWidgets.QWidget):
 
 class PlotWindow(QtWidgets.QWidget):
     def __init__(self, number, *args, **kwargs):
-        """ An alternative to the pylustrator gui that only displays the color chooser. Mainly for testing purpose. """
+        """An alternative to the pylustrator gui that only displays the color chooser. Mainly for testing purpose."""
         QtWidgets.QWidget.__init__(self)
 
         # widget layout and elements

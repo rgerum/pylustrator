@@ -38,17 +38,28 @@ import time
 
 import qtawesome as qta
 from matplotlib.backends.qt_compat import QtWidgets, QtCore
+
 try:  # for matplotlib > 3.0
-    from matplotlib.backends.backend_qtagg import (FigureCanvas, FigureManager, NavigationToolbar2QT as NavigationToolbar)
+    from matplotlib.backends.backend_qtagg import (
+        FigureCanvas,
+        FigureManager,
+        NavigationToolbar2QT as NavigationToolbar,
+    )
 except ModuleNotFoundError:
-    from matplotlib.backends.backend_qt5agg import (FigureCanvas, FigureManager, NavigationToolbar2QT as NavigationToolbar)
+    from matplotlib.backends.backend_qt5agg import (
+        FigureCanvas,
+        FigureManager,
+        NavigationToolbar2QT as NavigationToolbar,
+    )
 from matplotlib.figure import Figure
 
 
 class MatplotlibWidget(FigureCanvas):
     quick_draw = True
 
-    def __init__(self, parent=None, num=1, size=None, dpi=100, figure=None, *args, **kwargs):
+    def __init__(
+        self, parent=None, num=1, size=None, dpi=100, figure=None, *args, **kwargs
+    ):
         if figure is None:
             self.figure = Figure(figsize=size, dpi=dpi, *args, **kwargs)
         else:
@@ -59,14 +70,16 @@ class MatplotlibWidget(FigureCanvas):
 
         self.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         self.updateGeometry()
-        
+
         self.manager = FigureManager(self, 1)
         self.manager._cidgcf = self.figure
 
         self.timer = QtCore.QTimer()
         self.timer.setInterval(300)
         self.timer.timeout.connect(self.draw)
+
     timer = None
+
     def schedule_draw(self):
         if self.quick_draw is True:
             return super().draw()
@@ -75,8 +88,8 @@ class MatplotlibWidget(FigureCanvas):
 
     def draw(self):
         self.timer.stop()
-        #import traceback
-        #print(traceback.print_stack())
+        # import traceback
+        # print(traceback.print_stack())
         t = time.time()
         super().draw()
         duration = time.time() - t
@@ -85,7 +98,7 @@ class MatplotlibWidget(FigureCanvas):
             self.quick_draw = False
         else:
             self.quick_draw = True
-        
+
     def show(self):
         self.draw()
 

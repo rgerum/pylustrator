@@ -24,9 +24,9 @@ class FigurePreviews(QtWidgets.QWidget):
         pix.fill(QtGui.QColor("#666666"))
 
         target_width = 150
-        target_height = 150*9/16
+        target_height = 150 * 9 / 16
         w, h = figure.get_size_inches()
-        figure.savefig("tmp.png", dpi=min([target_width/w, target_height/h]))
+        figure.savefig("tmp.png", dpi=min([target_width / w, target_height / h]))
         button.setStyleSheet("background:#d1d1d1")
         button.setMaximumWidth(150)
         button.setMaximumHeight(150)
@@ -34,6 +34,6 @@ class FigurePreviews(QtWidgets.QWidget):
 
         pix.load("tmp.png")
         # scale pixmap to fit in label'size and keep ratio of pixmap
-        #pix = pix.scaled(160, 90, QtCore.Qt.KeepAspectRatio)
+        # pix = pix.scaled(160, 90, QtCore.Qt.KeepAspectRatio)
         button.setPixmap(pix)
         button.mousePressEvent = lambda e: self.parent.setFigure(figure)

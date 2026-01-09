@@ -21,6 +21,7 @@
 
 import io
 import matplotlib.pyplot as plt
+
 try:  # starting from mpl version 3.6.0
     from matplotlib.axes import Axes
 except ImportError:
@@ -32,7 +33,7 @@ from .helper_functions import removeContentFromFigure, addContentToFigure
 
 
 def stashElements(ax: Axes, names: List[str]):
-    """ remove elements from a figure and store them"""
+    """remove elements from a figure and store them"""
     for attribute in names:
         element = getattr(ax, attribute)
         setattr(ax, "pylustrator_" + attribute, element)
@@ -40,7 +41,7 @@ def stashElements(ax: Axes, names: List[str]):
 
 
 def popStashedElements(ax: Axes, names: List[str]):
-    """ add elements to a figure that were previously removed from it """
+    """add elements to a figure that were previously removed from it"""
     for attribute in names:
         element_list = getattr(ax, attribute)
         if isinstance(element_list, list):
@@ -53,7 +54,7 @@ def popStashedElements(ax: Axes, names: List[str]):
 
 
 def rasterizeAxes(fig: Figure):
-    """ replace contents of a figure with a rasterized image of it """
+    """replace contents of a figure with a rasterized image of it"""
     restoreAxes(fig)
 
     parts = removeContentFromFigure(fig)
@@ -66,7 +67,7 @@ def rasterizeAxes(fig: Figure):
         addContentToFigure(fig, [ax])
 
         buf = io.BytesIO()
-        fig.savefig(buf, format='png', dpi=100)
+        fig.savefig(buf, format="png", dpi=100)
         buf.seek(0)
         im = plt.imread(buf)
         buf.close()
@@ -74,23 +75,31 @@ def rasterizeAxes(fig: Figure):
         bbox = ax.get_position()
         sx = im.shape[1]
         sy = im.shape[0]
-        x1, x2 = int(bbox.x0*sx+1), int(bbox.x1*sx-1)
-        y2, y1 = sy-int(bbox.y0*sy+1), sy-int(bbox.y1*sy-1)
+        x1, x2 = int(bbox.x0 * sx + 1), int(bbox.x1 * sx - 1)
+        y2, y1 = sy - int(bbox.y0 * sy + 1), sy - int(bbox.y1 * sy - 1)
         im2 = im[y1:y2, x1:x2]
         stashElements(ax, ["lines", "images", "patches"])
 
         sx2 = ax.get_xlim()[1] - ax.get_xlim()[0]
         sy2 = ax.get_ylim()[1] - ax.get_ylim()[0]
 
-        x1_offset = 1/sx/bbox.width*sx2
-        x2_offset = 1/sx/bbox.width*sx2
+        x1_offset = 1 / sx / bbox.width * sx2
+        x2_offset = 1 / sx / bbox.width * sx2
         y1_offset = 1 / sy / bbox.height * sy2
         y2_offset = 1 / sy / bbox.height * sy2
 
         xlim = ax.get_xlim()
         ylim = ax.get_ylim()
-        ax.pylustrator_rasterized = ax.imshow(im2, extent=[ax.get_xlim()[0]+x1_offset, ax.get_xlim()[1]-x2_offset-x1_offset,
-                                                           ax.get_ylim()[0]+y1_offset, ax.get_ylim()[1]-y2_offset-y1_offset], aspect="auto")
+        ax.pylustrator_rasterized = ax.imshow(
+            im2,
+            extent=[
+                ax.get_xlim()[0] + x1_offset,
+                ax.get_xlim()[1] - x2_offset - x1_offset,
+                ax.get_ylim()[0] + y1_offset,
+                ax.get_ylim()[1] - y2_offset - y1_offset,
+            ],
+            aspect="auto",
+        )
         ax.set_xlim(xlim)
         ax.set_ylim(ylim)
 
@@ -100,7 +109,7 @@ def rasterizeAxes(fig: Figure):
 
 
 def restoreAxes(fig: Figure):
-    """ restore contents of a figure """
+    """restore contents of a figure"""
     list_axes = fig.axes
     for ax in list_axes:
         im = getattr(ax, "pylustrator_rasterized", None)

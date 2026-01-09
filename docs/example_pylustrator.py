@@ -12,7 +12,7 @@ pylustrator.start()
 np.random.seed(1)
 t = np.arange(0.0, 2, 0.001)
 y = 2 * np.sin(np.pi * t)
-a, b = np.random.normal(loc=(5., 3.), scale=(2., 4.), size=(100,2)).T
+a, b = np.random.normal(loc=(5.0, 3.0), scale=(2.0, 4.0), size=(100, 2)).T
 b += a
 
 plt.figure(1)
