@@ -29,6 +29,7 @@ build-backend = "setuptools.build_meta"
 
 [dependency-groups]
 docs = [
+    "mock>=5.2.0",
     "nbsphinx>=0.9.8",
     "sphinx-rtd-theme>=3.0.2",
     "sphinxcontrib-bibtex>=2.6.5",
