@@ -40,7 +40,7 @@ def replace_version(file, version_old, version_new):
 def get_setup_properties():
     path = Path(__file__).parent
     for i in range(3):
-        setup_file = path / "setup.py"
+        setup_file = path / "pyproject.toml"
         if setup_file.exists():
             os.chdir(setup_file.parent)
             with setup_file.open("r") as fp:

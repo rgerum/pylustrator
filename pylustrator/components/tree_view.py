@@ -1,7 +1,7 @@
 from typing import Optional
 
 import qtawesome as qta
-from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
+from qtpy import QtCore, QtGui, QtWidgets
 
 import matplotlib as mpl
 from matplotlib.artist import Artist

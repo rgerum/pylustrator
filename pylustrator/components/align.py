@@ -1,5 +1,5 @@
 import os
-from matplotlib.backends.qt_compat import QtGui, QtWidgets
+from qtpy import QtGui, QtWidgets
 
 
 class Align(QtWidgets.QWidget):
@@ -15,8 +15,8 @@ class Align(QtWidgets.QWidget):
 
         signals.figure_changed.connect(self.setFigure)
 
-        self.layout = QtWidgets.QHBoxLayout(self)
-        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout_main = QtWidgets.QHBoxLayout(self)
+        self.layout_main.setContentsMargins(0, 0, 0, 0)
 
         actions = [
             "left_x",
@@ -50,7 +50,7 @@ class Align(QtWidgets.QWidget):
                 "",
             )
             button.setToolTip(act.replace("_", " "))
-            self.layout.addWidget(button)
+            self.layout_main.addWidget(button)
             button.clicked.connect(lambda x, act=act: self.execute_action(act))
             self.buttons.append(button)
             align_group.addButton(button)
@@ -58,8 +58,8 @@ class Align(QtWidgets.QWidget):
                 line = QtWidgets.QFrame()
                 line.setFrameShape(QtWidgets.QFrame.VLine)
                 line.setFrameShadow(QtWidgets.QFrame.Sunken)
-                self.layout.addWidget(line)
-        self.layout.addStretch()
+                self.layout_main.addWidget(line)
+        self.layout_main.addStretch()
 
     def execute_action(self, act: str):
         """execute an alignment action"""
