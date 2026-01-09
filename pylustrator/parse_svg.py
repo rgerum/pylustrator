@@ -32,7 +32,6 @@ import numpy as np
 import re
 import io
 import base64
-import matplotlib.text
 from .arc2bez import arcToBezier
 
 
@@ -152,7 +151,7 @@ def apply_style(style: dict, patch: mpatches.Patch) -> dict:
                     try:
                         r, g, b = readColor(value)
                         patch.set_facecolor((r, g, b, fill_opacity))
-                    except Exception as err:
+                    except Exception:
                         patch.set_facecolor("none")
                         raise
             elif key == "fill-opacity":
@@ -164,7 +163,7 @@ def apply_style(style: dict, patch: mpatches.Patch) -> dict:
                     try:
                         r, g, b = readColor(value)
                         patch.set_edgecolor((r, g, b, stroke_opacity))
-                    except Exception as err:
+                    except Exception:
                         patch.set_edgecolor("none")
                         raise
             elif key == "stroke-opacity":

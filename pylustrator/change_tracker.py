@@ -33,21 +33,18 @@ from matplotlib import _pylab_helpers
 from matplotlib.artist import Artist
 try:  # starting from mpl version 3.6.0
     from matplotlib.axes import Axes
-except:
+except ImportError:
     from matplotlib.axes._subplots import Axes
-from matplotlib.collections import Collection
 from matplotlib.figure import Figure
 try:
     from matplotlib.figure import SubFigure  # since matplotlib 3.4.0
 except ImportError:
     SubFigure = None
-from matplotlib.lines import Line2D
-from matplotlib.patches import Rectangle
 from matplotlib.text import Text
 from matplotlib.legend import Legend
 try:
     from natsort import natsorted
-except:
+except ImportError:
     natsorted = sorted
 
 from .exception_swallower import Dummy
@@ -354,13 +351,13 @@ class ChangeTracker:
             # if the text is deleted we do not need to store all properties
             if not element.get_visible() or element.get_text() == "":
                 if getattr(element, "is_new_text", False):
-                    return element.axes or element.figure, f".text(0, 0, "", visible=False)"
+                    return element.axes or element.figure, ".text(0, 0, "", visible=False)"
                 else:
                     is_label = np.any([ax.xaxis.get_label() == element or ax.yaxis.get_label() == element for ax in
                                        element.figure.axes])
                     if is_label:
-                        return element, f".set(text='')"
-                    return element, f".set(visible=False)"
+                        return element, ".set(text='')"
+                    return element, ".set(visible=False)"
 
             # properties to store
             properties = ["position", "text", "ha", "va", "fontsize", "color", "style", "weight", "fontname", "rotation"]

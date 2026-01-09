@@ -19,12 +19,11 @@
 # You should have received a copy of the GNU General Public License
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
-from typing import List, Tuple, Optional
+from typing import List, Optional
 from packaging import version
 from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
 
 import matplotlib as mpl
-import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.artist import Artist
 try:  # starting from mpl version 3.6.0
@@ -32,7 +31,6 @@ try:  # starting from mpl version 3.6.0
 except:
     from matplotlib.axes._subplots import Axes
 from matplotlib.legend import Legend
-from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle, Ellipse, FancyArrowPatch
 from matplotlib.text import Text
 from matplotlib.figure import Figure

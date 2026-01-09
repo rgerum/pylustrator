@@ -3,7 +3,7 @@ import numpy as np
 import re
 from pathlib import Path
 import matplotlib.pyplot as plt
-from matplotlib.backend_bases import MouseEvent, KeyEvent
+from matplotlib.backend_bases import MouseEvent
 from typing import Any
 
 

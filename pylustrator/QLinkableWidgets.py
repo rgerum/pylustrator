@@ -23,10 +23,8 @@ from typing import Optional, Sequence
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import matplotlib.transforms as transforms
 import numpy as np
 from matplotlib.artist import Artist
-from matplotlib.figure import Figure
 from matplotlib.text import Text
 from matplotlib.axes import Axes
 from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
@@ -74,10 +72,10 @@ class Linkable:
                 if isinstance(self.element, Text) and len(main_figure(self.element).selection.targets) and isinstance(main_figure(self.element).selection.targets[0].target, Axes):
                     for elm in main_figure(self.element).selection.targets:
                         elm = elm.target
-                        if self.element == getattr(getattr(elm, f"get_xaxis")(), "get_label")():
+                        if self.element == getattr(getattr(elm, "get_xaxis")(), "get_label")():
                             label_object = "x"
                             break
-                        if self.element == getattr(getattr(elm, f"get_yaxis")(), "get_label")():
+                        if self.element == getattr(getattr(elm, "get_yaxis")(), "get_label")():
                             label_object = "y"
                             break
 
@@ -94,7 +92,7 @@ class Linkable:
                         try:
                             index += 1
                             getattr(elm, "set_" + property_name, None)(v[index])
-                        except TypeError as err:
+                        except TypeError:
                             pass
                         else:
                             elements.append(elm)
@@ -105,10 +103,10 @@ class Linkable:
                 if isinstance(self.element, Text) and len(main_figure(self.element).selection.targets) and isinstance(main_figure(self.element).selection.targets[0].target, Axes):
                     for elm in main_figure(self.element).selection.targets:
                         elm = elm.target
-                        if self.element == getattr(getattr(elm, f"get_xaxis")(), "get_label")():
+                        if self.element == getattr(getattr(elm, "get_xaxis")(), "get_label")():
                             label_object = "x"
                             break
-                        if self.element == getattr(getattr(elm, f"get_yaxis")(), "get_label")():
+                        if self.element == getattr(getattr(elm, "get_yaxis")(), "get_label")():
                             label_object = "y"
                             break
 
@@ -121,7 +119,7 @@ class Linkable:
                     if elm != self.element:
                         try:
                             values.append([elm, property_name, getattr(elm, "get_" + property_name, None)()])
-                        except TypeError as err:
+                        except TypeError:
                             pass
                 return values
 

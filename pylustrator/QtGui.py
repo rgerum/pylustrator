@@ -19,14 +19,14 @@
 # You should have received a copy of the GNU General Public License
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
-from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
+from matplotlib.backends.qt_compat import QtGui, QtWidgets
 
 import numpy as np
 import matplotlib.pyplot as plt
 try:  # for matplotlib > 3.0
     from matplotlib.backends.backend_qtagg import (FigureCanvas, FigureManager, NavigationToolbar2QT as NavigationToolbar)
 except ModuleNotFoundError:
-    from matplotlib.backends.backend_qt5agg import (FigureCanvas, FigureManager, NavigationToolbar2QT as NavigationToolbar)
+    from matplotlib.backends.backend_qt5agg import (FigureCanvas, NavigationToolbar2QT as NavigationToolbar)
 from pylustrator.components.matplotlibwidget import MatplotlibWidget
 from matplotlib import _pylab_helpers
 from matplotlib.figure import Figure

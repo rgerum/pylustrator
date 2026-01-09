@@ -29,10 +29,9 @@ from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
 
 try:  # starting from mpl version 3.6.0
     from matplotlib.axes import Axes
-except:
+except ImportError:
     from matplotlib.axes._subplots import Axes
 import matplotlib as mpl
-import matplotlib.pyplot as plt
 from matplotlib.artist import Artist
 from matplotlib.figure import Figure
 from matplotlib.ticker import AutoLocator
@@ -390,7 +389,6 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
         self.layout = QtWidgets.QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
 
-        from packaging import version
         import matplotlib as mpl
         ncols_name = "ncols"
         if version.parse(mpl._get_version()) < version.parse("3.6.0"):
@@ -679,13 +677,13 @@ class QTickEdit(QtWidgets.QWidget):
                         label = two_parts[1].strip("\"")
                     else:
                         tick, label = self.formatTickLabel(line)
-                except ValueError as err:
+                except ValueError:
                     pass
                 else:
                     if not np.isnan(tick):
                         ticks.append(tick)
                         labels.append(label)
-        except Exception as err:
+        except Exception:
             pass
         return ticks, labels
 

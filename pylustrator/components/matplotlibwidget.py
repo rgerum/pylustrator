@@ -34,7 +34,6 @@ Copyright © 2005 Florent Rougon, 2006 Darren Dale
 
 __version__ = "1.0.0"
 
-import sys
 import time
 
 import qtawesome as qta
@@ -76,7 +75,7 @@ class MatplotlibWidget(FigureCanvas):
 
     def draw(self):
         self.timer.stop()
-        import traceback
+        #import traceback
         #print(traceback.print_stack())
         t = time.time()
         super().draw()
