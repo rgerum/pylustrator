@@ -29,7 +29,7 @@ from matplotlib.artist import Artist
 
 try:  # starting from mpl version 3.6.0
     from matplotlib.axes import Axes
-except:
+except ImportError:
     from matplotlib.axes._subplots import Axes
 from matplotlib.legend import Legend
 from matplotlib.patches import Rectangle, Ellipse, FancyArrowPatch

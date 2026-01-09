@@ -29,13 +29,13 @@ print(os.getcwd())
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-import mock
+import mock  # noqa: E402
 
 # try to import the modules of the package and mock everything that is not found
 while True:
     try:
         # here are the modules that should be imported for the documentation
-        import pylustrator
+        import pylustrator  # noqa: F401
     # if an import error occurs
     except ImportError as err:
         # get the module name from the error message
@@ -141,7 +141,7 @@ todo_include_todos = False
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-import sphinx_rtd_theme
+import sphinx_rtd_theme  # noqa: E402
 
 html_theme = "sphinx_rtd_theme"
 

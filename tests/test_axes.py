@@ -42,7 +42,9 @@ class TestAxes(BaseTest):
         # get the figure
         fig, text = self.run_plot_script()
 
-        get_axes = lambda: fig.axes[0]
+        def get_axes():
+            return fig.axes[0]
+
         line_command = "plt.figure(1).axes[0].set("
         test_run = "Change axes limits."
 
@@ -142,7 +144,9 @@ class TestAxes(BaseTest):
         # get the figure
         fig, text = self.run_plot_script()
 
-        get_axes = lambda: fig.axes[0]
+        def get_axes():
+            return fig.axes[0]
+
         line_command = "plt.figure(1).axes[0].grid("
         test_run = "Change axes grid."
 
@@ -161,7 +165,9 @@ class TestAxes(BaseTest):
         # get the figure
         fig, text = self.run_plot_script()
 
-        get_axes = lambda: fig.axes[0]
+        def get_axes():
+            return fig.axes[0]
+
         line_command = "plt.figure(1).axes[0].spines[['right', 'top']].set_visible("
         test_run = "Change axes despine."
 
@@ -182,7 +188,9 @@ class TestAxes(BaseTest):
         # get the figure
         fig, text = self.run_plot_script()
 
-        get_axes = lambda: fig.axes[0]
+        def get_axes():
+            return fig.axes[0]
+
         test_run = "Change axes ticks."
         line_command = "plt.figure(1).axes[0].set("
 
@@ -308,7 +316,9 @@ class TestAxes(BaseTest):
         # get the figure
         fig, text = self.run_plot_script()
 
-        get_axes = lambda: fig.axes[0]
+        def get_axes():
+            return fig.axes[0]
+
         test_run = "Change axes ticks."
 
         self.move_element((0, 0), fig.axes[0])

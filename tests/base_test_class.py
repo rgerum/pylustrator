@@ -208,7 +208,9 @@ plt.show(hide_window=True)
             )
 
         if get_function is None:
-            get_function = lambda: getattr(get_obj(), f"get_{property_name}")()
+
+            def get_function():
+                return getattr(get_obj(), f"get_{property_name}")()
 
         # get the initial code
         fig = self.fig
@@ -338,10 +340,12 @@ plt.show(hide_window=True)
         line_command_list = ensure_list(line_command_list, len(get_obj_list))
 
         if get_function is None:
-            get_function = lambda: [
-                getattr(get_obj(), f"get_{property_name}")()
-                for get_obj, property_name in zip(get_obj_list, property_name_list)
-            ]
+
+            def get_function():
+                return [
+                    getattr(get_obj(), f"get_{property_name}")()
+                    for get_obj, property_name in zip(get_obj_list, property_name_list)
+                ]
 
         fig = self.fig
 

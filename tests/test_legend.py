@@ -9,7 +9,9 @@ class TestLegend(BaseTest):
         fig.figure_dragger.select_element(fig.axes[2])
         fig.window.input_properties.button_legend.clicked.emit()
 
-        get_legend = lambda: fig.axes[2].get_legend()
+        def get_legend():
+            return fig.axes[2].get_legend()
+
         line_command = "plt.figure(1).axes[2].legend("
         test_run = "Change legend in axes."
         x = 0.040748

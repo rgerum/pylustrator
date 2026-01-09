@@ -105,7 +105,7 @@ class Canvas(QtWidgets.QWidget):
 
     canvas = None
 
-    def __init__(self, signals: "Signals"):
+    def __init__(self, signals):
         """The wrapper around the matplotlib canvas to create a more image editor like canvas with background and side rulers"""
         super().__init__()
 
@@ -194,7 +194,7 @@ class Canvas(QtWidgets.QWidget):
             transforms.Affine2D().scale(1.0 / 2.54, 1.0 / 2.54)
             + self.fig.dpi_scale_trans
         )
-        l = 20
+        l0 = 20
         l1 = 20
         l2 = 10
         l3 = 5
@@ -218,8 +218,8 @@ class Canvas(QtWidgets.QWidget):
         w = self.canvas_canvas.width()
         h = self.canvas_canvas.height()
 
-        self.pixmapX = QtGui.QPixmap(w, l)
-        self.pixmapY = QtGui.QPixmap(l, h)
+        self.pixmapX = QtGui.QPixmap(w, l0)
+        self.pixmapY = QtGui.QPixmap(l0, h)
 
         self.pixmapX.fill(QtGui.QColor("#f0f0f0"))
         self.pixmapY.fill(QtGui.QColor("#f0f0f0"))
@@ -247,7 +247,7 @@ class Canvas(QtWidgets.QWidget):
             # for i, pos_cm in enumerate(np.arange(start_x, end_x, dx)):
             x = trans.transform((pos_cm, 0))[0] + offset
             if pos_cm % big_lines == 0:
-                painterX.drawLine(int(x), int(l - l1 - 1), int(x), int(l - 1))
+                painterX.drawLine(int(x), int(l0 - l1 - 1), int(x), int(l0 - 1))
                 text = str("%d" % np.round(pos_cm))
                 o = 0
                 painterX.drawText(
@@ -259,15 +259,15 @@ class Canvas(QtWidgets.QWidget):
                     text,
                 )
             elif pos_cm % medium_lines == 0:
-                painterX.drawLine(int(x), int(l - l2 - 1), int(x), int(l - 1))
+                painterX.drawLine(int(x), int(l0 - l2 - 1), int(x), int(l0 - 1))
             else:
-                painterX.drawLine(int(x), int(l - l3 - 1), int(x), int(l - 1))
-        painterX.drawLine(0, l - 2, w, l - 2)
+                painterX.drawLine(int(x), int(l0 - l3 - 1), int(x), int(l0 - 1))
+        painterX.drawLine(0, l0 - 2, w, l0 - 2)
         painterX.setPen(QtGui.QPen(QtGui.QColor("white"), 1))
-        painterX.drawLine(0, l - 1, w, l - 1)
+        painterX.drawLine(0, l0 - 1, w, l0 - 1)
         self.x_scale.setPixmap(self.pixmapX)
-        self.x_scale.setMinimumSize(w, l)
-        self.x_scale.setMaximumSize(w, l)
+        self.x_scale.setMinimumSize(w, l0)
+        self.x_scale.setMaximumSize(w, l0)
 
         offset = self.canvas_container.pos().y() + self.canvas_container.height()
         start_y = np.floor(trans.inverted().transform((0, +offset - h))[1])
@@ -288,7 +288,7 @@ class Canvas(QtWidgets.QWidget):
         for i, pos_cm in enumerate(positions):
             y = -trans.transform((0, pos_cm))[1] + offset
             if pos_cm % big_lines == 0:
-                painterY.drawLine(int(l - l1 - 1), int(y), int(l - 1), int(y))
+                painterY.drawLine(int(l0 - l1 - 1), int(y), int(l0 - 1), int(y))
                 text = str("%d" % np.round(pos_cm))
                 o = 0
                 for ti, t in enumerate(text):
@@ -301,18 +301,18 @@ class Canvas(QtWidgets.QWidget):
                         t,
                     )
             elif pos_cm % medium_lines == 0:
-                painterY.drawLine(int(l - l2 - 1), int(y), int(l - 1), int(y))
+                painterY.drawLine(int(l0 - l2 - 1), int(y), int(l0 - 1), int(y))
             else:
-                painterY.drawLine(int(l - l3 - 1), int(y), int(l - 1), int(y))
-        painterY.drawLine(int(l - 2), 0, int(l - 2), int(h))
+                painterY.drawLine(int(l0 - l3 - 1), int(y), int(l0 - 1), int(y))
+        painterY.drawLine(int(l0 - 2), 0, int(l0 - 2), int(h))
         painterY.setPen(QtGui.QPen(QtGui.QColor("white"), 1))
-        painterY.drawLine(int(l - 1), 0, int(l - 1), int(h))
+        painterY.drawLine(int(l0 - 1), 0, int(l0 - 1), int(h))
         painterY.setPen(QtGui.QPen(QtGui.QColor("#f0f0f0"), 0))
         painterY.setBrush(QtGui.QBrush(QtGui.QColor("#f0f0f0")))
-        painterY.drawRect(0, 0, int(l), int(l))
+        painterY.drawRect(0, 0, int(l0), int(l0))
         self.y_scale.setPixmap(self.pixmapY)
-        self.y_scale.setMinimumSize(l, h)
-        self.y_scale.setMaximumSize(l, h)
+        self.y_scale.setMinimumSize(l0, h)
+        self.y_scale.setMaximumSize(l0, h)
 
         w, h = self.canvas.get_width_height()
 
@@ -417,7 +417,7 @@ class Canvas(QtWidgets.QWidget):
             diff += pos_ax2 - pos_ax
             self.moveCanvasCanvas(*diff)
 
-            bb = self.fig.axes[0].get_position()
+            # bb = self.fig.axes[0].get_position()
 
     def resizeEvent(self, event: QtCore.QEvent):
         """when the window is resized"""
@@ -597,7 +597,7 @@ class ToolBar(QtWidgets.QToolBar):
 class PlotLayout(QtWidgets.QWidget):
     toolbar = None
 
-    def __init__(self, signals: "Signals"):
+    def __init__(self, signals):
         super().__init__()
         self.setMinimumSize(600, 500)
 

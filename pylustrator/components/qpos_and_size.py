@@ -22,7 +22,7 @@ class QPosAndSize(QtWidgets.QWidget):
     transform_index = 0
     scale_type = 0
 
-    def __init__(self, layout: QtWidgets.QLayout, signals: "Signals"):
+    def __init__(self, layout: QtWidgets.QLayout, signals):
         """a widget that holds all the properties to set and the tree view
 
         Args:
@@ -306,9 +306,9 @@ class QPosAndSize(QtWidgets.QWidget):
             self.input_position.setTransform(self.getTransform(element))
             try:
                 self.input_position.setValue(pos)
-            except Exception:
+            except (ValueError, TypeError):
                 self.input_position.setValue((pos.x0, pos.y0))
             self.input_transform.setEnabled(True)
             self.input_position.setEnabled(True)
-        except:
+        except (AttributeError, RuntimeError):
             self.input_position.setDisabled(True)
