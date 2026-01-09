@@ -225,7 +225,12 @@ class Linkable:
                     element, self.serializeLinkedProperty(self.getSerialized(element))
                 )
 
-        if self.property_name == "xlim" or self.property_name == "ylim":
+        if (
+            self.property_name == "xlim"
+            or self.property_name == "ylim"
+            or self.property_name == "xlabel"
+            or self.property_name == "ylabel"
+        ):
 
             def save_change(element):
                 element.figure.change_tracker.addNewAxesChange(element)

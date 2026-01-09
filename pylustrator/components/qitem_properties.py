@@ -1082,18 +1082,20 @@ class QAxesProperties(QtWidgets.QWidget):
         self.targetChanged.connect(self.setTarget)
 
         self.input_label = TextWidget(self.layout, axis + "-Label:")
+        if 0:
 
-        def wrapTargetLabel(axis_object):
-            try:
-                target = getattr(
-                    getattr(axis_object, f"get_{axis}axis")(), "get_label"
-                )()
-            except AttributeError:
-                target = None
-            self.targetChanged_wrapped.emit(target)
+            def wrapTargetLabel(axis_object):
+                try:
+                    target = getattr(
+                        getattr(axis_object, f"get_{axis}axis")(), "get_label"
+                    )()
+                except AttributeError:
+                    target = None
+                self.targetChanged_wrapped.emit(target)
 
-        self.targetChanged.connect(wrapTargetLabel)
-        self.input_label.link("text", signal=self.targetChanged_wrapped)
+            self.targetChanged.connect(wrapTargetLabel)
+            self.input_label.link("text", signal=self.targetChanged_wrapped)
+        self.input_label.link(axis + "label", signal=self.targetChanged)
 
         self.input_lim = DimensionsWidget(
             self.layout, axis + "-Lim:", "-", "", free=True
