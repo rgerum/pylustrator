@@ -27,6 +27,13 @@ exclude = ["docs/example_pylustrator.py"]
 requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[dependency-groups]
+doc = [
+    "nbsphinx>=0.9.8",
+    "sphinx-rtd-theme>=3.0.2",
+    "sphinxcontrib-bibtex>=2.6.5",
+]
+
 [tool.setuptools]
 packages = ["pylustrator"]
 
