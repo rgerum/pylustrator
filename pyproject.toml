@@ -27,3 +27,7 @@ exclude = ["docs/example_pylustrator.py"]
 [build-system]
 requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["pylustrator"]
+
