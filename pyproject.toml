@@ -2,8 +2,8 @@
 name = "pylustrator"
 version = "1.3.0"
 description = "Adds interactivity to arrange panels in matplotlib."
-authors = [{name = "rgerum", email = "14153051+rgerum@users.noreply.github.com"}]
-license = {text = "GPLv3"}
+authors = [{ name = "rgerum", email = "14153051+rgerum@users.noreply.github.com" }]
+license = { text = "GPLv3" }
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
@@ -19,6 +19,9 @@ dependencies = [
 
 [project.optional-dependencies]
 test = ["pytest>=7.2.0,<8.0.0"]
+
+[tool.ruff]
+exclude = ["docs/example_pylustrator.py"]
 
 [build-system]
 requires = ["setuptools>=42", "wheel"]
