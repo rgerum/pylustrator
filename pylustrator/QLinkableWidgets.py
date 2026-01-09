@@ -222,8 +222,13 @@ class Linkable:
                 fig.change_tracker.addNewTextChange(element)
             else:
                 fig.change_tracker.addChange(
-                    element, self.serializeLinkedProperty(self.getSerialized())
+                    element, self.serializeLinkedProperty(self.getSerialized(element))
                 )
+
+        if self.property_name == "xlim" or self.property_name == "ylim":
+
+            def save_change(element):
+                element.figure.change_tracker.addNewAxesChange(element)
 
         def undo():
             for elem, property_name, value in old_value:
@@ -424,8 +429,11 @@ class DimensionsWidget(QtWidgets.QWidget, Linkable):
         """set both values (used for the Linkable parent class)"""
         self.setValue(value)
 
-    def getSerialized(self) -> str:
+    def getSerialized(self, element) -> str:
         """serialize the values"""
+        return ", ".join(
+            [str(i) for i in getattr(element, f"get_{self.property_name}")()]
+        )
         return ", ".join([str(i) for i in self.get()])
 
 
