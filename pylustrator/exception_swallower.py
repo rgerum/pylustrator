@@ -128,10 +128,10 @@ def swallow_get_exceptions():
     _AxesBase.patches = SaveListDescriptor("patches")
     Axis.get_minor_ticks = return_save_list(Axis.get_minor_ticks)
     Axis.get_major_ticks = return_save_list(Axis.get_major_ticks)
-    l = _AxesBase.get_legend
+    get_legend_orig = _AxesBase.get_legend
 
     def get_legend(*args, **kwargs):
-        leg = l(*args, **kwargs)
+        leg = get_legend_orig(*args, **kwargs)
         if leg is None:
             return Dummy()
         return leg

@@ -13,7 +13,6 @@ NOTE: adapted for pylustrator to be Python3 compatible
 
 """
 
-import sys as _sys
 import gc as _gc
 import types as _types
 import inspect as _inspect
@@ -68,9 +67,9 @@ def connect(fn, proxyfn):
         fn_type, (_types.BuiltinFunctionType, _types.BuiltinMethodType, type)
     ):
         return _PyjackFuncBuiltin(fn, proxyfn)
-    elif _sys.version_info < (2, 5) and issubclass(fn_type, type(file)):
-        # in python 2.4, open is of type file, not :class:`types.FunctionType`
-        return _PyjackFuncBuiltin(fn, proxyfn)
+    # elif _sys.version_info < (2, 5) and issubclass(fn_type, type(file)):
+    #    # in python 2.4, open is of type file, not :class:`types.FunctionType`
+    #    return _PyjackFuncBuiltin(fn, proxyfn)
     elif issubclass(fn_type, _WRAPPER_TYPES):
         raise PyjackException("Wrappers not supported. Make a concrete fn.")
     elif isinstance(getattr(fn, "__call__", None), _types.MethodType):
@@ -159,7 +158,7 @@ def replace_all_refs(org_obj, new_obj):
 
     _gc.collect()
 
-    hit = False
+    # hit = False
     for referrer in _gc.get_referrers(org_obj):
         # FRAMES -- PASS THEM UP
         if isinstance(referrer, _types.FrameType):
@@ -178,14 +177,14 @@ def replace_all_refs(org_obj, new_obj):
             for key, value in referrer.items():
                 # REMEMBER TO REPLACE VALUES ...
                 if value is org_obj:
-                    hit = True
+                    # hit = True
                     value = new_obj
                     referrer[key] = value
                     if cls:  # AGAIN, CLEANUP DICTPROXY PROBLEM
                         setattr(cls, key, new_obj)
                 # AND KEYS.
                 if key is org_obj:
-                    hit = True
+                    # hit = True
                     del referrer[key]
                     referrer[new_obj] = value
 
@@ -193,14 +192,14 @@ def replace_all_refs(org_obj, new_obj):
         elif isinstance(referrer, list):
             for i, value in enumerate(referrer):
                 if value is org_obj:
-                    hit = True
+                    # hit = True
                     referrer[i] = new_obj
 
         # SETS
         elif isinstance(referrer, set):
             referrer.remove(org_obj)
             referrer.add(new_obj)
-            hit = True
+            # hit = True
 
         # TUPLE, FROZENSET
         elif isinstance(

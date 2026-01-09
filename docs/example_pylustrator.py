@@ -27,4 +27,10 @@ plt.bar(0, np.mean(a))
 plt.bar(1, np.mean(b))
 
 # show the plot in a pylustrator window
+#% start: automatic generated code from pylustrator
+plt.figure(1).ax_dict = {ax.get_label(): ax for ax in plt.figure(1).axes}
+import matplotlib as mpl
+getattr(plt.figure(1), '_pylustrator_init', lambda: ...)()
+plt.figure(1).axes[2].patches[0].set_facecolor("#008f00ff")
+#% end: automatic generated code from pylustrator
 plt.show()

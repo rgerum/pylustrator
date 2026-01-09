@@ -7,7 +7,9 @@ class TestText(BaseTest):
         # get the figure
         fig, text = self.run_plot_script()
 
-        get_text = lambda: fig.axes[0].texts[0]
+        def get_text():
+            return fig.axes[0].texts[0]
+
         line_command = "plt.figure(1).axes[0].texts[0].set("
         test_run = "Change existing text in axes."
         self.check_text_properties(get_text, line_command, test_run, 0.4931, 0.497294)
@@ -19,7 +21,9 @@ class TestText(BaseTest):
         fig.figure_dragger.select_element(fig.axes[0])
         fig.window.input_properties.button_add_text.clicked.emit()
 
-        get_text = lambda: fig.axes[0].texts[-1]
+        def get_text():
+            return fig.axes[0].texts[-1]
+
         line_command = "plt.figure(1).axes[0].text("
         test_run = "Change new text in axes."
 
@@ -29,7 +33,9 @@ class TestText(BaseTest):
         # get the figure
         fig, text = self.run_plot_script()
 
-        get_text = lambda: fig.texts[-1]
+        def get_text():
+            return fig.texts[-1]
+
         line_command = "plt.figure(1).texts[0].set("
         test_run = "Change existing text in Figure."
 
@@ -42,7 +48,9 @@ class TestText(BaseTest):
         fig.figure_dragger.select_element(fig)
         fig.window.input_properties.button_add_text.clicked.emit()
 
-        get_text = lambda: fig.texts[-1]
+        def get_text():
+            return fig.texts[-1]
+
         line_command = "plt.figure(1).text("
         test_run = "Change new text in Figure."
 
@@ -237,7 +245,9 @@ class TestText(BaseTest):
         fig.figure_dragger.select_element(fig.axes[0])
         fig.window.input_properties.button_add_text.clicked.emit()
 
-        get_text = lambda: fig.axes[0].texts[0]
+        def get_text():
+            return fig.axes[0].texts[0]
+
         line_command = "plt.figure(1).axes[0].texts[0].set("
         test_run = "Delete text in axes."
 
@@ -252,7 +262,9 @@ class TestText(BaseTest):
             test_run,
         )
 
-        get_text = lambda: fig.axes[0].texts[1]
+        def get_text():
+            return fig.axes[0].texts[1]
+
         line_command = "plt.figure(1).axes[0].text("
         test_run = "Delete new text in axes."
 

@@ -27,7 +27,6 @@ import matplotlib.pyplot as plt
 try:  # for matplotlib > 3.0
     from matplotlib.backends.backend_qtagg import (
         FigureCanvas,
-        FigureManager,
         NavigationToolbar2QT as NavigationToolbar,
     )
 except ModuleNotFoundError:
@@ -260,9 +259,7 @@ def figureSwapColor(figure: Figure, new_color: str, color_base: str):
 class ColorChooserWidget(QtWidgets.QWidget):
     trigger_no_update = False
 
-    def __init__(
-        self, parent: QtWidgets, canvas: FigureCanvas, signals: "Signals" = None
-    ):
+    def __init__(self, parent: QtWidgets, canvas: FigureCanvas, signals=None):
         """A widget to display all curently used colors and let the user switch them.
 
         Args:

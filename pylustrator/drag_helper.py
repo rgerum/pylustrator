@@ -251,8 +251,8 @@ class GrabbableRectangleSelection(GrabFunctions):
             pen1 = QtGui.QPen(QtGui.QColor("white"), 2)
             pen2 = QtGui.QPen(QtGui.QColor("black"), 2)
             pen2.setStyle(QtCore.Qt.DashLine)
-            pen3 = QtGui.QPen(QtGui.QColor("black"), 2)
-            brush1 = QtGui.QBrush(QtGui.QColor("red"))
+            # pen3 = QtGui.QPen(QtGui.QColor("black"), 2)
+            # brush1 = QtGui.QBrush(QtGui.QColor("red"))
 
             w0, h0 = x1 - x0, y1 - y0
             rect1 = QtWidgets.QGraphicsRectItem(

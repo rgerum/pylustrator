@@ -3,7 +3,7 @@ from matplotlib.backends.qt_compat import QtGui, QtWidgets
 
 
 class Align(QtWidgets.QWidget):
-    def __init__(self, layout: QtWidgets.QLayout, signals: "Signals"):
+    def __init__(self, layout: QtWidgets.QLayout, signals):
         """A widget that allows to align the elements of a multi selection.
 
         Args:

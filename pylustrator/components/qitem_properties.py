@@ -486,14 +486,14 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
                 layout = QtWidgets.QHBoxLayout()
                 layout.setContentsMargins(0, 0, 0, 0)
                 self.layout.addLayout(layout)
-            if type_ == bool:
+            if type_ is bool:
                 widget = CheckWidget(layout, name + ":")
                 widget.editingFinished.connect(
                     lambda name=name, widget=widget: self.changePropertiy(
                         name, widget.get()
                     )
                 )
-            elif type_ == str:
+            elif type_ is str:
                 widget = TextWidget(layout, name + ":")
                 widget.editingFinished.connect(
                     lambda name=name, widget=widget: self.changePropertiy(
@@ -503,10 +503,10 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
             else:
                 label = QtWidgets.QLabel(name + ":")
                 layout.addWidget(label)
-                if type_ == float:
+                if type_ is float:
                     widget = QtWidgets.QDoubleSpinBox()
                     widget.setSingleStep(0.1)
-                elif type_ == int:
+                elif type_ is int:
                     widget = QtWidgets.QSpinBox()
                     if name == ncols_name:
                         widget.setMinimum(1)
@@ -741,15 +741,15 @@ class QTickEdit(QtWidgets.QWidget):
         ticks = getattr(self.element, "get_" + self.axis + "ticks")()
         labels = getattr(self.element, "get_" + self.axis + "ticklabels")()
         text = []
-        for t, l in zip(ticks, labels):
-            l, l_text = self.parseTickLabel(l.get_text())
+        for tick, label in zip(ticks, labels):
+            label, l_text = self.parseTickLabel(label.get_text())
             try:
-                l = float(l)
+                label = float(label)
             except ValueError:
                 continue
-            if min <= t <= max:
-                if l != t:
-                    text.append('%s "%s"' % (str(t), l_text))
+            if min <= tick <= max:
+                if label != tick:
+                    text.append('%s "%s"' % (str(tick), l_text))
                 else:
                     text.append("%s" % l_text)
         self.input_ticks.setText(",<br>".join(text))
@@ -757,15 +757,15 @@ class QTickEdit(QtWidgets.QWidget):
         ticks = getattr(self.element, "get_" + self.axis + "ticks")(minor=True)
         labels = getattr(self.element, "get_" + self.axis + "ticklabels")(minor=True)
         text = []
-        for t, l in zip(ticks, labels):
-            l, l_text = self.parseTickLabel(l.get_text())
+        for tick, label in zip(ticks, labels):
+            label, l_text = self.parseTickLabel(label.get_text())
             try:
-                l = float(l)
+                label = float(label)
             except ValueError:
                 pass
-            if min <= t <= max:
-                if l != t:
-                    text.append('%s "%s"' % (str(t), l_text))
+            if min <= tick <= max:
+                if label != tick:
+                    text.append('%s "%s"' % (str(tick), l_text))
                 else:
                     text.append("%s" % l_text)
         self.input_ticks2.setText(",<br>".join(text))
@@ -878,7 +878,7 @@ class QTickEdit(QtWidgets.QWidget):
                 + "ticks([%s], [%s], minor=True)"
                 % (
                     ", ".join(self.str(t) for t in ticks),
-                    ", ".join('"' + l + '"' for l in labels),
+                    ", ".join('"' + label + '"' for label in labels),
                 ),
                 element,
                 ".set_" + self.axis + "ticks_minor",
@@ -898,7 +898,7 @@ class QTickEdit(QtWidgets.QWidget):
                 continue
             # if default_ is None and value == plt.rcParams["legend." + name]:
             #    continue
-            if type_ == str:
+            if type_ is str:
                 prop_copy[name] = '"' + value + '"'
             else:
                 prop_copy[name] = value
@@ -1016,7 +1016,7 @@ class QTickEdit(QtWidgets.QWidget):
                         + "ticks([%s], [%s], %s)"
                         % (
                             ", ".join(self.str(t) for t in ticks),
-                            ", ".join('"' + l + '"' for l in labels),
+                            ", ".join('"' + label + '"' for label in labels),
                             self.getFontProperties()[0],
                         ),
                     )
@@ -1050,7 +1050,7 @@ class QTickEdit(QtWidgets.QWidget):
                     + "ticks([%s], [%s], %s)"
                     % (
                         ", ".join(self.str(t) for t in ticks),
-                        ", ".join('"' + l + '"' for l in labels),
+                        ", ".join('"' + label + '"' for label in labels),
                         self.getFontProperties()[0],
                     ),
                 )
@@ -1133,102 +1133,12 @@ class QAxesProperties(QtWidgets.QWidget):
             self.hide()
 
 
-class QAxesProperties(QtWidgets.QWidget):
-    targetChanged_wrapped = QtCore.Signal(object)
-
-    def __init__(
-        self, layout: QtWidgets.QLayout, axis: str, signal_target_changed: QtCore.Signal
-    ):
-        """a widget to change the properties of an axes (label, limits)
-
-        Args:
-            layout: the layout to which to add this widget
-            axis: whether to use "x" or the "y" axis
-            signal_target_changed: the signal when a target changed
-        """
-        QtWidgets.QWidget.__init__(self)
-        layout.addWidget(self)
-        self.axis = axis
-        self.layout = QtWidgets.QHBoxLayout(self)
-        self.layout.setContentsMargins(0, 0, 0, 0)
-
-        self.targetChanged = signal_target_changed
-        self.targetChanged.connect(self.setTarget)
-
-        self.input_label = TextWidget(self.layout, axis + "-Label:")
-        self.input_label.editingFinished.connect(self.saveLabel)
-        self.input_lim = DimensionsWidget(
-            self.layout, axis + "-Lim:", "-", "", free=True
-        )
-        self.input_lim.editingFinished.connect(self.saveLim)
-        if axis == "x":
-            self.button_ticks = QtWidgets.QPushButton(
-                QtGui.QIcon(
-                    os.path.join(os.path.dirname(__file__), "../icons", "ticks.ico")
-                ),
-                "",
-            )
-        else:
-            self.button_ticks = QtWidgets.QPushButton(
-                QtGui.QIcon(
-                    os.path.join(os.path.dirname(__file__), "../icons", "ticks_y.ico")
-                ),
-                "",
-            )
-        self.button_ticks.clicked.connect(self.showTickWidget)
-        self.layout.addWidget(self.button_ticks)
-
-        self.tick_edit = QTickEdit(axis, signal_target_changed)
-
-    def showTickWidget(self):
-        """open the tick edit dialog"""
-        self.tick_edit.setTarget(self.element)
-        self.tick_edit.show()
-
-    def setTarget(self, element: Artist):
-        """set the target Artist of this widget"""
-        self.element = element
-
-        if isinstance(element, Axes):
-            self.input_label.setText(getattr(element, f"get_{self.axis}label")())
-            self.input_lim.setValue(getattr(element, f"get_{self.axis}lim")())
-            self.show()
-        else:
-            self.hide()
-
-    def saveLabel(self):
-        elements = [self.element]
-        elements += [
-            element.target
-            for element in main_figure(self.element).selection.targets
-            if element.target != self.element and isinstance(element.target, Axes)
-        ]
-
-        text = self.input_label.text()
-        with UndoRedo(elements, f"Set axes {self.axis}-label"):
-            for element in elements:
-                element.set(**{f"{self.axis}label": text})
-
-    def saveLim(self):
-        elements = [self.element]
-        elements += [
-            element.target
-            for element in main_figure(self.element).selection.targets
-            if element.target != self.element and isinstance(element.target, Axes)
-        ]
-
-        limits = self.input_lim.value()
-        with UndoRedo(elements, f"Set axes {self.axis}-lim"):
-            for element in elements:
-                element.set(**{f"{self.axis}lim": limits})
-
-
 class QItemProperties(QtWidgets.QWidget):
     targetChanged = QtCore.Signal(object)
     valueChanged = QtCore.Signal(tuple)
     element = None
 
-    def __init__(self, layout: QtWidgets.QLayout, signals: "Signals"):
+    def __init__(self, layout: QtWidgets.QLayout, signals):
         """a widget that holds all the properties to set and the tree view
 
         Args:
@@ -1270,12 +1180,15 @@ class QItemProperties(QtWidgets.QWidget):
         layout = QtWidgets.QHBoxLayout()
         self.layout.addLayout(layout)
 
-        condition_line = lambda x: getattr(x, "get_linestyle")() not in [
-            "None",
-            " ",
-            "",
-        ]
-        condition_marker = lambda x: getattr(x, "get_marker")() not in ["None", " ", ""]
+        def condition_line(x):
+            return getattr(x, "get_linestyle")() not in [
+                "None",
+                " ",
+                "",
+            ]
+
+        def condition_marker(x):
+            return getattr(x, "get_marker")() not in ["None", " ", ""]
 
         TextWidget(layout, "Linestyle:", allow_literal_decoding=True).link(
             "linestyle", self.targetChanged
@@ -1541,9 +1454,9 @@ class QItemProperties(QtWidgets.QWidget):
                 elem.spines["right"].get_visible() and elem.spines["top"].get_visible()
             )
 
-        despined = [is_despined(elem) for elem in elements]
+        # despined = [is_despined(elem) for elem in elements]
         new_value = not is_despined(self.element)
-        fig = main_figure(self.element)
+        main_figure(self.element)
 
         with UndoRedo(elements, "Despine"):
             for element in elements:

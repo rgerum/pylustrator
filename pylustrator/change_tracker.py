@@ -544,7 +544,7 @@ class ChangeTracker:
                         default = None
                     pass
                 if (prop == "fontsize" or prop == "title_fontsize") and (
-                    default == "medium" or default == None
+                    default == "medium" or default is None
                 ):
                     if value == plt.rcParams["font.size"]:
                         continue
@@ -859,7 +859,7 @@ class ChangeTracker:
         ]
         command_obj_regexes = [re.compile(r) for r in command_obj_regexes]
 
-        fig = self.figure
+        # fig = self.figure
         header = []
         header += ["fig = plt.figure(%s)" % self.figure.number]
         header += ["import matplotlib as mpl"]

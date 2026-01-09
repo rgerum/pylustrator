@@ -269,7 +269,7 @@ def apply_style(style: dict, patch: mpatches.Patch) -> dict:
             elif key == "stroke-width":
                 try:
                     patch.set_linewidth(svgUnitToMpl(value))
-                except:
+                except AttributeError:
                     pass
             elif key == "stroke-linecap":
                 try:
@@ -875,7 +875,7 @@ def parseGroup(
             im = openImageFromLink(link)
             if no_draw is False:
                 if child.getAttribute("x") != "":
-                    im_patch = plt.imshow(
+                    plt.imshow(
                         im[::-1],
                         extent=[
                             svgUnitToMpl(child.getAttribute("x")),

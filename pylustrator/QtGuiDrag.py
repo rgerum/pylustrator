@@ -311,16 +311,16 @@ def warnAboutTicks(fig):
     for index, ax in enumerate(fig.axes):
         ticks = ax.get_yticks()
         labels = [t.get_text() for t in ax.get_yticklabels()]
-        for t, l in zip(ticks, labels):
-            l = l.replace("−", "-")
-            if l == "":
+        for tick, label in zip(ticks, labels):
+            label = label.replace("−", "-")
+            if label == "":
                 continue
             try:
-                l = float(l)
+                label = float(label)
             except ValueError:
                 pass
             # if the label is still a string or too far away from the tick value
-            if isinstance(l, str) or abs(t - l) > abs(1e-3 * t):
+            if isinstance(label, str) or abs(tick - label) > abs(1e-3 * tick):
                 ax_name = ax.get_label()
                 if ax_name == "":
                     ax_name = "#%d" % index
@@ -328,8 +328,8 @@ def warnAboutTicks(fig):
                     ax_name = '"' + ax_name + '"'
                 print(
                     "Warning tick and label differ",
-                    t,
-                    l,
+                    tick,
+                    label,
                     "for axes",
                     ax_name,
                     file=sys.stderr,

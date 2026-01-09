@@ -21,10 +21,17 @@ class myTreeWidgetItem(QtGui.QStandardItem):
 
 class MyTreeView(QtWidgets.QTreeView):
     # item_selected = lambda x, y: 0
-    item_clicked = lambda x, y: 0
-    item_activated = lambda x, y: 0
-    item_hoverEnter = lambda x, y: 0
-    item_hoverLeave = lambda x, y: 0
+    def item_clicked(x, y):
+        return 0
+
+    def item_activated(x, y):
+        return 0
+
+    def item_hoverEnter(x, y):
+        return 0
+
+    def item_hoverLeave(x, y):
+        return 0
 
     last_selection = None
     last_hover = None
@@ -34,7 +41,7 @@ class MyTreeView(QtWidgets.QTreeView):
             if getattr(self.fig, "figure_dragger", None) is not None:
                 self.fig.figure_dragger.select_element(x)
 
-    def __init__(self, signals: "Signals", layout: QtWidgets.QLayout):
+    def __init__(self, signals, layout: QtWidgets.QLayout):
         """A tree view to display the contents of a figure
 
         Args:
@@ -145,7 +152,7 @@ class MyTreeView(QtWidgets.QTreeView):
             try:
                 item = index.model().itemFromIndex(index)
                 entry = item.entry
-            except:
+            except AttributeError:
                 item = None
                 entry = None
 
