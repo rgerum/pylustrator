@@ -36,5 +36,5 @@ docs = [
 ]
 
 [tool.setuptools]
-packages = ["pylustrator"]
+packages = ["pylustrator", "pylustrator.components"]
 
