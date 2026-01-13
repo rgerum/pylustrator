@@ -286,7 +286,7 @@ def figure(num=None, figsize=None, force_add=False, *args, **kwargs):
     # if number is not defined
     if force_add or num not in _pylab_helpers.Gcf.figs.keys():
         # create a new window and store it
-        canvas = PlotWindow(num, figsize, *args, **kwargs).canvas
+        canvas = PlotWindow(num).canvas
         canvas.figure.number = num
         canvas.figure.clf()
         canvas.manager.num = num

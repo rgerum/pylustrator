@@ -20,6 +20,7 @@
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
 from xml.dom import minidom
+from typing import Callable
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -332,7 +333,7 @@ def plt_patch(
     node: minidom.Element,
     trans_parent_trans: mtransforms.Transform,
     style: dict,
-    constructor: callable,
+    constructor: Callable,
     ids: dict,
     no_draw: bool = False,
 ) -> mpatches.Patch:
@@ -738,15 +739,15 @@ def svgUnitToMpl(unit: str, default=None) -> float:
         if unit == "pt":
             value *= plt.gcf().dpi / 72
         elif unit == "pc":
-            value *= plt.gcf().dpi / 6
+            value *= getattr(plt.gcf(), "dpi", 100) / 6
         elif unit == "in":
-            value *= plt.gcf().dpi
+            value *= getattr(plt.gcf(), "dpi", 100)
         elif unit == "px":
             pass
         elif unit == "cm":
-            value *= plt.gcf().dpi / 2.5
+            value *= getattr(plt.gcf(), "dpi", 100) / 2.5
         elif unit == "mm":
-            value *= plt.gcf().dpi / 25
+            value *= getattr(plt.gcf(), "dpi", 100) / 25
         return value
 
 
@@ -755,7 +756,10 @@ def openImageFromLink(link: str) -> np.ndarray:
     if link.startswith("file:///"):
         return plt.imread(link[len("file:///") :])
     else:
-        type, data = re.match(r"data:image/(\w*);base64,(.*)", link).groups()
+        match = re.match(r"data:image/(\w*);base64,(.*)", link)
+        if match is None:
+            raise ValueError(f"Invalid image link format: {link}")
+        type, data = match.groups()
 
         data = base64.decodebytes(bytes(data, "utf-8"))
 
@@ -805,6 +809,8 @@ def parseGroup(
     patch_list = []
     for child in node.childNodes:
         if child.nodeType == child.TEXT_NODE or child.nodeType == child.COMMENT_NODE:
+            continue
+        if not isinstance(child, minidom.Element):
             continue
         if child.tagName == "style":
             for childchild in child.childNodes:

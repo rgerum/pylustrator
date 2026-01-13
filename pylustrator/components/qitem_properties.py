@@ -20,7 +20,7 @@
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
 import os
-from typing import Any
+from typing import Any, Tuple
 import numpy as np
 from packaging import version
 
@@ -662,7 +662,7 @@ class QTickEdit(QtWidgets.QWidget):
         self.layout.addWidget(self.button_ok)
         self.button_ok.clicked.connect(self.hide)
 
-    def parseTickLabel(self, line: str) -> (float, str):
+    def parseTickLabel(self, line: str) -> Tuple[float, str]:
         """interpret the tick value specified in line"""
         import re
 
@@ -691,7 +691,7 @@ class QTickEdit(QtWidgets.QWidget):
                 number = np.nan
         return number, line
 
-    def formatTickLabel(self, line: str) -> (float, str):
+    def formatTickLabel(self, line: str) -> Tuple[float, str]:
         """interpret the tick label specified in line"""
         import re
 

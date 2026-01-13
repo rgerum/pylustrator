@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from packaging import version
 from qtpy import QtCore, QtGui, QtWidgets
 
@@ -147,7 +147,7 @@ class TargetWrapper(object):
 
     def get_positions(
         self, use_previous_offset=False, update_offset=False
-    ) -> (int, int, int, int):
+    ) -> Tuple[int, int, int, int]:
         """get the current position of the target Artist"""
         points = []
         if isinstance(self.target, Rectangle):
@@ -241,7 +241,7 @@ class TargetWrapper(object):
                     self.target._pylustrator_offset = points[1] - points[0]
         return self.transform_points(points)
 
-    def set_positions(self, points: (int, int)):
+    def set_positions(self, points: Tuple[int, int]):
         """set the position of the target Artist"""
         points = self.transform_inverted_points(points)
 
@@ -354,7 +354,7 @@ class TargetWrapper(object):
             setattr(self.target, "_pylustrator_cached_get_extend", self.do_get_extent())
         return getattr(self.target, "_pylustrator_cached_get_extend")
 
-    def do_get_extent(self) -> (int, int, int, int):
+    def do_get_extent(self) -> Tuple[int, int, int, int]:
         """get the extent of the target"""
         points = np.array(self.get_positions())
         return [
@@ -364,12 +364,12 @@ class TargetWrapper(object):
             np.max(points[:, 1]),
         ]
 
-    def transform_points(self, points: (int, int)) -> (int, int):
+    def transform_points(self, points: Tuple[int, int]) -> Tuple[int, int]:
         """transform points from the targets local coordinate system to the figure coordinate system"""
         transform = self.get_transform()
         return [transform.transform(p) for p in points]
 
-    def transform_inverted_points(self, points: (int, int)) -> (int, int):
+    def transform_inverted_points(self, points: Tuple[int, int]) -> Tuple[int, int]:
         """transform points from the figure coordinate system to the targets local coordinate system"""
         transform = self.get_transform()
         return [transform.inverted().transform(p) for p in points]
@@ -390,21 +390,21 @@ class SnapBase:
         parent = main_figure(ax_source)._pyl_graphics_scene_snapparent
         parent.scene().addItem(self.draw_path)
         pen1 = QtGui.QPen(QtGui.QColor("red"), 2)
-        pen1.setStyle(QtCore.Qt.DashLine)
+        pen1.setStyle(QtCore.Qt.PenStyle.DashLine)
         self.draw_path.setPen(pen1)
 
-    def getPosition(self, target: TargetWrapper):
+    def getPosition(self, target: TargetWrapper) -> np.ndarray:
         """get the position of a target"""
         try:
-            return target.get_extent()
+            return np.array(target.get_extent())
         except AttributeError:
             return np.array(
-                target.figure.transFigure.transform(target.get_position())
+                target.figure.transFigure.transform(target.target.get_position())
             ).flatten()
 
-    def getDistance(self, index: int) -> (int, int):
+    def getDistance(self, index: int) -> float:
         """Calculate the distance of the snap to its target"""
-        return 0, 0
+        return 0.0
 
     def checkSnap(self, index: int) -> Optional[float]:
         """Return the distance to the targets or None"""
@@ -466,7 +466,7 @@ class SnapBase:
 class SnapSameEdge(SnapBase):
     """a snap that checks if two objects share an edge"""
 
-    def getDistance(self, index: int) -> (int, int):
+    def getDistance(self, index: int) -> float:
         """Calculate the distance of the snap to its target"""
         # only if the right edge index (x or y) is queried, if not the distance is infinite
         if self.edge % 2 != index:
@@ -475,7 +475,7 @@ class SnapSameEdge(SnapBase):
         p1 = self.getPosition(self.ax_source)
         p2 = self.getPosition(self.ax_target)
         # and return the difference in the target dimension
-        return p1[self.edge] - p2[self.edge]
+        return float(p1[self.edge] - p2[self.edge])
 
     def show(self):
         """A visualisation of the snap, e.g. lines to indicate what objects are snapped to what"""
@@ -509,7 +509,7 @@ class SnapSameEdge(SnapBase):
 class SnapSameDimension(SnapBase):
     """a snap that checks if two objects have the same width or height"""
 
-    def getDistance(self, index: int) -> (int, int):
+    def getDistance(self, index: int) -> float:
         """Calculate the distance of the snap to its target"""
         # only if the right edge index (x or y) is queried, if not the distance is infinite
         if self.edge % 2 != index:
@@ -518,7 +518,7 @@ class SnapSameDimension(SnapBase):
         p1 = self.getPosition(self.ax_source)
         p2 = self.getPosition(self.ax_target)
         # and the difference of the widths (or heights) of the objects
-        return (p2[self.edge - 2] - p2[self.edge]) - (p1[self.edge - 2] - p1[self.edge])
+        return float((p2[self.edge - 2] - p2[self.edge]) - (p1[self.edge - 2] - p1[self.edge]))
 
     def show(self):
         """A visualisation of the snap, e.g. lines to indicate what objects are snapped to what"""
@@ -554,11 +554,11 @@ class SnapSameDimension(SnapBase):
 class SnapSamePos(SnapBase):
     """a snap that checks if two objects have the same position"""
 
-    def getPosition(self, text: TargetWrapper) -> (int, int):
+    def getPosition(self, text: TargetWrapper) -> np.ndarray:
         # get the position of an object
         return np.array(text.get_transform().transform(text.target.get_position()))
 
-    def getDistance(self, index: int) -> int:
+    def getDistance(self, index: int) -> float:
         """Calculate the distance of the snap to its target"""
         # only if the right edge index (x or y) is queried, if not the distance is infinite
         if self.edge % 2 != index:
@@ -567,7 +567,7 @@ class SnapSamePos(SnapBase):
         p1 = self.getPosition(self.ax_source)
         p2 = self.getPosition(self.ax_target)
         # get the distance of the two objects in the target dimension
-        return p1[self.edge] - p2[self.edge]
+        return float(p1[self.edge] - p2[self.edge])
 
     def show(self):
         """A visualisation of the snap, e.g. lines to indicate what objects are snapped to what"""
@@ -585,7 +585,7 @@ class SnapSameBorder(SnapBase):
         self, ax_source: Artist, ax_target: Artist, ax_target2: Artist, edge: int
     ):
         super().__init__(ax_source, ax_target, edge)
-        self.ax_target2 = ax_target2
+        self.ax_target2 = TargetWrapper(ax_target2)
 
     def overlap(self, p1: list, p2: list, dir: int):
         """Test if two objects have an overlapping x or y region"""
@@ -666,18 +666,18 @@ class SnapSameBorder(SnapBase):
 class SnapCenterWith(SnapBase):
     """A snap that checks if a text is centered with an axes"""
 
-    def getPosition(self, text: TargetWrapper) -> (int, int):
+    def getPosition(self, text: TargetWrapper) -> np.ndarray:
         """get the position of the first object"""
         return np.array(text.get_transform().transform(text.target.get_position()))
 
-    def getPosition2(self, axes: TargetWrapper) -> int:
+    def getPosition2(self, axes: TargetWrapper) -> np.ndarray:
         """get the position of the second object"""
         pos = np.array(axes.figure.transFigure.transform(axes.target.get_position()))
         p = pos[0, :]
         p[self.edge] = np.mean(pos, axis=0)[self.edge]
         return p
 
-    def getDistance(self, index: int) -> int:
+    def getDistance(self, index: int) -> float:
         """Calculate the distance of the snap to its target"""
         # only if the right edge index (x or y) is queried, if not the distance is infinite
         if self.edge % 2 != index:
@@ -686,7 +686,7 @@ class SnapCenterWith(SnapBase):
         p1 = self.getPosition(self.ax_source)
         p2 = self.getPosition2(self.ax_target)
         # get the distance of the two objects in the target dimension
-        return p1[self.edge] - p2[self.edge]
+        return float(p1[self.edge] - p2[self.edge])
 
     def show(self):
         """A visualisation of the snap, e.g. lines to indicate what objects are snapped to what"""
@@ -697,7 +697,7 @@ class SnapCenterWith(SnapBase):
         self.set_data((p1[0], p2[0]), (p1[1], p2[1]))
 
 
-def checkSnaps(snaps: List[SnapBase]) -> (int, int):
+def checkSnaps(snaps: List[SnapBase]) -> Tuple[float, float]:
     """get the x and y offsets the snaps suggest"""
     result = [0, 0]
     # iterate over x and y
@@ -724,8 +724,8 @@ def checkSnapsActive(snaps: List[SnapBase]):
 def getSnaps(targets: List[TargetWrapper], dir: int, no_height=False) -> List[SnapBase]:
     """get all snap objects for the target and the direction"""
     snaps = []
-    targets = [t.target for t in targets]
-    for target in targets:
+    target_artists: List[Artist] = [t.target for t in targets]
+    for target in target_artists:
         if isinstance(target, Legend):
             continue
         if isinstance(target, Text):
@@ -736,7 +736,7 @@ def getSnaps(targets: List[TargetWrapper], dir: int, no_height=False) -> List[Sn
             for ax in target.figure.axes + [target.figure]:
                 for txt in ax.texts:
                     # for other texts
-                    if txt in targets or not txt.get_visible():
+                    if txt in target_artists or not txt.get_visible():
                         continue
                     # snap to the x and the y coordinate
                     x, y = txt.get_transform().transform(txt.get_position())
@@ -744,7 +744,7 @@ def getSnaps(targets: List[TargetWrapper], dir: int, no_height=False) -> List[Sn
                     snaps.append(SnapSamePos(target, txt, 1))
             continue
         for index, axes in enumerate(target.figure.axes):
-            if axes not in targets and axes.get_visible():
+            if axes not in target_artists and axes.get_visible():
                 # axes edged
                 if dir & DIR_X0:
                     snaps.append(SnapSameEdge(target, axes, 0))
@@ -767,6 +767,6 @@ def getSnaps(targets: List[TargetWrapper], dir: int, no_height=False) -> List[Sn
                         snaps.append(SnapSameDimension(target, axes, 3))
 
                 for axes2 in target.figure.axes:
-                    if axes2 != axes and axes2 not in targets and axes2.get_visible():
+                    if axes2 != axes and axes2 not in target_artists and axes2.get_visible():
                         snaps.append(SnapSameBorder(target, axes, axes2, dir))
     return snaps

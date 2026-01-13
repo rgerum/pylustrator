@@ -138,7 +138,8 @@ plt.show(hide_window=True)
         # don't move it and save the result
         fig.selection.start_move()
         fig.selection.has_moved = True
-        fig.selection.addOffset(offset, fig.selection.dir)
+        dir_value = fig.selection.dir if fig.selection.dir is not None else 0
+        fig.selection.addOffset(offset, dir_value)
         fig.selection.end_move()
 
     def assertEqualStringOrArray(self, first, second, msg) -> None:

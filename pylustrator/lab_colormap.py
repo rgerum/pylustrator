@@ -22,7 +22,7 @@
 """Colormap"""
 
 import numpy as np
-from typing import Sequence, Union
+from typing import Sequence, Union, List, Optional
 from matplotlib.colors import Colormap, ListedColormap, to_rgb
 
 
@@ -51,7 +51,7 @@ def convert_lab2rgb(colors):
 class LabColormap(ListedColormap):
     """a custom colormap that blends between N custom colors"""
 
-    init_colors = None
+    init_colors: Optional[List]
 
     def __init__(self, colors: Sequence, N: int, stops=None):
         """initialize with the given colors and stops"""
@@ -96,10 +96,10 @@ class LabColormap(ListedColormap):
         # return the colors
         return self.init_colors
 
-    def set_color(self, color: Union[str, Sequence], index: int = None):
+    def set_color(self, color: Union[str, Sequence], index: Optional[int] = None):
         """set a color to the given index"""
         # update the color according to the index
-        if index is not None:
+        if index is not None and self.init_colors is not None:
             self.init_colors[index] = to_rgb(color)
         # or update the whole list
         else:

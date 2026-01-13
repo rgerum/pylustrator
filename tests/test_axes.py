@@ -92,7 +92,7 @@ class TestAxes(BaseTest):
             test_run,
         )
 
-        get_axes = [lambda: fig.axes[0], lambda: fig.axes[1]]
+        get_axes_list = [lambda: fig.axes[0], lambda: fig.axes[1]]
         line_command = ["plt.figure(1).axes[0].set(", "plt.figure(1).axes[1].set("]
         test_run = "Change axes limits of two axes."
 
@@ -102,7 +102,7 @@ class TestAxes(BaseTest):
             lambda _: self.fig.window.input_properties.input_xaxis.input_lim.setValue(
                 (0.3, 10.7), signal=True
             ),
-            get_axes,
+            get_axes_list,
             line_command,
             test_run,
         )
@@ -113,7 +113,7 @@ class TestAxes(BaseTest):
             lambda _: self.fig.window.input_properties.input_yaxis.input_lim.setValue(
                 (0.3, 10.7), signal=True
             ),
-            get_axes,
+            get_axes_list,
             line_command,
             test_run,
         )
@@ -124,7 +124,7 @@ class TestAxes(BaseTest):
             lambda _: self.fig.window.input_properties.input_xaxis.input_label.setText(
                 "label2", signal=True
             ),
-            get_axes,
+            get_axes_list,
             line_command,
             test_run,
         )
@@ -135,7 +135,7 @@ class TestAxes(BaseTest):
             lambda _: self.fig.window.input_properties.input_yaxis.input_label.setText(
                 "label2", signal=True
             ),
-            get_axes,
+            get_axes_list,
             line_command,
             test_run,
         )

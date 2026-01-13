@@ -22,7 +22,7 @@
 import re
 import sys
 import traceback
-from typing import IO
+from typing import IO, Optional, Dict, Tuple, Any
 from packaging import version
 
 import numpy as np
@@ -373,7 +373,7 @@ def setFigureVariableNames(figure: Figure):
 class ChangeTracker:
     """a class that records a list of the change to the figure"""
 
-    changes = None
+    changes: Dict[Tuple[Artist, str], Tuple[Artist, str]]
     saved = True
 
     update_changes_signal = None
@@ -383,7 +383,7 @@ class ChangeTracker:
         self.figure = figure
         self.edits = []
         self.last_edit = -1
-        self.changes = {}
+        self.changes: Dict[Tuple[Artist, str], Tuple[Artist, str]] = {}
         self.no_save = no_save
 
         # make all the subplots pickable
@@ -405,8 +405,8 @@ class ChangeTracker:
         self,
         command_obj: Artist,
         command: str,
-        reference_obj: Artist = None,
-        reference_command: str = None,
+        reference_obj: Optional[Artist] = None,
+        reference_command: Optional[str] = None,
     ):
         """add a change"""
         command = command.replace("\n", "\\n")

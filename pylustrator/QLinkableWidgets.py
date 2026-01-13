@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Callable
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -40,7 +40,7 @@ class Linkable:
         self,
         property_name: str,
         signal: QtCore.Signal = None,
-        condition: callable = None,
+        condition: Optional[Callable] = None,
         direct: bool = False,
     ):
         self.element = None
@@ -358,7 +358,7 @@ class DimensionsWidget(QtWidgets.QWidget, Linkable):
         """
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
-        self.layout = QtWidgets.QHBoxLayout(self)
+        self.layout = QtWidgets.QHBoxLayout(self)  # type: ignore[assignment]
         self.text = QtWidgets.QLabel(text)
         self.layout.addWidget(self.text)
         self.layout.setContentsMargins(0, 0, 0, 0)
@@ -482,9 +482,11 @@ class TextWidget(QtWidgets.QWidget, Linkable):
         layout.addWidget(self)
         self.allow_literal_decoding = allow_literal_decoding
         if horizontal:
-            self.layout = QtWidgets.QHBoxLayout(self)
+            layout_obj = QtWidgets.QHBoxLayout(self)
         else:
-            self.layout = QtWidgets.QVBoxLayout(self)
+            layout_obj = QtWidgets.QVBoxLayout(self)
+        self.setLayout(layout_obj)
+        self.layout = layout_obj  # type: ignore[assignment]
         self.label = QtWidgets.QLabel(text)
         self.layout.addWidget(self.label)
         self.layout.setContentsMargins(0, 0, 0, 0)
@@ -567,7 +569,7 @@ class NumberWidget(QtWidgets.QWidget, Linkable):
         """
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
-        self.layout = QtWidgets.QHBoxLayout(self)
+        self.layout = QtWidgets.QHBoxLayout(self)  # type: ignore[assignment]
         self.label = QtWidgets.QLabel(text)
         self.layout.addWidget(self.label)
         self.layout.setContentsMargins(0, 0, 0, 0)
@@ -631,7 +633,7 @@ class ComboWidget(QtWidgets.QWidget, Linkable):
         """
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
-        self.layout = QtWidgets.QHBoxLayout(self)
+        self.layout = QtWidgets.QHBoxLayout(self)  # type: ignore[assignment]
         self.label = QtWidgets.QLabel(text)
         self.layout.addWidget(self.label)
         self.layout.setContentsMargins(0, 0, 0, 0)
@@ -695,7 +697,7 @@ class CheckWidget(QtWidgets.QWidget, Linkable):
         """
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
-        self.layout = QtWidgets.QHBoxLayout(self)
+        self.layout = QtWidgets.QHBoxLayout(self)  # type: ignore[assignment]
         self.label = QtWidgets.QLabel(text)
         self.layout.addWidget(self.label)
         self.layout.setContentsMargins(0, 0, 0, 0)
@@ -750,7 +752,7 @@ class RadioWidget(QtWidgets.QWidget):
         """
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
-        self.layout = QtWidgets.QHBoxLayout(self)
+        self.layout = QtWidgets.QHBoxLayout(self)  # type: ignore[assignment]
         self.layout.setContentsMargins(0, 0, 0, 0)
 
         self.radio_buttons = []
@@ -803,7 +805,7 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
             value: the value of the color widget
         """
         super().__init__()
-        self.layout = QtWidgets.QHBoxLayout(self)
+        self.layout = QtWidgets.QHBoxLayout(self)  # type: ignore[assignment]
         self.layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self)
 

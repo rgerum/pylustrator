@@ -19,6 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
+from typing import Optional
 from qtpy import QtGui, QtWidgets
 
 import numpy as np
@@ -104,7 +105,7 @@ def figure(num=None, figsize=None, *args, **kwargs):
 """ Figure list functions """
 
 
-def addChildren(color_artists: list, parent: Artist):
+def addChildren(color_artists: dict, parent: Artist):
     """find all the children of an Artist that use a color"""
     for artist in parent.get_children():
         # ignore empty texts
@@ -198,7 +199,7 @@ def addChildren(color_artists: list, parent: Artist):
 
 def figureListColors(figure: Figure):
     """add all artist with colors to a list in the figure"""
-    figure.color_artists = {}
+    figure.color_artists = {}  # type: ignore[attr-defined]
     addChildren(figure.color_artists, figure)
 
 
@@ -360,7 +361,7 @@ class ColorChooserWidget(QtWidgets.QWidget):
         with open(path, "r") as fp:
             self.colors_text_widget.setText(fp.read())
 
-    def addColorButton(self, color: str, basecolor: str = None):
+    def addColorButton(self, color: str, basecolor: Optional[str] = None):
         """add a button for the given color"""
         try:
             button = QDragableColor(mpl.colors.to_hex(color))

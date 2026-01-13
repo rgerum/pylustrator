@@ -57,11 +57,9 @@ from matplotlib.figure import Figure
 class MatplotlibWidget(FigureCanvas):
     quick_draw = True
 
-    def __init__(
-        self, parent=None, num=1, size=None, dpi=100, figure=None, *args, **kwargs
-    ):
+    def __init__(self, parent=None, figure=None, *args, **kwargs):
         if figure is None:
-            self.figure = Figure(figsize=size, dpi=dpi, *args, **kwargs)
+            self.figure = Figure(*args, **kwargs)
         else:
             self.figure = figure
 
@@ -135,14 +133,14 @@ class CanvasWindow(QtWidgets.QWidget):
         QtWidgets.QWidget.__init__(self)
         self.setWindowTitle("Figure %s" % num)
         self.setWindowIcon(qta.icon("fa5s.bar-chart"))
-        self.layout = QtWidgets.QVBoxLayout(self)
-        self.layout.setContentsMargins(0, 0, 0, 0)
-        self.layout.setSpacing(0)
+        self.layout_main = QtWidgets.QVBoxLayout(self)
+        self.layout_main.setContentsMargins(0, 0, 0, 0)
+        self.layout_main.setSpacing(0)
         self.canvas = MatplotlibWidget(self, *args, **kwargs)
         self.canvas.window = self
-        self.layout.addWidget(self.canvas)
+        self.layout_main.addWidget(self.canvas)
         self.toolbar = NavigationToolbar(self.canvas, self)
-        self.layout.addWidget(self.toolbar)
+        self.layout_main.addWidget(self.toolbar)
 
         self.signal.connect(self.show)
 

@@ -26,7 +26,7 @@ from matplotlib.axes import Axes
 from matplotlib.text import Text
 from matplotlib.patches import Rectangle
 from matplotlib.backend_bases import MouseEvent, KeyEvent
-from typing import Sequence
+from typing import Sequence, Callable, Tuple
 from qtpy import QtCore, QtGui, QtWidgets
 
 from .snap import TargetWrapper, getSnaps, checkSnaps, checkSnapsActive, SnapBase
@@ -333,7 +333,7 @@ class GrabbableRectangleSelection(GrabFunctions):
                     track_changes=False,
                 )
 
-        def align(y: int, func: callable):
+        def align(y: int, func: Callable):
             self.start_move()
             centers = []
             for target in self.targets:
@@ -494,7 +494,7 @@ class GrabbableRectangleSelection(GrabFunctions):
         """the height of the current selection"""
         return (self.p2 - self.p1)[1]
 
-    def size(self) -> (float, float):
+    def size(self) -> Tuple[float, float]:
         """the size of the current selection (width and height)"""
         return self.p2 - self.p1
 
@@ -524,7 +524,7 @@ class GrabbableRectangleSelection(GrabFunctions):
         """transform a point"""
         return self.transform(pos)
 
-    def get_save_point(self) -> callable:
+    def get_save_point(self) -> Callable:
         """gather the current positions in a restore point for the undo function"""
         targets = [target.target for target in self.targets]
         positions = [target.get_positions() for target in self.targets]

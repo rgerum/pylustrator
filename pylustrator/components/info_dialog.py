@@ -16,7 +16,7 @@ class InfoDialog(QtWidgets.QWidget):
                 os.path.join(os.path.dirname(__file__), "..", "icons", "logo.ico")
             )
         )
-        self.layout = QtWidgets.QVBoxLayout(self)
+        self.layout = QtWidgets.QVBoxLayout(self)  # type: ignore[assignment]
 
         self.label = QtWidgets.QLabel("")
 

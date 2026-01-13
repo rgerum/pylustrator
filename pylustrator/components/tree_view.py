@@ -8,7 +8,7 @@ from matplotlib.artist import Artist
 
 
 class myTreeWidgetItem(QtGui.QStandardItem):
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
         """a tree view item to display the contents of the figure"""
         QtGui.QStandardItem.__init__(self, parent)
 
