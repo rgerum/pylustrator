@@ -38,17 +38,19 @@ class InfoDialog(QtWidgets.QWidget):
         font = self.label.font()
         font.setPointSize(16)
         self.label.setFont(font)
-        self.label.setAlignment(QtCore.Qt.AlignCenter)  # ty:ignore[unresolved-attribute]
+        self.label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.layout_main.addWidget(self.label)
 
         self.label = QtWidgets.QLabel("Copyright © 2016-2022, Richard Gerum")
-        self.label.setAlignment(QtCore.Qt.AlignCenter)  # ty:ignore[unresolved-attribute]
+        self.label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.layout_main.addWidget(self.label)
 
         self.label = QtWidgets.QLabel(
             "<a href=https://pylustrator.readthedocs.io>Documentation</a>"
         )
-        self.label.setAlignment(QtCore.Qt.AlignCenter)  # ty:ignore[unresolved-attribute]
-        self.label.setTextInteractionFlags(QtCore.Qt.TextBrowserInteraction)  # ty:ignore[unresolved-attribute]
+        self.label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.label.setTextInteractionFlags(
+            QtCore.Qt.TextInteractionFlag.TextBrowserInteraction
+        )
         self.label.setOpenExternalLinks(True)
         self.layout_main.addWidget(self.label)

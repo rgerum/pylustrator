@@ -16,6 +16,7 @@ else:
 
 import matplotlib.transforms as transforms
 from matplotlib.figure import Figure
+from matplotlib.backend_bases import MouseEvent
 
 try:  # for matplotlib > 3.0
     from matplotlib.backends.backend_qtagg import (
@@ -51,8 +52,11 @@ class MyView(QtWidgets.QGraphicsView):
         super().__init__(*args)
         self.setMouseTracking(True)
 
-    def event(self, e):
-        if e.type() == QtCore.QEvent.KeyPress or e.type() == QtCore.QEvent.KeyRelease:  # ty:ignore[unresolved-attribute]
+    def event(self, e: QtCore.QEvent):
+        if (
+            e.type() == QtCore.QEvent.Type.KeyPress
+            or e.type() == QtCore.QEvent.Type.KeyRelease
+        ):
             self.canvas_canvas.event(e)
         super().event(e)
         return True
@@ -84,32 +88,12 @@ class MyEvent:
         self.y = y
 
 
-class MyRect(QtWidgets.QGraphicsRectItem):
-    w = 10
-
-    def __init__(self, x, y, grabber):
-        self.grabber = grabber
-        super().__init__(x - self.w / 2, y - self.w / 2, self.w, self.w)
-
-    def mousePressEvent(self, e):  # ty:ignore[invalid-method-override]
-        super().mousePressEvent(e)
-        self.view.grabber_found = True  # ty:ignore[unresolved-attribute]
-        p = e.scenePos()
-        self.grabber.button_press_event(MyEvent(p.x(), self.h - p.y()))  # ty:ignore[unresolved-attribute]
-
-    def mouseReleaseEvent(self, e):  # ty:ignore[invalid-method-override]
-        super().mouseReleaseEvent(e)
-        self.view.grabber_found = True  # ty:ignore[unresolved-attribute]
-        p = e.scenePos()
-        self.grabber.button_release_event(MyEvent(p.x(), self.h - p.y()))  # ty:ignore[unresolved-attribute]
-
-
 class Canvas(QtWidgets.QWidget):
     fitted_to_view = False
     footer_label = None
     footer_label2 = None
 
-    canvas = None
+    canvas: MatplotlibWidget | None = None
 
     def __init__(self, signals):
         """The wrapper around the matplotlib canvas to create a more image editor like canvas with background and side rulers"""
@@ -131,7 +115,7 @@ class Canvas(QtWidgets.QWidget):
             QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
         )
         self.canvas_canvas.setStyleSheet("background:#d1d1d1")
-        self.canvas_canvas.setFocusPolicy(QtCore.Qt.StrongFocus)  # ty:ignore[unresolved-attribute]
+        self.canvas_canvas.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
 
         self.shadow = QtWidgets.QLabel(self.canvas_canvas)
         self.canvas_border = QtWidgets.QLabel(self.canvas_canvas)
@@ -155,8 +139,12 @@ class Canvas(QtWidgets.QWidget):
         self.selections_scene_origin.view = self.selections_view
         self.selections_view.parent = self
         self.selections_view.setStyleSheet("background:transparent")
-        self.selections_view.setAttribute(QtCore.Qt.WA_TranslucentBackground)  # ty:ignore[unresolved-attribute]
-        self.selections_view.setAttribute(QtCore.Qt.WA_NoSystemBackground)  # ty:ignore[unresolved-attribute]
+        self.selections_view.setAttribute(
+            QtCore.Qt.WidgetAttribute.WA_TranslucentBackground
+        )
+        self.selections_view.setAttribute(
+            QtCore.Qt.WidgetAttribute.WA_NoSystemBackground
+        )
         self.selections_view.canvas_canvas = self.canvas_canvas
 
     def setFigure(self, figure):
@@ -165,6 +153,8 @@ class Canvas(QtWidgets.QWidget):
             del self.canvas
 
         self.canvas = MatplotlibWidget(self, figure=figure)
+        if self.canvas is None:
+            return
         self.canvas.window_pylustrator = self
         self.canvas_wrapper_layout.addWidget(self.canvas)
 
@@ -195,6 +185,8 @@ class Canvas(QtWidgets.QWidget):
         self.footer_label2 = footer2
 
     def updateRuler(self):
+        if self.canvas is None:
+            return
         """update the ruler around the figure to show the dimensions"""
         trans = (
             transforms.Affine2D().scale(1.0 / 2.54, 1.0 / 2.54)
@@ -207,11 +199,15 @@ class Canvas(QtWidgets.QWidget):
 
         ##
 
-        w = self.canvas.width()  # ty:ignore[possibly-missing-attribute]
-        h = self.canvas.height()  # ty:ignore[possibly-missing-attribute]
+        w = self.canvas.width()
+        h = self.canvas.height()
         self.selections_scene.setSceneRect(0, 0, w, h)
-        self.selections_view.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)  # ty:ignore[unresolved-attribute]
-        self.selections_view.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)  # ty:ignore[unresolved-attribute]
+        self.selections_view.setHorizontalScrollBarPolicy(
+            QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        self.selections_view.setVerticalScrollBarPolicy(
+            QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
         self.selections_view.setMinimumSize(w, h)
         self.selections_view.setMaximumSize(w, h)
         p = self.canvas_container.pos()
@@ -261,7 +257,7 @@ class Canvas(QtWidgets.QWidget):
                     int(o - 3),
                     int(self.fontMetrics().width(text)),
                     int(o + self.fontMetrics().height()),
-                    QtCore.Qt.AlignLeft,  # ty:ignore[unresolved-attribute]
+                    QtCore.Qt.Alignment.AlignLeft,
                     text,
                 )
             elif pos_cm % medium_lines == 0:
@@ -303,7 +299,7 @@ class Canvas(QtWidgets.QWidget):
                         int(y + 3 + self.fontMetrics().height() * ti),
                         int(o + self.fontMetrics().width("0")),
                         int(self.fontMetrics().height()),
-                        QtCore.Qt.AlignCenter,  # ty:ignore[unresolved-attribute]
+                        QtCore.Qt.AlignmentFlag.AlignCenter,
                         t,
                     )
             elif pos_cm % medium_lines == 0:
@@ -320,7 +316,7 @@ class Canvas(QtWidgets.QWidget):
         self.y_scale.setMinimumSize(l0, h)
         self.y_scale.setMaximumSize(l0, h)
 
-        w, h = self.canvas.get_width_height()  # ty:ignore[possibly-missing-attribute]
+        w, h = self.canvas.get_width_height()
 
         self.pixmap = QtGui.QPixmap(w, h)
 
@@ -344,9 +340,11 @@ class Canvas(QtWidgets.QWidget):
 
     def fitToView(self, change_dpi: bool = False):
         """fit the figure to the view"""
+        if self.canvas is None:
+            return
         self.fitted_to_view = True
         if change_dpi:
-            w, h = self.canvas.get_width_height()  # ty:ignore[possibly-missing-attribute]
+            w, h = self.canvas.get_width_height()
             factor = min(
                 (self.canvas_canvas.width() - 30) / w,
                 (self.canvas_canvas.height() - 30) / h,
@@ -354,8 +352,8 @@ class Canvas(QtWidgets.QWidget):
             self.fig.set_dpi(self.fig.get_dpi() * factor)
             # self.fig.canvas.draw()
 
-            self.canvas.updateGeometry()  # ty:ignore[possibly-missing-attribute]
-            w, h = self.canvas.get_width_height()  # ty:ignore[possibly-missing-attribute]
+            self.canvas.updateGeometry()
+            w, h = self.canvas.get_width_height()
             self.canvas_container.setMinimumSize(w, h)
             self.canvas_container.setMaximumSize(w, h)
 
@@ -368,7 +366,7 @@ class Canvas(QtWidgets.QWidget):
             # self.fig.canvas.draw()
 
         else:
-            w, h = self.canvas.get_width_height()  # ty:ignore[possibly-missing-attribute]
+            w, h = self.canvas.get_width_height()
             self.canvas_canvas.setMinimumWidth(w + 30)
             self.canvas_canvas.setMinimumHeight(h + 30)
 
@@ -378,14 +376,14 @@ class Canvas(QtWidgets.QWidget):
             )
             self.updateRuler()
 
-    def canvas_key_press(self, event: QtCore.QEvent):
+    def canvas_key_press(self, event: QtGui.QKeyEvent):
         """when a key in the canvas widget is pressed"""
-        if event.key == "control":  # ty:ignore[unresolved-attribute]
+        if event.key == "control":
             self.control_modifier = True
 
-    def canvas_key_release(self, event: QtCore.QEvent):
+    def canvas_key_release(self, event: QtGui.QKeyEvent):
         """when a key in the canvas widget is released"""
-        if event.key == "control":  # ty:ignore[unresolved-attribute]
+        if event.key == "control":
             self.control_modifier = False
 
     def moveCanvasCanvas(self, offset_x: float, offset_y: float):
@@ -395,29 +393,31 @@ class Canvas(QtWidgets.QWidget):
 
         self.updateRuler()
 
-    def scroll_event(self, event: QtCore.QEvent):
+    def scroll_event(self, event: MouseEvent):
         """when the mouse wheel is used to zoom the figure"""
+        if self.canvas is None:
+            return
         if self.control_modifier:
-            new_dpi = self.fig.get_dpi() + 10 * event.step  # ty:ignore[unresolved-attribute]
+            new_dpi = self.fig.get_dpi() + 10 * event.step
             # prevent zoom to be too far out
             if new_dpi < 0:
                 return
 
             self.fig.figure_dragger.select_element(None)
 
-            pos = self.fig.transFigure.inverted().transform((event.x, event.y))  # ty:ignore[unresolved-attribute]
+            pos = self.fig.transFigure.inverted().transform((event.x, event.y))
             pos_ax = self.fig.transFigure.transform(self.fig.axes[0].get_position())[0]
 
             self.fig.set_dpi(new_dpi)
             self.fig.canvas.draw()
 
-            self.canvas.updateGeometry()  # ty:ignore[possibly-missing-attribute]
-            w, h = self.canvas.get_width_height()  # ty:ignore[possibly-missing-attribute]
+            self.canvas.updateGeometry()
+            w, h = self.canvas.get_width_height()
             self.canvas_container.setMinimumSize(w, h)
             self.canvas_container.setMaximumSize(w, h)
 
             pos2 = self.fig.transFigure.transform(pos)
-            diff = np.array([event.x, event.y]) - pos2  # ty:ignore[unresolved-attribute]
+            diff = np.array([event.x, event.y]) - pos2
 
             pos_ax2 = self.fig.transFigure.transform(self.fig.axes[0].get_position())[0]
             diff += pos_ax2 - pos_ax
@@ -437,15 +437,15 @@ class Canvas(QtWidgets.QWidget):
         self.fitToView(True)
         self.updateRuler()
 
-    def button_press_event(self, event: QtCore.QEvent):
+    def button_press_event(self, event: MouseEvent):
         """when a mouse button is pressed"""
-        if event.button == 2:  # ty:ignore[unresolved-attribute]
-            self.drag = np.array([event.x, event.y])  # ty:ignore[unresolved-attribute]
+        if event.button == 2:
+            self.drag = np.array([event.x, event.y])
 
-    def mouse_move_event(self, event: QtCore.QEvent):
+    def mouse_move_event(self, event: MouseEvent):
         """when the mouse is moved"""
         if self.drag is not None:
-            pos = np.array([event.x, event.y])  # ty:ignore[unresolved-attribute]
+            pos = np.array([event.x, event.y])
             offset = pos - self.drag
             offset[1] = -offset[1]
             self.moveCanvasCanvas(*offset)
@@ -453,45 +453,47 @@ class Canvas(QtWidgets.QWidget):
             transforms.Affine2D().scale(2.54, 2.54)
             + self.fig.dpi_scale_trans.inverted()
         )
-        pos = trans.transform((event.x, event.y))  # ty:ignore[unresolved-attribute]
+        pos = trans.transform((event.x, event.y))
         self.footer_label.setText(  # ty:ignore[possibly-missing-attribute]
-            "%.2f, %.2f (cm) [%d, %d]" % (pos[0], pos[1], event.x, event.y)  # ty:ignore[unresolved-attribute]
+            "%.2f, %.2f (cm) [%d, %d]" % (pos[0], pos[1], event.x, event.y)
         )
 
-        if event.ydata is not None:  # ty:ignore[unresolved-attribute]
-            self.footer_label2.setText("%.2f, %.2f" % (event.xdata, event.ydata))  # ty:ignore[possibly-missing-attribute, unresolved-attribute]
+        if event.ydata is not None:
+            self.footer_label2.setText("%.2f, %.2f" % (event.xdata, event.ydata))  # ty:ignore[possibly-missing-attribute]
         else:
             self.footer_label2.setText("")  # ty:ignore[possibly-missing-attribute]
 
-    def button_release_event(self, event: QtCore.QEvent):
+    def button_release_event(self, event: MouseEvent):
         """when the mouse button is released"""
-        if event.button == 2:  # ty:ignore[unresolved-attribute]
+        if event.button == 2:
             self.drag = None
 
-    def keyPressEvent(self, event: QtCore.QEvent):
+    def keyPressEvent(self, event: QtGui.QKeyEvent):
         """when a key is pressed"""
-        if event.key() == QtCore.Qt.Key_Control:  # ty:ignore[unresolved-attribute]
+        if event.key() == QtCore.Qt.Key.Key_Control:
             self.control_modifier = True
-        if event.key() == QtCore.Qt.Key_Left:  # ty:ignore[unresolved-attribute]
+        if event.key() == QtCore.Qt.Key.Key_Left:
             self.moveCanvasCanvas(-10, 0)
-        if event.key() == QtCore.Qt.Key_Right:  # ty:ignore[unresolved-attribute]
+        if event.key() == QtCore.Qt.Key.Key_Right:
             self.moveCanvasCanvas(10, 0)
-        if event.key() == QtCore.Qt.Key_Up:  # ty:ignore[unresolved-attribute]
+        if event.key() == QtCore.Qt.Key.Key_Up:
             self.moveCanvasCanvas(0, -10)
-        if event.key() == QtCore.Qt.Key_Down:  # ty:ignore[unresolved-attribute]
+        if event.key() == QtCore.Qt.Key.Key_Down:
             self.moveCanvasCanvas(0, 10)
 
-        if event.key() == QtCore.Qt.Key_F:  # ty:ignore[unresolved-attribute]
+        if event.key() == QtCore.Qt.Key.Key_F:
             self.fitToView(True)
 
-    def keyReleaseEvent(self, event: QtCore.QEvent):
+    def keyReleaseEvent(self, event: QtGui.QKeyEvent):
         """when a key is released"""
-        if event.key() == QtCore.Qt.Key_Control:  # ty:ignore[unresolved-attribute]
+        if event.key() == QtCore.Qt.Key.Key_Control:
             self.control_modifier = False
 
     def updateFigureSize(self):
         """update the size of the figure"""
-        w, h = self.canvas.get_width_height()  # ty:ignore[possibly-missing-attribute]
+        if self.canvas is None:
+            return
+        w, h = self.canvas.get_width_height()
         self.canvas_container.setMinimumSize(w, h)
         self.canvas_container.setMaximumSize(w, h)
 

@@ -84,7 +84,7 @@ class MyTreeView(QtWidgets.QTreeView):
         self.selectionModel().selectionChanged.connect(self.selectionChanged)  # ty:ignore[possibly-missing-attribute]
 
         # add context menu
-        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)  # ty:ignore[unresolved-attribute]
+        self.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
 
         # add hover highlight
         self.viewport().setMouseTracking(True)  # ty:ignore[possibly-missing-attribute]

@@ -50,7 +50,7 @@ class QDragableColor(QtWidgets.QLabel):
 
         self.maps = plt.colormaps()
         self.setAcceptDrops(True)
-        self.setAlignment(QtCore.Qt.AlignHCenter)  # ty:ignore[unresolved-attribute]
+        self.setAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter)
         self.setColor(value, True)
 
     def getBackground(self) -> str:
@@ -92,7 +92,7 @@ class QDragableColor(QtWidgets.QLabel):
     def mousePressEvent(self, event):
         """when a mouse button is pressed"""
         # a left mouse button lets the user drag the color
-        if event.button() == QtCore.Qt.LeftButton:  # ty:ignore[unresolved-attribute]
+        if event.button() == QtCore.Qt.MouseButton.LeftButton:
             drag = QtGui.QDrag(self)
             drag.setPixmap(self.grab())
             mime = QtCore.QMimeData()
@@ -116,7 +116,7 @@ class QDragableColor(QtWidgets.QLabel):
                     f"text-align: center; background-color: {self.color}; border: 2px solid black; padding: 0.1em; "
                 )
         # a right mouse button opens a color choose menu
-        elif event.button() == QtCore.Qt.RightButton:  # ty:ignore[unresolved-attribute]
+        elif event.button() == QtCore.Qt.MouseButton.RightButton:
             self.openDialog()
 
     def dragEnterEvent(self, event):

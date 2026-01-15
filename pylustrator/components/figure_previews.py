@@ -24,7 +24,7 @@ class FigurePreviews(QtWidgets.QWidget):
         self.buttons.append(button)
         self.layout2.addWidget(button)
 
-        button.setAlignment(QtCore.Qt.AlignCenter)  # ty:ignore[unresolved-attribute]
+        button.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         pix = QtGui.QPixmap(20, 30)
         pix.fill(QtGui.QColor("#666666"))
 

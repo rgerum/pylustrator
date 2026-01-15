@@ -63,6 +63,7 @@ from matplotlib.figure import Figure
 
 class MatplotlibWidget(FigureCanvas):
     quick_draw = True
+    window_pylustrator = None  # "PlotLayout" | None = None
 
     def __init__(self, parent=None, figure=None, *args, **kwargs):
         if figure is None:

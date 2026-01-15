@@ -203,7 +203,6 @@ class Linkable:
 
         self.editingFinished.connect(self.updateLink)
         if signal is not None:
-            print("linking", signal, signal.connect)
             signal.connect(self.setTarget)
 
     def setTarget(self, element: Artist):
@@ -890,7 +889,9 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
         # display and save the new color
         if value is None:
             value = "#FF0000FF"
-        self.button.setAttribute(QtCore.Qt.WA_TranslucentBackground, True)  # ty:ignore[unresolved-attribute]
+        self.button.setAttribute(
+            QtCore.Qt.WidgetAttribute.WA_TranslucentBackground, True
+        )
         if len(value) == 9:
             self.button.setStyleSheet(
                 "background-color: rgba(%d, %d, %d, %d%%);"
