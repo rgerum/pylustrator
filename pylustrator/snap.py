@@ -36,7 +36,7 @@ try:  # starting from mpl version 3.6.0
 except ImportError:
     from matplotlib.axes._subplots import Axes  # ty:ignore[unresolved-import]
 from matplotlib.legend import Legend
-from matplotlib.patches import Rectangle, Ellipse, FancyArrowPatch
+from matplotlib.patches import Patch, Rectangle, Ellipse, FancyArrowPatch
 from matplotlib.text import Text
 from matplotlib.figure import Figure
 
@@ -99,7 +99,7 @@ class TargetWrapper(object):
         self.do_scale = True
         self.fixed_aspect = False
         # a patch uses the data_transform
-        if isinstance(self.target, mpl.patches.Patch):  # ty:ignore[possibly-missing-attribute]
+        if isinstance(self.target, Patch):
             self.get_transform = self.target.get_data_transform
         # axes use the figure_transform
         elif isinstance(self.target, Axes):

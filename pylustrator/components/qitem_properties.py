@@ -39,6 +39,8 @@ import matplotlib as mpl
 from matplotlib.artist import Artist
 from matplotlib.figure import Figure
 from matplotlib.ticker import AutoLocator
+from matplotlib.patches import Rectangle, FancyArrowPatch
+from matplotlib.legend import Legend
 
 from pylustrator.change_tracker import getReference
 from pylustrator.QLinkableWidgets import (
@@ -431,7 +433,6 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
         self.layout_main = QtWidgets.QVBoxLayout(self)
         self.layout_main.setContentsMargins(0, 0, 0, 0)
 
-        import matplotlib as mpl
 
         ncols_name = "ncols"
         if version.parse(mpl._get_version()) < version.parse("3.6.0"):  # ty:ignore[unresolved-attribute]
@@ -1400,10 +1401,10 @@ class QItemProperties(QtWidgets.QWidget):
 
     def buttonAddRectangleClicked(self):
         """when the button 'add rectangle' is clicked"""
-        p = mpl.patches.Rectangle(  # ty:ignore[possibly-missing-attribute]
+        p = Rectangle(
             (self.element.get_xlim()[0], self.element.get_ylim()[0]),  # ty:ignore[possibly-missing-attribute]
-            width=np.mean(self.element.get_xlim()),  # ty:ignore[possibly-missing-attribute]
-            height=np.mean(self.element.get_ylim()),  # ty:ignore[possibly-missing-attribute]
+            width=np.mean(self.element.get_xlim()),  # ty:ignore[possibly-missing-attribute, invalid-argument-type]
+            height=np.mean(self.element.get_ylim()),  # ty:ignore[possibly-missing-attribute, invalid-argument-type]
         )
         self.element.add_patch(p)  # ty:ignore[possibly-missing-attribute]
 
@@ -1425,9 +1426,9 @@ class QItemProperties(QtWidgets.QWidget):
 
     def buttonAddArrowClicked(self):
         """when the button 'add arrow' is clicked"""
-        p = mpl.patches.FancyArrowPatch(  # ty:ignore[possibly-missing-attribute]
+        p = FancyArrowPatch(
             (self.element.get_xlim()[0], self.element.get_ylim()[0]),  # ty:ignore[possibly-missing-attribute]
-            (np.mean(self.element.get_xlim()), np.mean(self.element.get_ylim())),  # ty:ignore[possibly-missing-attribute]
+            (np.mean(self.element.get_xlim()), np.mean(self.element.get_ylim())),  # ty:ignore[possibly-missing-attribute, invalid-argument-type]
             arrowstyle="Simple,head_length=10,head_width=10,tail_width=2",
             facecolor="black",
             clip_on=False,
@@ -1438,7 +1439,7 @@ class QItemProperties(QtWidgets.QWidget):
         self.fig.change_tracker.addChange(
             self.element,
             ".add_patch(mpl.patches.FancyArrowPatch(%s, %s, arrowstyle='Simple,head_length=10,head_width=10,tail_width=2', facecolor='black', clip_on=False, zorder=2))  # id=%s.new"
-            % (p._posA_posB[0], p._posA_posB[1], getReference(p)),
+            % (p._posA_posB[0], p._posA_posB[1], getReference(p)),  # ty:ignore[unresolved-attribute]
             p,
             ".new",
         )
@@ -1562,7 +1563,7 @@ class QItemProperties(QtWidgets.QWidget):
         else:
             self.button_add_text.hide()
 
-        if isinstance(element, mpl.legend.Legend):  # ty:ignore[possibly-missing-attribute]
+        if isinstance(element, Legend):
             self.input_legend_properties.show()
             self.input_legend_properties.setTarget(element)
         else:

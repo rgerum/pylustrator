@@ -27,6 +27,7 @@ import numpy as np
 from matplotlib.artist import Artist
 from matplotlib.text import Text
 from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 
 if TYPE_CHECKING:
     from PyQt5 import QtCore, QtGui, QtWidgets
@@ -232,7 +233,7 @@ class Linkable:
         new_value = self.getLinkedPropertyAll()
 
         def save_change(element):
-            if isinstance(element, mpl.figure.Figure):  # ty:ignore[possibly-missing-attribute]
+            if isinstance(element, Figure):
                 fig = element
             else:
                 fig = main_figure(element)
@@ -265,7 +266,7 @@ class Linkable:
                 save_change(elem)
 
         element = elements[0]
-        if isinstance(element, mpl.figure.Figure):  # ty:ignore[possibly-missing-attribute]
+        if isinstance(element, Figure):
             fig = element
         else:
             fig = main_figure(element)

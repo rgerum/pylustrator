@@ -7,8 +7,10 @@ if TYPE_CHECKING:
 else:
     from qtpy import QtCore, QtGui, QtWidgets
 
-import matplotlib as mpl
 from matplotlib.artist import Artist
+from matplotlib.spines import Spine
+from matplotlib.axis import XAxis, YAxis
+from matplotlib.text import Text
 
 
 class myTreeWidgetItem(QtGui.QStandardItem):
@@ -245,12 +247,12 @@ class MyTreeView(QtWidgets.QTreeView):
             entry.tree_parent = parent_entry
             if 1:
                 if (
-                    isinstance(entry, mpl.spines.Spine)  # ty:ignore[possibly-missing-attribute]
-                    or isinstance(entry, mpl.axis.XAxis)  # ty:ignore[possibly-missing-attribute]
-                    or isinstance(entry, mpl.axis.YAxis)  # ty:ignore[possibly-missing-attribute]
+                    isinstance(entry, Spine)
+                    or isinstance(entry, XAxis)
+                    or isinstance(entry, YAxis)
                 ):
                     continue
-                if isinstance(entry, mpl.text.Text) and entry.get_text() == "":  # ty:ignore[possibly-missing-attribute]
+                if isinstance(entry, Text) and entry.get_text() == "":
                     continue
                 try:
                     if entry == parent_entry.patch:  # ty:ignore[unresolved-attribute]

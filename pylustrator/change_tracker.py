@@ -358,7 +358,7 @@ def setFigureVariableNames(figure: Figure):
     fig_names = [
         name
         for name, val in calling_globals.items()
-        if isinstance(val, mpl.figure.Figure) and hash(val) == hash(mpl_figure)  # ty:ignore[possibly-missing-attribute]
+        if isinstance(val, Figure) and hash(val) == hash(mpl_figure)
     ]
     # print("fig_names", fig_names)
     if len(fig_names):
