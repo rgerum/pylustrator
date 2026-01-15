@@ -26,3 +26,6 @@ jobs:
 
       - name: Run Ruff
         run: uvx ruff check --output-format=github .
+
+      - name: Run Ty
+        run: uvx ty check

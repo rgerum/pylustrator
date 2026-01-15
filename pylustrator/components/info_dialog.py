@@ -21,7 +21,7 @@ class InfoDialog(QtWidgets.QWidget):
                 os.path.join(os.path.dirname(__file__), "..", "icons", "logo.ico")
             )
         )
-        self.layout = QtWidgets.QVBoxLayout(self)  # type: ignore[assignment]
+        self.layout_main = QtWidgets.QVBoxLayout(self)
 
         self.label = QtWidgets.QLabel("")
 
@@ -30,7 +30,7 @@ class InfoDialog(QtWidgets.QWidget):
         )
         self.label.setPixmap(pixmap)
         self.label.setMask(pixmap.mask())
-        self.layout.addWidget(self.label)
+        self.layout_main.addWidget(self.label)
 
         import pylustrator
 
@@ -39,11 +39,11 @@ class InfoDialog(QtWidgets.QWidget):
         font.setPointSize(16)
         self.label.setFont(font)
         self.label.setAlignment(QtCore.Qt.AlignCenter)  # ty:ignore[unresolved-attribute]
-        self.layout.addWidget(self.label)
+        self.layout_main.addWidget(self.label)
 
         self.label = QtWidgets.QLabel("Copyright © 2016-2022, Richard Gerum")
         self.label.setAlignment(QtCore.Qt.AlignCenter)  # ty:ignore[unresolved-attribute]
-        self.layout.addWidget(self.label)
+        self.layout_main.addWidget(self.label)
 
         self.label = QtWidgets.QLabel(
             "<a href=https://pylustrator.readthedocs.io>Documentation</a>"
@@ -51,4 +51,4 @@ class InfoDialog(QtWidgets.QWidget):
         self.label.setAlignment(QtCore.Qt.AlignCenter)  # ty:ignore[unresolved-attribute]
         self.label.setTextInteractionFlags(QtCore.Qt.TextBrowserInteraction)  # ty:ignore[unresolved-attribute]
         self.label.setOpenExternalLinks(True)
-        self.layout.addWidget(self.label)
+        self.layout_main.addWidget(self.label)

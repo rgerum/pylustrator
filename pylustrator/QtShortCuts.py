@@ -177,8 +177,8 @@ class ColorMapChoose(QtWidgets.QDialog):
         """initialize the dialog with all the colormap of matplotlib"""
         QtWidgets.QDialog.__init__(self, parent)
         main_layout = QtWidgets.QVBoxLayout(self)
-        self.layout = QtWidgets.QHBoxLayout()  # ty:ignore[invalid-assignment]
-        main_layout.addLayout(self.layout)
+        self.layout_main = QtWidgets.QHBoxLayout()
+        main_layout.addLayout(self.layout_main)
         button_layout = QtWidgets.QHBoxLayout()
         main_layout.addLayout(button_layout)
         self.button_cancel = QtWidgets.QPushButton("Cancel")
@@ -314,7 +314,7 @@ class ColorMapChoose(QtWidgets.QDialog):
                 self.buttons.append(button)
                 layout.addWidget(button)
             layout.addStretch()
-            self.layout.addLayout(layout)
+            self.layout_main.addLayout(layout)
 
     def buttonClicked(self, text: str):
         """the used as selected a colormap, we are done"""

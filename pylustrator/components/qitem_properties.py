@@ -66,8 +66,8 @@ class TextPropertiesWidget(QtWidgets.QWidget):
         """
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
-        self.layout = QtWidgets.QHBoxLayout(self)  # ty:ignore[invalid-assignment]
-        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout_main = QtWidgets.QHBoxLayout(self)
+        self.layout_main.setContentsMargins(0, 0, 0, 0)
 
         self.buttons_align = []
         self.align_names = ["left", "center", "right"]
@@ -77,31 +77,31 @@ class TextPropertiesWidget(QtWidgets.QWidget):
             button.setToolTip("align " + align)
             button.setCheckable(True)
             button.clicked.connect(lambda x, name=align: self.changeAlign(name))
-            self.layout.addWidget(button)
+            self.layout_main.addWidget(button)
             self.buttons_align.append(button)
             align_group.addButton(button)
 
         self.button_bold = QtWidgets.QPushButton(qta.icon("fa5s.bold"), "")
         self.button_bold.setCheckable(True)
         self.button_bold.clicked.connect(self.changeWeight)
-        self.layout.addWidget(self.button_bold)
+        self.layout_main.addWidget(self.button_bold)
 
         self.button_italic = QtWidgets.QPushButton(qta.icon("fa5s.italic"), "")
         self.button_italic.setCheckable(True)
         self.button_italic.clicked.connect(self.changeStyle)
-        self.layout.addWidget(self.button_italic)
+        self.layout_main.addWidget(self.button_italic)
 
-        self.button_color = QColorWidget(self.layout)
+        self.button_color = QColorWidget(self.layout_main)
         self.button_color.valueChanged.connect(self.changeColor)
 
-        self.layout.addStretch()
+        self.layout_main.addStretch()
 
         self.font_size = QtWidgets.QSpinBox()
-        self.layout.addWidget(self.font_size)
+        self.layout_main.addWidget(self.font_size)
         self.font_size.valueChanged.connect(self.changeFontSize)
 
         self.label = QtWidgets.QPushButton(qta.icon("fa5s.font"), "")  # .pixmap(16))
-        self.layout.addWidget(self.label)
+        self.layout_main.addWidget(self.label)
         self.label.clicked.connect(self.selectFont)
 
         # self.button_delete = QtWidgets.QPushButton(qta.icon("fa5s.trash"), "")
@@ -240,8 +240,8 @@ class TextPropertiesWidget2(QtWidgets.QWidget):
         """
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
-        self.layout = QtWidgets.QHBoxLayout(self)  # ty:ignore[invalid-assignment]
-        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout_main = QtWidgets.QHBoxLayout(self)
+        self.layout_main.setContentsMargins(0, 0, 0, 0)
 
         self.buttons_align = []
         self.align_names = ["left", "center", "right"]
@@ -251,30 +251,30 @@ class TextPropertiesWidget2(QtWidgets.QWidget):
             button.setCheckable(True)
             button.clicked.connect(lambda x, name=align: self.changeAlign(name))
             align_group.addButton(button)
-            self.layout.addWidget(button)
+            self.layout_main.addWidget(button)
             self.buttons_align.append(button)
 
         self.button_bold = QtWidgets.QPushButton(qta.icon("fa5s.bold"), "")
         self.button_bold.setCheckable(True)
         self.button_bold.clicked.connect(self.changeWeight)
-        self.layout.addWidget(self.button_bold)
+        self.layout_main.addWidget(self.button_bold)
 
         self.button_italic = QtWidgets.QPushButton(qta.icon("fa5s.italic"), "")
         self.button_italic.setCheckable(True)
         self.button_italic.clicked.connect(self.changeStyle)
-        self.layout.addWidget(self.button_italic)
+        self.layout_main.addWidget(self.button_italic)
 
-        self.button_color = QColorWidget(self.layout)
+        self.button_color = QColorWidget(self.layout_main)
         self.button_color.valueChanged.connect(self.changeColor)
 
-        self.layout.addStretch()
+        self.layout_main.addStretch()
 
         self.font_size = QtWidgets.QSpinBox()
-        self.layout.addWidget(self.font_size)
+        self.layout_main.addWidget(self.font_size)
         self.font_size.valueChanged.connect(self.changeFontSize)
 
         self.label = QtWidgets.QPushButton(qta.icon("fa5s.font"), "")  # .pixmap(16))
-        self.layout.addWidget(self.label)
+        self.layout_main.addWidget(self.label)
         self.label.clicked.connect(self.selectFont)
 
         self.property_names = [
@@ -428,8 +428,8 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
         """
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
-        self.layout = QtWidgets.QVBoxLayout(self)  # ty:ignore[invalid-assignment]
-        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout_main = QtWidgets.QVBoxLayout(self)
+        self.layout_main.setContentsMargins(0, 0, 0, 0)
 
         import matplotlib as mpl
 
@@ -489,7 +489,7 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
             if index % 3 == 0:
                 layout = QtWidgets.QHBoxLayout()
                 layout.setContentsMargins(0, 0, 0, 0)
-                self.layout.addLayout(layout)
+                self.layout_main.addLayout(layout)
             if type_ is bool:
                 widget = CheckWidget(layout, name + ":")  # ty:ignore[invalid-argument-type]
                 widget.editingFinished.connect(
@@ -627,16 +627,16 @@ class QTickEdit(QtWidgets.QWidget):
                 os.path.join(os.path.dirname(__file__), "../icons", "ticks.ico")
             )
         )
-        self.layout = QtWidgets.QVBoxLayout(self)  # ty:ignore[invalid-assignment]
+        self.layout_main = QtWidgets.QVBoxLayout(self)
         self.axis = axis
 
         self.label = QtWidgets.QLabel(
             'Ticks can be specified, one tick pre line.\nOptionally a label can be provided, e.g. 1 "First",'
         )
-        self.layout.addWidget(self.label)
+        self.layout_main.addWidget(self.label)
 
         self.layout2 = QtWidgets.QHBoxLayout()
-        self.layout.addLayout(self.layout2)
+        self.layout_main.addLayout(self.layout2)
 
         self.input_ticks = TextWidget(
             self.layout2, axis + "-Ticks:", multiline=True, horizontal=False
@@ -649,21 +649,23 @@ class QTickEdit(QtWidgets.QWidget):
         self.input_ticks2.editingFinished.connect(self.ticksChanged2)
 
         self.input_scale = ComboWidget(
-            self.layout, axis + "-Scale", ["linear", "log", "symlog", "logit"]
+            self.layout_main, axis + "-Scale", ["linear", "log", "symlog", "logit"]
         )
         self.input_scale.editingFinished.connect(self.scaleChanged)
         # self.input_scale.link(axis + "scale", signal_target_changed)
 
-        self.input_font = TextPropertiesWidget2(self.layout)
+        self.input_font = TextPropertiesWidget2(self.layout_main)
         self.input_font.propertiesChanged.connect(self.fontStateChanged)
 
-        self.input_labelpad = NumberWidget(self.layout, axis + "-Labelpad", min=-999)
+        self.input_labelpad = NumberWidget(
+            self.layout_main, axis + "-Labelpad", min=-999
+        )
         self.input_labelpad.link(
             axis + "axis.labelpad", signal_target_changed, direct=True
         )
 
         self.button_ok = QtWidgets.QPushButton("Ok")
-        self.layout.addWidget(self.button_ok)
+        self.layout_main.addWidget(self.button_ok)
         self.button_ok.clicked.connect(self.hide)
 
     def parseTickLabel(self, line: str) -> Tuple[float, str]:
@@ -1068,7 +1070,10 @@ class QAxesProperties(QtWidgets.QWidget):
     targetChanged_wrapped = QtCore.Signal(object)  # ty:ignore[unresolved-attribute]
 
     def __init__(
-        self, layout: QtWidgets.QLayout, axis: str, signal_target_changed: QtCore.Signal  # ty:ignore[unresolved-attribute]
+        self,
+        layout: QtWidgets.QLayout,
+        axis: str,
+        signal_target_changed: QtCore.Signal,  # ty:ignore[unresolved-attribute]
     ):
         """a widget to change the properties of an axes (label, limits)
 
@@ -1079,13 +1084,13 @@ class QAxesProperties(QtWidgets.QWidget):
         """
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
-        self.layout = QtWidgets.QHBoxLayout(self)  # ty:ignore[invalid-assignment]
-        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout_main = QtWidgets.QHBoxLayout(self)
+        self.layout_main.setContentsMargins(0, 0, 0, 0)
 
         self.targetChanged = signal_target_changed
         self.targetChanged.connect(self.setTarget)
 
-        self.input_label = TextWidget(self.layout, axis + "-Label:")
+        self.input_label = TextWidget(self.layout_main, axis + "-Label:")
         if 0:
 
             def wrapTargetLabel(axis_object):
@@ -1102,7 +1107,7 @@ class QAxesProperties(QtWidgets.QWidget):
         self.input_label.link(axis + "label", signal=self.targetChanged)
 
         self.input_lim = DimensionsWidget(
-            self.layout, axis + "-Lim:", "-", "", free=True
+            self.layout_main, axis + "-Lim:", "-", "", free=True
         )
         self.input_lim.link(axis + "lim", signal=self.targetChanged)
         if axis == "x":
@@ -1120,7 +1125,7 @@ class QAxesProperties(QtWidgets.QWidget):
                 "",
             )
         self.button_ticks.clicked.connect(self.showTickWidget)
-        self.layout.addWidget(self.button_ticks)
+        self.layout_main.addWidget(self.button_ticks)
 
         self.tick_edit = QTickEdit(axis, signal_target_changed)
 
@@ -1160,31 +1165,31 @@ class QItemProperties(QtWidgets.QWidget):
         signals.figure_changed.connect(self.setFigure)
         signals.figure_element_selected.connect(self.select_element)
 
-        self.layout = QtWidgets.QVBoxLayout(self)  # ty:ignore[invalid-assignment]
-        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout_main = QtWidgets.QVBoxLayout(self)
+        self.layout_main.setContentsMargins(0, 0, 0, 0)
 
         self.label = QtWidgets.QLabel()
-        self.layout.addWidget(self.label)
+        self.layout_main.addWidget(self.label)
 
-        self.input_text = TextWidget(self.layout, "Text:")
+        self.input_text = TextWidget(self.layout_main, "Text:")
         self.input_text.link("text", self.targetChanged)
 
-        self.input_rotation = NumberWidget(self.layout, "Rotation:")
+        self.input_rotation = NumberWidget(self.layout_main, "Rotation:")
         self.input_rotation.link("rotation", self.targetChanged)
         self.input_rotation.input1.setRange(-360, 360)
 
-        self.input_xaxis = QAxesProperties(self.layout, "x", self.targetChanged)
-        self.input_yaxis = QAxesProperties(self.layout, "y", self.targetChanged)
+        self.input_xaxis = QAxesProperties(self.layout_main, "x", self.targetChanged)
+        self.input_yaxis = QAxesProperties(self.layout_main, "y", self.targetChanged)
 
-        self.input_font_properties = TextPropertiesWidget(self.layout)
+        self.input_font_properties = TextPropertiesWidget(self.layout_main)
 
-        self.input_legend_properties = LegendPropertiesWidget(self.layout)
+        self.input_legend_properties = LegendPropertiesWidget(self.layout_main)
 
-        self.input_label = TextWidget(self.layout, "Label:")
+        self.input_label = TextWidget(self.layout_main, "Label:")
         self.input_label.link("label", self.targetChanged)
 
         layout = QtWidgets.QHBoxLayout()
-        self.layout.addLayout(layout)
+        self.layout_main.addLayout(layout)
 
         def condition_line(x):
             return getattr(x, "get_linestyle")() not in [
@@ -1209,7 +1214,7 @@ class QItemProperties(QtWidgets.QWidget):
         )
 
         layout = QtWidgets.QHBoxLayout()
-        self.layout.addLayout(layout)
+        self.layout_main.addLayout(layout)
 
         TextWidget(layout, "Markerstyle:").link("marker", self.targetChanged)
 
@@ -1222,7 +1227,7 @@ class QItemProperties(QtWidgets.QWidget):
         )
 
         layout = QtWidgets.QHBoxLayout()
-        self.layout.addLayout(layout)
+        self.layout_main.addLayout(layout)
 
         NumberWidget(layout, "Markeredgewidth:").link(
             "markeredgewidth", self.targetChanged, condition=condition_marker
@@ -1233,14 +1238,14 @@ class QItemProperties(QtWidgets.QWidget):
         )
 
         layout = QtWidgets.QHBoxLayout()
-        self.layout.addLayout(layout)
+        self.layout_main.addLayout(layout)
 
         QColorWidget(layout, "Edgecolor:").link("edgecolor", self.targetChanged)
 
         QColorWidget(layout, "Facecolor:").link("facecolor", self.targetChanged)
 
         self.layout_buttons = QtWidgets.QHBoxLayout()
-        self.layout.addLayout(self.layout_buttons)
+        self.layout_main.addLayout(self.layout_buttons)
 
         self.button_add_image = QtWidgets.QPushButton("add image")
         self.layout_buttons.addWidget(self.button_add_image)
@@ -1254,7 +1259,7 @@ class QItemProperties(QtWidgets.QWidget):
         self.layout_buttons.addWidget(self.button_add_annotation)
         self.button_add_annotation.clicked.connect(self.buttonAddAnnotationClicked)
         self.layout_buttons = QtWidgets.QHBoxLayout()
-        self.layout.addLayout(self.layout_buttons)
+        self.layout_main.addLayout(self.layout_buttons)
 
         self.button_add_rectangle = QtWidgets.QPushButton("add rectangle")
         self.layout_buttons.addWidget(self.button_add_rectangle)
@@ -1265,7 +1270,7 @@ class QItemProperties(QtWidgets.QWidget):
         self.button_add_arrow.clicked.connect(self.buttonAddArrowClicked)
 
         self.layout_buttons = QtWidgets.QHBoxLayout()
-        self.layout.addLayout(self.layout_buttons)
+        self.layout_main.addLayout(self.layout_buttons)
 
         self.button_despine = QtWidgets.QPushButton("despine")
         self.layout_buttons.addWidget(self.button_despine)

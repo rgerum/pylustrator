@@ -41,25 +41,27 @@ class QPosAndSize(QtWidgets.QWidget):
         self.signals = signals
 
         layout.addWidget(self)
-        self.layout = QtWidgets.QHBoxLayout(self)  # ty:ignore[invalid-assignment]
-        self.layout.setContentsMargins(10, 0, 10, 0)
+        self.layout_main = QtWidgets.QHBoxLayout(self)
+        self.layout_main.setContentsMargins(10, 0, 10, 0)
 
-        self.input_position = DimensionsWidget(self.layout, "X:", "Y:", "cm")
+        self.input_position = DimensionsWidget(self.layout_main, "X:", "Y:", "cm")
         self.input_position.valueChangedX.connect(lambda x: self.changePos(x, None))  # ty:ignore[invalid-argument-type]
         self.input_position.valueChangedY.connect(lambda y: self.changePos(None, y))  # ty:ignore[invalid-argument-type]
 
-        self.input_shape = DimensionsWidget(self.layout, "W:", "H:", "cm")
+        self.input_shape = DimensionsWidget(self.layout_main, "W:", "H:", "cm")
         self.input_shape.valueChanged.connect(self.changeSize)
 
-        self.input_transform = ComboWidget(self.layout, "", ["cm", "in", "px", "none"])
+        self.input_transform = ComboWidget(
+            self.layout_main, "", ["cm", "in", "px", "none"]
+        )
         self.input_transform.editingFinished.connect(self.changeTransform)
 
         self.input_shape_transform = ComboWidget(
-            self.layout, "", ["scale", "bottom right", "top left"]
+            self.layout_main, "", ["scale", "bottom right", "top left"]
         )
         self.input_shape_transform.editingFinished.connect(self.changeTransform2)
 
-        self.layout.addStretch()
+        self.layout_main.addStretch()
 
     def setFigure(self, figure):
         self.fig = figure

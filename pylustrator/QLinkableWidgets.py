@@ -362,10 +362,10 @@ class DimensionsWidget(QtWidgets.QWidget, Linkable):
         """
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
-        self.layout = QtWidgets.QHBoxLayout(self)  # type: ignore[assignment]
+        self.layout_main = QtWidgets.QHBoxLayout(self)
         self.text = QtWidgets.QLabel(text)
-        self.layout.addWidget(self.text)
-        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout_main.addWidget(self.text)
+        self.layout_main.setContentsMargins(0, 0, 0, 0)
 
         if free:
             self.input1 = FreeNumberInput()
@@ -377,11 +377,11 @@ class DimensionsWidget(QtWidgets.QWidget, Linkable):
             self.input1.setMinimum(-99999)
             self.input1.setMaximumWidth(100)
         self.input1.valueChanged.connect(self.onValueChangedX)
-        self.layout.addWidget(self.input1)
+        self.layout_main.addWidget(self.input1)
 
         self.text2 = QtWidgets.QLabel(join)
         self.text2.setMaximumWidth(self.text2.fontMetrics().width(join))
-        self.layout.addWidget(self.text2)
+        self.layout_main.addWidget(self.text2)
 
         if free:
             self.input2 = FreeNumberInput()
@@ -393,7 +393,7 @@ class DimensionsWidget(QtWidgets.QWidget, Linkable):
             self.input2.setMinimum(-99999)
             self.input2.setMaximumWidth(100)
         self.input2.valueChanged.connect(self.onValueChangedY)
-        self.layout.addWidget(self.input2)
+        self.layout_main.addWidget(self.input2)
 
         self.editingFinished = self.valueChanged
 
@@ -490,10 +490,10 @@ class TextWidget(QtWidgets.QWidget, Linkable):
         else:
             layout_obj = QtWidgets.QVBoxLayout(self)
         self.setLayout(layout_obj)
-        self.layout = layout_obj  # type: ignore[assignment]
+        self.layout_main = layout_obj
         self.label = QtWidgets.QLabel(text)
-        self.layout.addWidget(self.label)
-        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout_main.addWidget(self.label)
+        self.layout_main.setContentsMargins(0, 0, 0, 0)
 
         self.multiline = multiline
         if multiline:
@@ -503,7 +503,7 @@ class TextWidget(QtWidgets.QWidget, Linkable):
         else:
             self.input1 = QtWidgets.QLineEdit()
             self.input1.editingFinished.connect(self.valueChangeEvent)
-        self.layout.addWidget(self.input1)
+        self.layout_main.addWidget(self.input1)
 
     def valueChangeEvent(self):
         """an event that is triggered when the text in the input field is changed"""
@@ -573,10 +573,10 @@ class NumberWidget(QtWidgets.QWidget, Linkable):
         """
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
-        self.layout = QtWidgets.QHBoxLayout(self)  # type: ignore[assignment]
+        self.layout_main = QtWidgets.QHBoxLayout(self)
         self.label = QtWidgets.QLabel(text)
-        self.layout.addWidget(self.label)
-        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout_main.addWidget(self.label)
+        self.layout_main.setContentsMargins(0, 0, 0, 0)
 
         self.type = float if use_float else int
         if use_float is False:
@@ -586,7 +586,7 @@ class NumberWidget(QtWidgets.QWidget, Linkable):
         if min is not None:
             self.input1.setMinimum(min)
         self.input1.valueChanged.connect(self.valueChangeEvent)
-        self.layout.addWidget(self.input1)
+        self.layout_main.addWidget(self.input1)
 
     def valueChangeEvent(self):
         """when the value of the spin box changes"""
@@ -637,19 +637,19 @@ class ComboWidget(QtWidgets.QWidget, Linkable):
         """
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
-        self.layout = QtWidgets.QHBoxLayout(self)  # type: ignore[assignment]
+        self.layout_main = QtWidgets.QHBoxLayout(self)
         self.label = QtWidgets.QLabel(text)
-        self.layout.addWidget(self.label)
-        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout_main.addWidget(self.label)
+        self.layout_main.setContentsMargins(0, 0, 0, 0)
 
         self.values = values
 
         self.input1 = QtWidgets.QComboBox()
         self.input1.addItems(values)
-        self.layout.addWidget(self.input1)
+        self.layout_main.addWidget(self.input1)
 
         self.input1.currentIndexChanged.connect(self.valueChangeEvent)
-        self.layout.addWidget(self.input1)
+        self.layout_main.addWidget(self.input1)
 
     def valueChangeEvent(self):
         """called when the value has changed"""
@@ -701,15 +701,15 @@ class CheckWidget(QtWidgets.QWidget, Linkable):
         """
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
-        self.layout = QtWidgets.QHBoxLayout(self)  # type: ignore[assignment]
+        self.layout_main = QtWidgets.QHBoxLayout(self)
         self.label = QtWidgets.QLabel(text)
-        self.layout.addWidget(self.label)
-        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout_main.addWidget(self.label)
+        self.layout_main.setContentsMargins(0, 0, 0, 0)
 
         self.input1 = QtWidgets.QCheckBox()
         self.input1.setTristate(False)
         self.input1.stateChanged.connect(self.onStateChanged)
-        self.layout.addWidget(self.input1)
+        self.layout_main.addWidget(self.input1)
 
     def onStateChanged(self):
         """when the state of the checkbox changes"""
@@ -756,8 +756,8 @@ class RadioWidget(QtWidgets.QWidget):
         """
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
-        self.layout = QtWidgets.QHBoxLayout(self)  # type: ignore[assignment]
-        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout_main = QtWidgets.QHBoxLayout(self)
+        self.layout_main.setContentsMargins(0, 0, 0, 0)
 
         self.radio_buttons = []
 
@@ -766,7 +766,7 @@ class RadioWidget(QtWidgets.QWidget):
         for name in texts:
             radio = QtWidgets.QRadioButton(name)
             radio.toggled.connect(self.onToggled)
-            self.layout.addWidget(radio)
+            self.layout_main.addWidget(radio)
             self.radio_buttons.append(radio)
         self.radio_buttons[0].setChecked(True)
 
@@ -809,16 +809,16 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
             value: the value of the color widget
         """
         super().__init__()
-        self.layout = QtWidgets.QHBoxLayout(self)  # type: ignore[assignment]
-        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout_main = QtWidgets.QHBoxLayout(self)
+        self.layout_main.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self)
 
         if text is not None:
             self.label = QtWidgets.QLabel(text)
-            self.layout.addWidget(self.label)
+            self.layout_main.addWidget(self.label)
 
         self.button = QtWidgets.QPushButton()
-        self.layout.addWidget(self.button)
+        self.layout_main.addWidget(self.button)
 
         self.button.clicked.connect(self.OpenDialog)
         # default value for the color

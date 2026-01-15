@@ -4,9 +4,11 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from PyQt5 import QtCore, QtGui, QtWidgets
+
     QActionGroup = QtWidgets.QActionGroup
 else:
     from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets, _version_info
+
     if _version_info[0] == 6:
         QActionGroup = QtGui.QActionGroup
     else:
@@ -120,11 +122,11 @@ class Canvas(QtWidgets.QWidget):
         )
         self.signals = signals
 
-        self.layout = QtWidgets.QHBoxLayout(self)  # ty:ignore[invalid-assignment]
-        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout_main = QtWidgets.QHBoxLayout(self)
+        self.layout_main.setContentsMargins(0, 0, 0, 0)
 
         self.canvas_canvas = QtWidgets.QWidget(self)
-        self.layout.addWidget(self.canvas_canvas)
+        self.layout_main.addWidget(self.canvas_canvas)
         self.canvas_canvas.setSizePolicy(
             QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
         )
