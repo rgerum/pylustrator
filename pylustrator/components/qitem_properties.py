@@ -28,8 +28,11 @@ import qtawesome as qta
 
 if TYPE_CHECKING:
     from PyQt5 import QtCore, QtGui, QtWidgets
+    from PyQt5.QtCore import pyqtSignal as Signal
 else:
     from qtpy import QtCore, QtGui, QtWidgets
+    from qtpy.QtCore import Signal
+from PyQt5.QtCore import pyqtBoundSignal
 
 try:  # starting from mpl version 3.6.0
     from matplotlib.axes import Axes
@@ -56,7 +59,7 @@ from pylustrator.change_tracker import UndoRedo, add_text_default, add_axes_defa
 
 
 class TextPropertiesWidget(QtWidgets.QWidget):
-    stateChanged = QtCore.Signal(int, str)  # ty:ignore[unresolved-attribute]
+    stateChanged = Signal(int, str)
     noSignal = False
     target_list = None
 
@@ -229,8 +232,8 @@ class TextPropertiesWidget(QtWidgets.QWidget):
 
 
 class TextPropertiesWidget2(QtWidgets.QWidget):
-    stateChanged = QtCore.Signal(int, str)  # ty:ignore[unresolved-attribute]
-    propertiesChanged = QtCore.Signal()  # ty:ignore[unresolved-attribute]
+    stateChanged = Signal(int, str)
+    propertiesChanged = Signal()
     noSignal = False
     target_list = None
 
@@ -418,7 +421,7 @@ class TextPropertiesWidget2(QtWidgets.QWidget):
 
 
 class LegendPropertiesWidget(QtWidgets.QWidget):
-    stateChanged = QtCore.Signal(int, str)  # ty:ignore[unresolved-attribute]
+    stateChanged = Signal(int, str)
     noSignal = False
     target_list = None
 
@@ -432,7 +435,6 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
         layout.addWidget(self)
         self.layout_main = QtWidgets.QVBoxLayout(self)
         self.layout_main.setContentsMargins(0, 0, 0, 0)
-
 
         ncols_name = "ncols"
         if version.parse(mpl._get_version()) < version.parse("3.6.0"):  # ty:ignore[unresolved-attribute]
@@ -614,7 +616,7 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
 
 
 class QTickEdit(QtWidgets.QWidget):
-    def __init__(self, axis: str, signal_target_changed: QtCore.Signal):  # ty:ignore[unresolved-attribute]
+    def __init__(self, axis: str, signal_target_changed: pyqtBoundSignal):
         """A widget to change the tick properties
 
         Args:
@@ -1068,13 +1070,13 @@ class QTickEdit(QtWidgets.QWidget):
 
 
 class QAxesProperties(QtWidgets.QWidget):
-    targetChanged_wrapped = QtCore.Signal(object)  # ty:ignore[unresolved-attribute]
+    targetChanged_wrapped = Signal(object)
 
     def __init__(
         self,
         layout: QtWidgets.QLayout,
         axis: str,
-        signal_target_changed: QtCore.Signal,  # ty:ignore[unresolved-attribute]
+        signal_target_changed: pyqtBoundSignal,
     ):
         """a widget to change the properties of an axes (label, limits)
 
@@ -1146,8 +1148,8 @@ class QAxesProperties(QtWidgets.QWidget):
 
 
 class QItemProperties(QtWidgets.QWidget):
-    targetChanged = QtCore.Signal(object)  # ty:ignore[unresolved-attribute]
-    valueChanged = QtCore.Signal(tuple)  # ty:ignore[unresolved-attribute]
+    targetChanged = Signal(object)
+    valueChanged = Signal(tuple)
     element = None
 
     def __init__(self, layout: QtWidgets.QLayout, signals):

@@ -33,12 +33,14 @@ from matplotlib.axes._axes import Axes
 if TYPE_CHECKING:
     from PyQt5 import QtCore, QtGui, QtWidgets
     QAction = QtWidgets.QAction
+    from PyQt5.QtCore import pyqtSignal as Signal
 else:
     from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets, _version_info
     if _version_info[0] == 6:
         QAction = QtGui.QAction
     else:
         QAction = QtWidgets.QAction
+    from qtpy.QtCore import Signal
 
 from .ax_rasterisation import rasterizeAxes, restoreAxes
 from .change_tracker import setFigureVariableNames
@@ -345,19 +347,19 @@ def warnAboutTicks(fig):
 
 
 class Signals(QtWidgets.QWidget):
-    figure_changed = QtCore.Signal(Figure)  # ty:ignore[unresolved-attribute]
-    canvas_changed = QtCore.Signal(object)  # ty:ignore[unresolved-attribute]
-    figure_size_changed = QtCore.Signal()  # ty:ignore[unresolved-attribute]
-    figure_element_selected = QtCore.Signal(object)  # ty:ignore[unresolved-attribute]
-    figure_selection_moved = QtCore.Signal()  # ty:ignore[unresolved-attribute]
-    figure_selection_property_changed = QtCore.Signal()  # ty:ignore[unresolved-attribute]
-    figure_selection_update = QtCore.Signal()  # ty:ignore[unresolved-attribute]
-    figure_element_child_created = QtCore.Signal(object)  # ty:ignore[unresolved-attribute]
+    figure_changed = Signal(Figure)
+    canvas_changed = Signal(object)
+    figure_size_changed = Signal()
+    figure_element_selected = Signal(object)
+    figure_selection_moved = Signal()
+    figure_selection_property_changed = Signal()
+    figure_selection_update = Signal()
+    figure_element_child_created = Signal(object)
 
 
 class PlotWindow(QtWidgets.QWidget):
     fig = None
-    update_changes_signal = QtCore.Signal(bool, bool, str, str)  # ty:ignore[unresolved-attribute]
+    update_changes_signal = Signal(bool, bool, str, str)
 
     def setFigure(self, figure):
         if self.fig is not None:

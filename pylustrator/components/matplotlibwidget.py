@@ -41,8 +41,10 @@ import qtawesome as qta
 
 if TYPE_CHECKING:
     from PyQt5 import QtWidgets, QtCore
+    from PyQt5.QtCore import pyqtSignal as Signal
 else:
     from qtpy import QtWidgets, QtCore
+    from qtpy.QtCore import Signal
 
 try:  # for matplotlib > 3.0
     from matplotlib.backends.backend_qtagg import (
@@ -81,16 +83,17 @@ class MatplotlibWidget(FigureCanvas):
         self.timer.setInterval(300)
         self.timer.timeout.connect(self.draw)
 
-    timer = None
+    timer: QtCore.QTimer | None = None
 
     def schedule_draw(self):
         if self.quick_draw is True:
             return super().draw()
-        if not self.timer.isActive():  # ty:ignore[possibly-missing-attribute]
-            self.timer.start()  # ty:ignore[possibly-missing-attribute]
+        if self.timer and not self.timer.isActive():
+            self.timer.start()
 
     def draw(self):
-        self.timer.stop()  # ty:ignore[possibly-missing-attribute]
+        if self.timer:
+            self.timer.stop()
         # import traceback
         # print(traceback.print_stack())
         t = time.time()
@@ -132,7 +135,7 @@ except AttributeError:
 
 
 class CanvasWindow(QtWidgets.QWidget):
-    signal = QtCore.Signal()  # ty:ignore[unresolved-attribute]
+    signal = Signal()
 
     def __init__(self, num="", *args, **kwargs):
         QtWidgets.QWidget.__init__(self)

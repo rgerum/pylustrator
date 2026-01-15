@@ -23,8 +23,10 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from PyQt5 import QtCore, QtGui, QtWidgets
+    from PyQt5.QtCore import pyqtSignal as Signal
 else:
     from qtpy import QtCore, QtGui, QtWidgets
+    from qtpy.QtCore import Signal
 from matplotlib import pyplot as plt
 import matplotlib as mpl
 
@@ -38,8 +40,8 @@ class QDragableColor(QtWidgets.QLabel):
     The button can represent either a single color or a colormap.
     """
 
-    color_changed = QtCore.Signal(str)  # ty:ignore[unresolved-attribute]
-    color_changed_by_color_picker = QtCore.Signal(bool)  # ty:ignore[unresolved-attribute]
+    color_changed = Signal(str)
+    color_changed_by_color_picker = Signal(bool)
 
     def __init__(self, value: str):
         """initialize with a color"""

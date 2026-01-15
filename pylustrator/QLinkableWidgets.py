@@ -31,20 +31,23 @@ from matplotlib.figure import Figure
 
 if TYPE_CHECKING:
     from PyQt5 import QtCore, QtGui, QtWidgets
+    from PyQt5.QtCore import pyqtSignal as Signal
 else:
     from qtpy import QtCore, QtGui, QtWidgets
+    from qtpy.QtCore import Signal
+from PyQt5.QtCore import pyqtBoundSignal
 from .helper_functions import main_figure
 
 
 class Linkable:
     """a class that automatically links a widget with the property of a matplotlib artist"""
 
-    editingFinished = QtCore.Signal()  # ty:ignore[unresolved-attribute]
+    editingFinished = Signal()
 
     def link(
         self,
         property_name: str,
-        signal: QtCore.Signal = None,  # ty:ignore[unresolved-attribute]
+        signal: pyqtBoundSignal | None = None,
         condition: Optional[Callable] = None,
         direct: bool = False,
     ):
@@ -199,7 +202,9 @@ class Linkable:
             self.condition = condition
 
         self.editingFinished.connect(self.updateLink)
-        signal.connect(self.setTarget)
+        if signal is not None:
+            print("linking", signal, signal.connect)
+            signal.connect(self.setTarget)
 
     def setTarget(self, element: Artist):
         """set the target for the widget"""
@@ -291,7 +296,7 @@ class Linkable:
 
 class FreeNumberInput(QtWidgets.QLineEdit):
     send_signal = True
-    valueChanged = QtCore.Signal(float)  # ty:ignore[unresolved-attribute]
+    valueChanged = Signal(float)
 
     def __init__(self):
         """Like a QSpinBox for number import, but without min or max range or a fixed resolution.
@@ -338,9 +343,9 @@ class FreeNumberInput(QtWidgets.QLineEdit):
 
 
 class DimensionsWidget(QtWidgets.QWidget, Linkable):
-    valueChanged = QtCore.Signal(tuple)  # ty:ignore[unresolved-attribute]
-    valueChangedX = QtCore.Signal(float)  # ty:ignore[unresolved-attribute]
-    valueChangedY = QtCore.Signal(float)  # ty:ignore[unresolved-attribute]
+    valueChanged = Signal(tuple)
+    valueChangedX = Signal(float)
+    valueChangedY = Signal(float)
     transform = None
     noSignal = False
 
@@ -463,7 +468,7 @@ class DimensionsWidget(QtWidgets.QWidget, Linkable):
 
 
 class TextWidget(QtWidgets.QWidget, Linkable):
-    editingFinished = QtCore.Signal()  # ty:ignore[unresolved-attribute]
+    editingFinished = Signal()
     noSignal = False
     last_text = None
 
@@ -554,7 +559,7 @@ class TextWidget(QtWidgets.QWidget, Linkable):
 
 
 class NumberWidget(QtWidgets.QWidget, Linkable):
-    editingFinished = QtCore.Signal()  # ty:ignore[unresolved-attribute]
+    editingFinished = Signal()
     noSignal = False
 
     def __init__(
@@ -625,7 +630,7 @@ class NumberWidget(QtWidgets.QWidget, Linkable):
 
 
 class ComboWidget(QtWidgets.QWidget, Linkable):
-    editingFinished = QtCore.Signal()  # ty:ignore[unresolved-attribute]
+    editingFinished = Signal()
     noSignal = False
 
     def __init__(self, layout: QtWidgets.QLayout, text: str, values: Sequence):
@@ -689,8 +694,8 @@ class ComboWidget(QtWidgets.QWidget, Linkable):
 
 
 class CheckWidget(QtWidgets.QWidget, Linkable):
-    editingFinished = QtCore.Signal()  # ty:ignore[unresolved-attribute]
-    stateChanged = QtCore.Signal(int)  # ty:ignore[unresolved-attribute]
+    editingFinished = Signal()
+    stateChanged = Signal(int)
     noSignal = False
 
     def __init__(self, layout: QtWidgets.QLabel, text: str):
@@ -745,7 +750,7 @@ class CheckWidget(QtWidgets.QWidget, Linkable):
 
 
 class RadioWidget(QtWidgets.QWidget):
-    stateChanged = QtCore.Signal(int, str)  # ty:ignore[unresolved-attribute]
+    stateChanged = Signal(int, str)
     noSignal = False
 
     def __init__(self, layout: QtWidgets.QLayout, texts: Sequence[str]):
@@ -794,7 +799,7 @@ class RadioWidget(QtWidgets.QWidget):
 
 
 class QColorWidget(QtWidgets.QWidget, Linkable):
-    valueChanged = QtCore.Signal(str)  # ty:ignore[unresolved-attribute]
+    valueChanged = Signal(str)
 
     def __init__(
         self,
