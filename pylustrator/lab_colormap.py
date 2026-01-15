@@ -65,12 +65,12 @@ class LabColormap(ListedColormap):
     def _init(self):
         """generate the colormap from the given colors (used by ListedColormap)"""
         # convert to lab
-        lab_colors = convert_rgb2lab(self.init_colors)
+        lab_colors = convert_rgb2lab(self.init_colors)  # ty:ignore[invalid-argument-type]
         # initialize new list
         colors = []
         # iterate over stops
         stops = self.get_stops()
-        for j in range(len(self.init_colors) - 1):
+        for j in range(len(self.init_colors) - 1):  # ty:ignore[invalid-argument-type]
             # interpolate between stops in lab
             for i in np.linspace(
                 stops[j], stops[j + 1], int(self.N / (len(stops) - 1))
@@ -79,9 +79,9 @@ class LabColormap(ListedColormap):
         # convert back to rgb
         self.colors = convert_lab2rgb(colors)
         # initialize a listed colormap
-        ListedColormap._init(self)
+        ListedColormap._init(self)  # ty:ignore[unresolved-attribute]
 
-    def __call__(self, value: float, *args, **kwargs):
+    def __call__(self, value: float, *args, **kwargs):  # ty:ignore[invalid-method-override]
         """get the color associated with the given value from the colormap"""
         # get the color
         result = Colormap.__call__(self, value, *args, **kwargs)
@@ -94,7 +94,7 @@ class LabColormap(ListedColormap):
     def get_color(self) -> Sequence:
         """return all the colors"""
         # return the colors
-        return self.init_colors
+        return self.init_colors  # ty:ignore[invalid-return-type]
 
     def set_color(self, color: Union[str, Sequence], index: Optional[int] = None):
         """set a color to the given index"""
@@ -116,14 +116,14 @@ class LabColormap(ListedColormap):
         stops = self.stops
         # if they are not defined, interpolate from 0 to 1
         if stops is None:
-            stops = np.linspace(0, 1, len(self.init_colors))
+            stops = np.linspace(0, 1, len(self.init_colors))  # ty:ignore[invalid-argument-type]
         # return the stops
         return stops
 
     def linearize_lightness(self):
         """linearize the lightness of the colors in the colormap"""
         # convert to lab
-        lab_colors = convert_rgb2lab(self.init_colors)
+        lab_colors = convert_rgb2lab(self.init_colors)  # ty:ignore[invalid-argument-type]
         # define start and end lightness
         lightness_start = lab_colors[0][0, 0, 0]
         lichtness_end = lab_colors[-1][0, 0, 0]

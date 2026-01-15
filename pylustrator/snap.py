@@ -19,9 +19,13 @@
 # You should have received a copy of the GNU General Public License
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
-from typing import List, Optional, Tuple
+from typing import TYPE_CHECKING, List, Optional, Tuple
 from packaging import version
-from qtpy import QtCore, QtGui, QtWidgets
+
+if TYPE_CHECKING:
+    from PyQt5 import QtCore, QtGui, QtWidgets
+else:
+    from qtpy import QtCore, QtGui, QtWidgets
 
 import matplotlib as mpl
 import numpy as np
@@ -30,14 +34,14 @@ from matplotlib.artist import Artist
 try:  # starting from mpl version 3.6.0
     from matplotlib.axes import Axes
 except ImportError:
-    from matplotlib.axes._subplots import Axes
+    from matplotlib.axes._subplots import Axes  # ty:ignore[unresolved-import]
 from matplotlib.legend import Legend
 from matplotlib.patches import Rectangle, Ellipse, FancyArrowPatch
 from matplotlib.text import Text
 from matplotlib.figure import Figure
 
 try:
-    from matplotlib.figure import SubFigure  # since matplotlib 3.4.0
+    from matplotlib.figure import SubFigure  # since matplotlib 3.4.0  # ty:ignore[unresolved-import]
 except ImportError:
     SubFigure = None
 from .helper_functions import main_figure
@@ -51,14 +55,14 @@ DIR_Y1 = 8
 
 def checkXLabel(target: Artist):
     """checks if the target is the xlabel of an axis"""
-    for axes in target.figure.axes:
+    for axes in target.figure.axes:  # ty:ignore[possibly-missing-attribute]
         if axes.xaxis.get_label() == target:
             return axes
 
 
 def checkYLabel(target: Artist):
     """checks if the target is the ylabel of an axis"""
-    for axes in target.figure.axes:
+    for axes in target.figure.axes:  # ty:ignore[possibly-missing-attribute]
         if axes.yaxis.get_label() == target:
             return axes
 
@@ -95,7 +99,7 @@ class TargetWrapper(object):
         self.do_scale = True
         self.fixed_aspect = False
         # a patch uses the data_transform
-        if isinstance(self.target, mpl.patches.Patch):
+        if isinstance(self.target, mpl.patches.Patch):  # ty:ignore[possibly-missing-attribute]
             self.get_transform = self.target.get_data_transform
         # axes use the figure_transform
         elif isinstance(self.target, Axes):
@@ -107,12 +111,12 @@ class TargetWrapper(object):
                 self.fixed_aspect = True
             # old matplotlib version
             if version.parse(mpl.__version__) < version.parse("3.4.0"):
-                self.get_transform = lambda: self.target.figure.transFigure
+                self.get_transform = lambda: self.target.figure.transFigure  # ty:ignore[possibly-missing-attribute]
             else:
                 self.get_transform = (
-                    lambda: self.target.figure.transSubfigure
-                    if self.target.figure.transSubfigure
-                    else self.target.figure.transFigure
+                    lambda: self.target.figure.transSubfigure  # ty:ignore[possibly-missing-attribute]
+                    if self.target.figure.transSubfigure  # ty:ignore[possibly-missing-attribute]
+                    else self.target.figure.transFigure  # ty:ignore[possibly-missing-attribute]
                 )
 
             # cache the get_position
@@ -124,7 +128,7 @@ class TargetWrapper(object):
             else:
                 self.do_scale = False
             if checkXLabel(self.target):
-                self.label_factor = self.figure.dpi / 72.0
+                self.label_factor = self.figure.dpi / 72.0  # ty:ignore[possibly-missing-attribute]
                 if getattr(self.target, "pad_offset", None) is None:
                     self.target.pad_offset = (
                         self.target.get_position()[1]
@@ -132,7 +136,7 @@ class TargetWrapper(object):
                     )
                 self.label_y = self.target.get_position()[1]
             elif checkYLabel(self.target):
-                self.label_factor = self.figure.dpi / 72.0
+                self.label_factor = self.figure.dpi / 72.0  # ty:ignore[possibly-missing-attribute]
                 if getattr(self.target, "pad_offset", None) is None:
                     self.target.pad_offset = (
                         self.target.get_position()[0]
@@ -161,11 +165,11 @@ class TargetWrapper(object):
             c = self.target.center
             w = self.target.width
             h = self.target.height
-            points.append((c[0] - w / 2, c[1] - h / 2))
-            points.append((c[0] + w / 2, c[1] + h / 2))
+            points.append((c[0] - w / 2, c[1] - h / 2))  # ty:ignore[not-subscriptable]
+            points.append((c[0] + w / 2, c[1] + h / 2))  # ty:ignore[not-subscriptable]
         elif isinstance(self.target, FancyArrowPatch):
-            points.append(self.target._posA_posB[0])
-            points.append(self.target._posA_posB[1])
+            points.append(self.target._posA_posB[0])  # ty:ignore[unresolved-attribute]
+            points.append(self.target._posA_posB[1])  # ty:ignore[unresolved-attribute]
             points.extend(self.target.get_path().vertices)
         elif isinstance(self.target, Text):
             points.append(self.target.get_position())
@@ -174,7 +178,7 @@ class TargetWrapper(object):
             elif checkYLabel(self.target):
                 points[0] = (self.label_x, points[0][1])
             if getattr(self.target, "xy", None) is not None:
-                points.append(self.target.xy)
+                points.append(self.target.xy)  # ty:ignore[unresolved-attribute]
             bbox = self.target.get_bbox_patch()
             if bbox:
                 points.append(
@@ -188,25 +192,25 @@ class TargetWrapper(object):
                         )
                     )
                 )
-            points[-2:] = self.transform_inverted_points(points[-2:])
+            points[-2:] = self.transform_inverted_points(points[-2:])  # ty:ignore[invalid-argument-type]
             if use_previous_offset is True:
                 points[2] = (
-                    points[0] + self.target._pylustrator_offset + points[2] - points[1]
+                    points[0] + self.target._pylustrator_offset + points[2] - points[1]  # ty:ignore[unresolved-attribute]
                 )
-                points[1] = points[0] + self.target._pylustrator_offset
+                points[1] = points[0] + self.target._pylustrator_offset  # ty:ignore[unresolved-attribute]
             else:
                 if (
                     getattr(self.target, "_pylustrator_offset", None) is None
                     or update_offset
                 ):
-                    self.target._pylustrator_offset = np.array(points[1]) - np.array(
+                    self.target._pylustrator_offset = np.array(points[1]) - np.array(  # ty:ignore[invalid-assignment]
                         points[0]
                     )
         elif isinstance(self.target, Axes):
             p1, p2 = np.array(self.target.get_position())
             points.append(p1)
             points.append(p2)
-        elif isinstance(self.target, SubFigure):
+        elif isinstance(self.target, SubFigure):  # ty:ignore[invalid-argument-type]
             p1 = [self.target.bbox.x0, self.target.bbox.y0]
             p2 = [self.target.bbox.x1, self.target.bbox.y1]
             points.append(p1)
@@ -239,24 +243,24 @@ class TargetWrapper(object):
                     or update_offset
                 ):
                     self.target._pylustrator_offset = points[1] - points[0]
-        return self.transform_points(points)
+        return self.transform_points(points)  # ty:ignore[invalid-argument-type, invalid-return-type]
 
     def set_positions(self, points: Tuple[int, int]):
         """set the position of the target Artist"""
         points = self.transform_inverted_points(points)
 
-        if self.figure.figure is not None:
-            change_tracker = self.figure.figure.change_tracker
+        if self.figure.figure is not None:  # ty:ignore[possibly-missing-attribute]
+            change_tracker = self.figure.figure.change_tracker  # ty:ignore[possibly-missing-attribute]
         else:
             change_tracker = self.figure.change_tracker
 
         if isinstance(self.target, Rectangle):
-            self.target.set_xy(points[0])
-            self.target.set_width(points[1][0] - points[0][0])
-            self.target.set_height(points[1][1] - points[0][1])
+            self.target.set_xy(points[0])  # ty:ignore[invalid-argument-type]
+            self.target.set_width(points[1][0] - points[0][0])  # ty:ignore[not-subscriptable]
+            self.target.set_height(points[1][1] - points[0][1])  # ty:ignore[not-subscriptable]
             if (
                 self.target.get_label() is None
-                or not self.target.get_label().startswith("_rect")
+                or not self.target.get_label().startswith("_rect")  # ty:ignore[unresolved-attribute]
             ):
                 change_tracker.addChange(
                     self.target, ".set_xy([%f, %f])" % tuple(self.target.get_xy())
@@ -269,44 +273,44 @@ class TargetWrapper(object):
                 )
         elif isinstance(self.target, Ellipse):
             self.target.center = np.mean(points, axis=0)
-            self.target.width = points[1][0] - points[0][0]
-            self.target.height = points[1][1] - points[0][1]
+            self.target.width = points[1][0] - points[0][0]  # ty:ignore[not-subscriptable]
+            self.target.height = points[1][1] - points[0][1]  # ty:ignore[not-subscriptable]
             change_tracker.addChange(
-                self.target, ".center = (%f, %f)" % tuple(self.target.center)
+                self.target, ".center = (%f, %f)" % tuple(self.target.center)  # ty:ignore[invalid-argument-type]
             )
             change_tracker.addChange(self.target, ".width = %f" % self.target.width)
             change_tracker.addChange(self.target, ".height = %f" % self.target.height)
         elif isinstance(self.target, FancyArrowPatch):
-            self.target.set_positions(points[0], points[1])
+            self.target.set_positions(points[0], points[1])  # ty:ignore[invalid-argument-type]
             change_tracker.addChange(
                 self.target,
-                ".set_positions(%s, %s)" % (tuple(points[0]), tuple(points[1])),
+                ".set_positions(%s, %s)" % (tuple(points[0]), tuple(points[1])),  # ty:ignore[invalid-argument-type]
             )
         elif isinstance(self.target, Text):
             if checkXLabel(self.target):
                 axes = checkXLabel(self.target)
                 axes.xaxis.labelpad = (
-                    -(points[0][1] - self.target.pad_offset) / self.label_factor
+                    -(points[0][1] - self.target.pad_offset) / self.label_factor  # ty:ignore[not-subscriptable, unresolved-attribute]
                 )
                 change_tracker.addChange(
                     axes, ".xaxis.labelpad = %f" % axes.xaxis.labelpad
                 )
 
-                self.target.set_position(points[0])
-                self.label_y = points[0][1]
+                self.target.set_position(points[0])  # ty:ignore[invalid-argument-type]
+                self.label_y = points[0][1]  # ty:ignore[not-subscriptable]
             elif checkYLabel(self.target):
                 axes = checkYLabel(self.target)
                 axes.yaxis.labelpad = (
-                    -(points[0][0] - self.target.pad_offset) / self.label_factor
+                    -(points[0][0] - self.target.pad_offset) / self.label_factor  # ty:ignore[not-subscriptable, unresolved-attribute]
                 )
                 change_tracker.addChange(
                     axes, ".yaxis.labelpad = %f" % axes.yaxis.labelpad
                 )
 
-                self.target.set_position(points[0])
-                self.label_x = points[0][0]
+                self.target.set_position(points[0])  # ty:ignore[invalid-argument-type]
+                self.label_x = points[0][0]  # ty:ignore[not-subscriptable]
             else:
-                self.target.set_position(points[0])
+                self.target.set_position(points[0])  # ty:ignore[invalid-argument-type]
                 if isinstance(self.target, Text):
                     change_tracker.addNewTextChange(self.target)
                 else:
@@ -315,21 +319,21 @@ class TargetWrapper(object):
                         ".set_position([%f, %f])" % self.target.get_position(),
                     )
                 if getattr(self.target, "xy", None) is not None:
-                    self.target.xy = points[1]
+                    self.target.xy = points[1]  # ty:ignore[invalid-assignment]
                     change_tracker.addChange(
-                        self.target, ".xy = (%f, %f)" % tuple(self.target.xy)
+                        self.target, ".xy = (%f, %f)" % tuple(self.target.xy)  # ty:ignore[invalid-argument-type, unresolved-attribute]
                     )
         elif isinstance(self.target, Legend):
             if isinstance(self.target.axes, Axes):
                 transform = self.target.axes.transAxes
             elif isinstance(self.target.figure, Figure):
-                transform = self.target.figure.transFigure
+                transform = self.target.figure.transFigure  # ty:ignore[unresolved-attribute]
             else:
                 transform = self.target.figure.transSubfigure
             point = transform.inverted().transform(
                 self.transform_inverted_points(points)[0]
             )
-            self.target._loc = tuple(point)
+            self.target._loc = tuple(point)  # ty:ignore[invalid-assignment]
             change_tracker.addNewLegendChange(self.target)
             # change_tracker.addChange(self.target, "._set_loc((%f, %f))" % tuple(point))
         elif isinstance(self.target, Axes):
@@ -362,17 +366,17 @@ class TargetWrapper(object):
             np.min(points[:, 1]),
             np.max(points[:, 0]),
             np.max(points[:, 1]),
-        ]
+        ]  # ty:ignore[invalid-return-type]
 
     def transform_points(self, points: Tuple[int, int]) -> Tuple[int, int]:
         """transform points from the targets local coordinate system to the figure coordinate system"""
         transform = self.get_transform()
-        return [transform.transform(p) for p in points]
+        return [transform.transform(p) for p in points]  # ty:ignore[invalid-return-type]
 
     def transform_inverted_points(self, points: Tuple[int, int]) -> Tuple[int, int]:
         """transform points from the figure coordinate system to the targets local coordinate system"""
         transform = self.get_transform()
-        return [transform.inverted().transform(p) for p in points]
+        return [transform.inverted().transform(p) for p in points]  # ty:ignore[invalid-return-type]
 
 
 class SnapBase:
@@ -399,7 +403,7 @@ class SnapBase:
             return np.array(target.get_extent())
         except AttributeError:
             return np.array(
-                target.figure.transFigure.transform(target.target.get_position())
+                target.figure.transFigure.transform(target.target.get_position())  # ty:ignore[possibly-missing-attribute]
             ).flatten()
 
     def getDistance(self, index: int) -> float:
@@ -434,7 +438,7 @@ class SnapBase:
             if np.isnan(x):
                 move = True
                 continue
-            y = self.ax_target.figure.canvas.height() - y
+            y = self.ax_target.figure.canvas.height() - y  # ty:ignore[possibly-missing-attribute]
             if move is True:
                 painter_path.moveTo(x, y)
                 current_pos = (x, y)
@@ -458,7 +462,7 @@ class SnapBase:
         """Remove the snap and its visualisation"""
         self.hide()
         try:
-            self.draw_path.scene().removeItem(self.draw_path)
+            self.draw_path.scene().removeItem(self.draw_path)  # ty:ignore[possibly-missing-attribute]
         except ValueError:
             pass
 
@@ -554,9 +558,9 @@ class SnapSameDimension(SnapBase):
 class SnapSamePos(SnapBase):
     """a snap that checks if two objects have the same position"""
 
-    def getPosition(self, text: TargetWrapper) -> np.ndarray:
+    def getPosition(self, text: TargetWrapper) -> np.ndarray:  # ty:ignore[invalid-method-override]
         # get the position of an object
-        return np.array(text.get_transform().transform(text.target.get_position()))
+        return np.array(text.get_transform().transform(text.target.get_position()))  # ty:ignore[possibly-missing-attribute]
 
     def getDistance(self, index: int) -> float:
         """Calculate the distance of the snap to its target"""
@@ -620,12 +624,12 @@ class SnapSameBorder(SnapBase):
                 if p1[edge] > p2[edge + 2]:
                     continue
             if (p1[edge + 2] < p2[edge] or p1[edge] > p2[edge + 2]) and self.overlap(
-                p1, p2, 1 - edge
+                p1, p2, 1 - edge  # ty:ignore[invalid-argument-type]
             ):
                 distances = np.array([p2[edge] - p1[edge + 2], p1[edge] - p2[edge + 2]])
                 index1 = np.argmax(distances)
                 distance = distances[index1]
-                borders = self.getBorders(p2, p3)
+                borders = self.getBorders(p2, p3)  # ty:ignore[invalid-argument-type]
                 if len(borders):
                     deltas = distance - borders[:, 1]
                     index2 = np.argmin(np.abs(deltas))
@@ -656,8 +660,8 @@ class SnapSameBorder(SnapBase):
         p2 = self.getPosition(self.ax_target)
         p3 = self.getPosition(self.ax_target2)
         # get the
-        x1, y1 = self.getConnection(p1, p2, self.dir1)
-        x2, y2 = self.getConnection(p2, p3, self.dir2)
+        x1, y1 = self.getConnection(p1, p2, self.dir1)  # ty:ignore[invalid-argument-type]
+        x2, y2 = self.getConnection(p2, p3, self.dir2)  # ty:ignore[invalid-argument-type]
         x1.extend(x2)
         y1.extend(y2)
         self.set_data(x1, y1)
@@ -666,13 +670,13 @@ class SnapSameBorder(SnapBase):
 class SnapCenterWith(SnapBase):
     """A snap that checks if a text is centered with an axes"""
 
-    def getPosition(self, text: TargetWrapper) -> np.ndarray:
+    def getPosition(self, text: TargetWrapper) -> np.ndarray:  # ty:ignore[invalid-method-override]
         """get the position of the first object"""
-        return np.array(text.get_transform().transform(text.target.get_position()))
+        return np.array(text.get_transform().transform(text.target.get_position()))  # ty:ignore[possibly-missing-attribute]
 
     def getPosition2(self, axes: TargetWrapper) -> np.ndarray:
         """get the position of the second object"""
-        pos = np.array(axes.figure.transFigure.transform(axes.target.get_position()))
+        pos = np.array(axes.figure.transFigure.transform(axes.target.get_position()))  # ty:ignore[possibly-missing-attribute]
         p = pos[0, :]
         p[self.edge] = np.mean(pos, axis=0)[self.edge]
         return p
@@ -712,7 +716,7 @@ def checkSnaps(snaps: List[SnapBase]) -> Tuple[float, float]:
         if best < np.inf:
             result[index] = best
     # return the best suggestion
-    return result
+    return result  # ty:ignore[invalid-return-type]
 
 
 def checkSnapsActive(snaps: List[SnapBase]):
@@ -724,7 +728,7 @@ def checkSnapsActive(snaps: List[SnapBase]):
 def getSnaps(targets: List[TargetWrapper], dir: int, no_height=False) -> List[SnapBase]:
     """get all snap objects for the target and the direction"""
     snaps = []
-    target_artists: List[Artist] = [t.target for t in targets]
+    target_artists: List[Artist] = [t.target for t in targets]  # ty:ignore[invalid-assignment]
     for target in target_artists:
         if isinstance(target, Legend):
             continue
@@ -733,7 +737,7 @@ def getSnaps(targets: List[TargetWrapper], dir: int, no_height=False) -> List[Sn
                 snaps.append(SnapCenterWith(target, checkXLabel(target), 0))
             elif checkYLabel(target):
                 snaps.append(SnapCenterWith(target, checkYLabel(target), 1))
-            for ax in target.figure.axes + [target.figure]:
+            for ax in target.figure.axes + [target.figure]:  # ty:ignore[possibly-missing-attribute]
                 for txt in ax.texts:
                     # for other texts
                     if txt in target_artists or not txt.get_visible():
@@ -743,7 +747,7 @@ def getSnaps(targets: List[TargetWrapper], dir: int, no_height=False) -> List[Sn
                     snaps.append(SnapSamePos(target, txt, 0))
                     snaps.append(SnapSamePos(target, txt, 1))
             continue
-        for index, axes in enumerate(target.figure.axes):
+        for index, axes in enumerate(target.figure.axes):  # ty:ignore[possibly-missing-attribute]
             if axes not in target_artists and axes.get_visible():
                 # axes edged
                 if dir & DIR_X0:
@@ -766,7 +770,7 @@ def getSnaps(targets: List[TargetWrapper], dir: int, no_height=False) -> List[Sn
                     if dir & DIR_Y1:
                         snaps.append(SnapSameDimension(target, axes, 3))
 
-                for axes2 in target.figure.axes:
+                for axes2 in target.figure.axes:  # ty:ignore[possibly-missing-attribute]
                     if axes2 != axes and axes2 not in target_artists and axes2.get_visible():
                         snaps.append(SnapSameBorder(target, axes, axes2, dir))
     return snaps

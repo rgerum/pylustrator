@@ -20,17 +20,21 @@
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
 import os
-from typing import Any, Tuple
+from typing import TYPE_CHECKING, Any, Tuple
 import numpy as np
 from packaging import version
 
 import qtawesome as qta
-from qtpy import QtCore, QtGui, QtWidgets
+
+if TYPE_CHECKING:
+    from PyQt5 import QtCore, QtGui, QtWidgets
+else:
+    from qtpy import QtCore, QtGui, QtWidgets
 
 try:  # starting from mpl version 3.6.0
     from matplotlib.axes import Axes
 except ImportError:
-    from matplotlib.axes._subplots import Axes
+    from matplotlib.axes._subplots import Axes  # ty:ignore[unresolved-import]
 import matplotlib as mpl
 from matplotlib.artist import Artist
 from matplotlib.figure import Figure
@@ -50,7 +54,7 @@ from pylustrator.change_tracker import UndoRedo, add_text_default, add_axes_defa
 
 
 class TextPropertiesWidget(QtWidgets.QWidget):
-    stateChanged = QtCore.Signal(int, str)
+    stateChanged = QtCore.Signal(int, str)  # ty:ignore[unresolved-attribute]
     noSignal = False
     target_list = None
 
@@ -62,7 +66,7 @@ class TextPropertiesWidget(QtWidgets.QWidget):
         """
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
-        self.layout = QtWidgets.QHBoxLayout(self)
+        self.layout = QtWidgets.QHBoxLayout(self)  # ty:ignore[invalid-assignment]
         self.layout.setContentsMargins(0, 0, 0, 0)
 
         self.buttons_align = []
@@ -143,7 +147,7 @@ class TextPropertiesWidget(QtWidgets.QWidget):
         font, x = QtWidgets.QFontDialog.getFont(font0, self)
 
         with UndoRedo(self.target_list, "Change font size"):
-            for element in self.target_list:
+            for element in self.target_list:  # ty:ignore[not-iterable]
                 element.set_fontname(font.family())
                 if font.weight() != font0.weight():
                     element.set_weight(self.convertQtWeightToMplWeight(font.weight()))
@@ -152,7 +156,7 @@ class TextPropertiesWidget(QtWidgets.QWidget):
                 if font.italic() != font0.italic():
                     element.set_style("italic" if font.italic() else "normal")
 
-        self.setTarget(self.target_list)
+        self.setTarget(self.target_list)  # ty:ignore[invalid-argument-type]
 
     def setTarget(self, element: Artist):
         """set the target artist for this widget"""
@@ -165,15 +169,15 @@ class TextPropertiesWidget(QtWidgets.QWidget):
             else:
                 self.target_list = [element]
         self.target = None
-        self.font_size.setValue(int(element.get_fontsize()))
+        self.font_size.setValue(int(element.get_fontsize()))  # ty:ignore[possibly-missing-attribute]
 
-        index_selected = self.align_names.index(element.get_ha())
+        index_selected = self.align_names.index(element.get_ha())  # ty:ignore[possibly-missing-attribute]
         for index, button in enumerate(self.buttons_align):
             button.setChecked(index == index_selected)
 
-        self.button_bold.setChecked(element.get_weight() == "bold")
-        self.button_italic.setChecked(element.get_style() == "italic")
-        self.button_color.setColor(element.get_color())
+        self.button_bold.setChecked(element.get_weight() == "bold")  # ty:ignore[possibly-missing-attribute]
+        self.button_italic.setChecked(element.get_style() == "italic")  # ty:ignore[possibly-missing-attribute]
+        self.button_color.setColor(element.get_color())  # ty:ignore[possibly-missing-attribute]
 
         self.target = element
 
@@ -190,41 +194,41 @@ class TextPropertiesWidget(QtWidgets.QWidget):
         """set bold or normal"""
         if self.target:
             with UndoRedo(self.target_list, "Change weight"):
-                for element in self.target_list:
+                for element in self.target_list:  # ty:ignore[not-iterable]
                     element.set_weight("bold" if checked else "normal")
 
     def changeStyle(self, checked: bool):
         """set italic or normal"""
         if self.target:
             with UndoRedo(self.target_list, "Change style"):
-                for element in self.target_list:
+                for element in self.target_list:  # ty:ignore[not-iterable]
                     element.set_style("italic" if checked else "normal")
 
     def changeColor(self, color: str):
         """set the text color"""
         if self.target:
             with UndoRedo(self.target_list, "Change color"):
-                for element in self.target_list:
+                for element in self.target_list:  # ty:ignore[not-iterable]
                     element.set_color(color)
 
     def changeAlign(self, align: str):
         """set the text algin"""
         if self.target:
             with UndoRedo(self.target_list, "Change alignment"):
-                for element in self.target_list:
+                for element in self.target_list:  # ty:ignore[not-iterable]
                     element.set_ha(align)
 
     def changeFontSize(self, value: int):
         """set the font size"""
         if self.target:
             with UndoRedo(self.target_list, "Change font size"):
-                for element in self.target_list:
+                for element in self.target_list:  # ty:ignore[not-iterable]
                     element.set_fontsize(value)
 
 
 class TextPropertiesWidget2(QtWidgets.QWidget):
-    stateChanged = QtCore.Signal(int, str)
-    propertiesChanged = QtCore.Signal()
+    stateChanged = QtCore.Signal(int, str)  # ty:ignore[unresolved-attribute]
+    propertiesChanged = QtCore.Signal()  # ty:ignore[unresolved-attribute]
     noSignal = False
     target_list = None
 
@@ -236,7 +240,7 @@ class TextPropertiesWidget2(QtWidgets.QWidget):
         """
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
-        self.layout = QtWidgets.QHBoxLayout(self)
+        self.layout = QtWidgets.QHBoxLayout(self)  # ty:ignore[invalid-assignment]
         self.layout.setContentsMargins(0, 0, 0, 0)
 
         self.buttons_align = []
@@ -340,13 +344,13 @@ class TextPropertiesWidget2(QtWidgets.QWidget):
 
         self.propertiesChanged.emit()
         # main_figure(self.target).canvas.draw()
-        self.setTarget(self.target_list)
+        self.setTarget(self.target_list)  # ty:ignore[invalid-argument-type]
 
     def setTarget(self, element: Artist):
         """set the target artist for this widget"""
         self.noSignal = True
         try:
-            if len(element) == 0:
+            if len(element) == 0:  # ty:ignore[invalid-argument-type]
                 return
             if isinstance(element, list):
                 self.target_list = element
@@ -357,14 +361,14 @@ class TextPropertiesWidget2(QtWidgets.QWidget):
                 else:
                     self.target_list = [element]
             self.target = None
-            self.font_size.setValue(int(element.get_fontsize()))
-            index_selected = self.align_names.index(element.get_ha())
+            self.font_size.setValue(int(element.get_fontsize()))  # ty:ignore[possibly-missing-attribute]
+            index_selected = self.align_names.index(element.get_ha())  # ty:ignore[possibly-missing-attribute]
             for index, button in enumerate(self.buttons_align):
                 button.setChecked(index == index_selected)
 
-            self.button_bold.setChecked(element.get_weight() == "bold")
-            self.button_italic.setChecked(element.get_style() == "italic")
-            self.button_color.setColor(element.get_color())
+            self.button_bold.setChecked(element.get_weight() == "bold")  # ty:ignore[possibly-missing-attribute]
+            self.button_italic.setChecked(element.get_style() == "italic")  # ty:ignore[possibly-missing-attribute]
+            self.button_color.setColor(element.get_color())  # ty:ignore[possibly-missing-attribute]
 
             for name, name2, type_, default_ in self.property_names:
                 value = getattr(element, "get_" + name2)()
@@ -412,7 +416,7 @@ class TextPropertiesWidget2(QtWidgets.QWidget):
 
 
 class LegendPropertiesWidget(QtWidgets.QWidget):
-    stateChanged = QtCore.Signal(int, str)
+    stateChanged = QtCore.Signal(int, str)  # ty:ignore[unresolved-attribute]
     noSignal = False
     target_list = None
 
@@ -424,13 +428,13 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
         """
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
-        self.layout = QtWidgets.QVBoxLayout(self)
+        self.layout = QtWidgets.QVBoxLayout(self)  # ty:ignore[invalid-assignment]
         self.layout.setContentsMargins(0, 0, 0, 0)
 
         import matplotlib as mpl
 
         ncols_name = "ncols"
-        if version.parse(mpl._get_version()) < version.parse("3.6.0"):
+        if version.parse(mpl._get_version()) < version.parse("3.6.0"):  # ty:ignore[unresolved-attribute]
             ncols_name = "ncol"
 
         self.property_names = [
@@ -487,7 +491,7 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
                 layout.setContentsMargins(0, 0, 0, 0)
                 self.layout.addLayout(layout)
             if type_ is bool:
-                widget = CheckWidget(layout, name + ":")
+                widget = CheckWidget(layout, name + ":")  # ty:ignore[invalid-argument-type]
                 widget.editingFinished.connect(
                     lambda name=name, widget=widget: self.changePropertiy(
                         name, widget.get()
@@ -523,10 +527,10 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
                 pix = pix.scaledToWidth(
                     int(
                         28
-                        * QtGui.QGuiApplication.primaryScreen().logicalDotsPerInch()
+                        * QtGui.QGuiApplication.primaryScreen().logicalDotsPerInch()  # ty:ignore[possibly-missing-attribute]
                         / 96
                     ),
-                    QtCore.Qt.SmoothTransformation,
+                    QtCore.Qt.SmoothTransformation,  # ty:ignore[unresolved-attribute]
                 )
                 widget.setToolTip(name)
                 widget.label.setToolTip(name)
@@ -588,11 +592,11 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
         self.target = None
         for name, name2, type_, default_, icon in self.property_names:
             if name2 == "frameon":
-                value = element.get_frame_on()
+                value = element.get_frame_on()  # ty:ignore[possibly-missing-attribute]
             elif name2 == "title":
-                value = element.get_title().get_text()
+                value = element.get_title().get_text()  # ty:ignore[possibly-missing-attribute]
             elif name2 == "title_fontsize":
-                value = int(element.get_title().get_fontsize())
+                value = int(element.get_title().get_fontsize())  # ty:ignore[possibly-missing-attribute]
             elif name2 == "_fontsize":
                 # matplotlib fontsizes are float, but Qt requires int
                 value = int(getattr(element, name2))
@@ -609,7 +613,7 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
 
 
 class QTickEdit(QtWidgets.QWidget):
-    def __init__(self, axis: str, signal_target_changed: QtCore.Signal):
+    def __init__(self, axis: str, signal_target_changed: QtCore.Signal):  # ty:ignore[unresolved-attribute]
         """A widget to change the tick properties
 
         Args:
@@ -623,7 +627,7 @@ class QTickEdit(QtWidgets.QWidget):
                 os.path.join(os.path.dirname(__file__), "../icons", "ticks.ico")
             )
         )
-        self.layout = QtWidgets.QVBoxLayout(self)
+        self.layout = QtWidgets.QVBoxLayout(self)  # ty:ignore[invalid-assignment]
         self.axis = axis
 
         self.label = QtWidgets.QLabel(
@@ -1061,10 +1065,10 @@ class QTickEdit(QtWidgets.QWidget):
 
 
 class QAxesProperties(QtWidgets.QWidget):
-    targetChanged_wrapped = QtCore.Signal(object)
+    targetChanged_wrapped = QtCore.Signal(object)  # ty:ignore[unresolved-attribute]
 
     def __init__(
-        self, layout: QtWidgets.QLayout, axis: str, signal_target_changed: QtCore.Signal
+        self, layout: QtWidgets.QLayout, axis: str, signal_target_changed: QtCore.Signal  # ty:ignore[unresolved-attribute]
     ):
         """a widget to change the properties of an axes (label, limits)
 
@@ -1075,7 +1079,7 @@ class QAxesProperties(QtWidgets.QWidget):
         """
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
-        self.layout = QtWidgets.QHBoxLayout(self)
+        self.layout = QtWidgets.QHBoxLayout(self)  # ty:ignore[invalid-assignment]
         self.layout.setContentsMargins(0, 0, 0, 0)
 
         self.targetChanged = signal_target_changed
@@ -1136,8 +1140,8 @@ class QAxesProperties(QtWidgets.QWidget):
 
 
 class QItemProperties(QtWidgets.QWidget):
-    targetChanged = QtCore.Signal(object)
-    valueChanged = QtCore.Signal(tuple)
+    targetChanged = QtCore.Signal(object)  # ty:ignore[unresolved-attribute]
+    valueChanged = QtCore.Signal(tuple)  # ty:ignore[unresolved-attribute]
     element = None
 
     def __init__(self, layout: QtWidgets.QLayout, signals):
@@ -1156,7 +1160,7 @@ class QItemProperties(QtWidgets.QWidget):
         signals.figure_changed.connect(self.setFigure)
         signals.figure_element_selected.connect(self.select_element)
 
-        self.layout = QtWidgets.QVBoxLayout(self)
+        self.layout = QtWidgets.QVBoxLayout(self)  # ty:ignore[invalid-assignment]
         self.layout.setContentsMargins(0, 0, 0, 0)
 
         self.label = QtWidgets.QLabel()
@@ -1275,7 +1279,7 @@ class QItemProperties(QtWidgets.QWidget):
         self.layout_buttons.addWidget(self.button_legend)
         self.button_legend.clicked.connect(self.buttonLegendClicked)
 
-        self.setElement(None)
+        self.setElement(None)  # ty:ignore[invalid-argument-type]
         self.setMinimumWidth(100)
 
     def select_element(self, element: Artist):
@@ -1367,10 +1371,10 @@ class QItemProperties(QtWidgets.QWidget):
 
     def buttonAddAnnotationClicked(self):
         """when the button 'add annoations' is clicked"""
-        text = self.element.annotate(
+        text = self.element.annotate(  # ty:ignore[possibly-missing-attribute]
             "New Annotation",
-            (self.element.get_xlim()[0], self.element.get_ylim()[0]),
-            (np.mean(self.element.get_xlim()), np.mean(self.element.get_ylim())),
+            (self.element.get_xlim()[0], self.element.get_ylim()[0]),  # ty:ignore[possibly-missing-attribute]
+            (np.mean(self.element.get_xlim()), np.mean(self.element.get_ylim())),  # ty:ignore[possibly-missing-attribute]
             arrowprops=dict(arrowstyle="->"),
         )
         self.fig.change_tracker.addChange(
@@ -1391,12 +1395,12 @@ class QItemProperties(QtWidgets.QWidget):
 
     def buttonAddRectangleClicked(self):
         """when the button 'add rectangle' is clicked"""
-        p = mpl.patches.Rectangle(
-            (self.element.get_xlim()[0], self.element.get_ylim()[0]),
-            width=np.mean(self.element.get_xlim()),
-            height=np.mean(self.element.get_ylim()),
+        p = mpl.patches.Rectangle(  # ty:ignore[possibly-missing-attribute]
+            (self.element.get_xlim()[0], self.element.get_ylim()[0]),  # ty:ignore[possibly-missing-attribute]
+            width=np.mean(self.element.get_xlim()),  # ty:ignore[possibly-missing-attribute]
+            height=np.mean(self.element.get_ylim()),  # ty:ignore[possibly-missing-attribute]
         )
-        self.element.add_patch(p)
+        self.element.add_patch(p)  # ty:ignore[possibly-missing-attribute]
 
         self.fig.change_tracker.addChange(
             self.element,
@@ -1416,15 +1420,15 @@ class QItemProperties(QtWidgets.QWidget):
 
     def buttonAddArrowClicked(self):
         """when the button 'add arrow' is clicked"""
-        p = mpl.patches.FancyArrowPatch(
-            (self.element.get_xlim()[0], self.element.get_ylim()[0]),
-            (np.mean(self.element.get_xlim()), np.mean(self.element.get_ylim())),
+        p = mpl.patches.FancyArrowPatch(  # ty:ignore[possibly-missing-attribute]
+            (self.element.get_xlim()[0], self.element.get_ylim()[0]),  # ty:ignore[possibly-missing-attribute]
+            (np.mean(self.element.get_xlim()), np.mean(self.element.get_ylim())),  # ty:ignore[possibly-missing-attribute]
             arrowstyle="Simple,head_length=10,head_width=10,tail_width=2",
             facecolor="black",
             clip_on=False,
             zorder=2,
         )
-        self.element.add_patch(p)
+        self.element.add_patch(p)  # ty:ignore[possibly-missing-attribute]
 
         self.fig.change_tracker.addChange(
             self.element,
@@ -1473,8 +1477,8 @@ class QItemProperties(QtWidgets.QWidget):
             if isinstance(element.target, Axes)
         ]
         has_grid = (
-            getattr(self.element.xaxis, "_gridOnMajor", False)
-            or getattr(self.element.xaxis, "_major_tick_kw", {"gridOn": False})[
+            getattr(self.element.xaxis, "_gridOnMajor", False)  # ty:ignore[possibly-missing-attribute]
+            or getattr(self.element.xaxis, "_major_tick_kw", {"gridOn": False})[  # ty:ignore[possibly-missing-attribute]
                 "gridOn"
             ]
         )
@@ -1509,18 +1513,18 @@ class QItemProperties(QtWidgets.QWidget):
 
     def buttonLegendClicked(self):
         """add a legend to the target"""
-        self.element.legend()
+        self.element.legend()  # ty:ignore[possibly-missing-attribute]
         self.fig.change_tracker.addChange(self.element, ".legend()")
-        self.fig.figure_dragger.make_dragable(self.element.get_legend())
+        self.fig.figure_dragger.make_dragable(self.element.get_legend())  # ty:ignore[possibly-missing-attribute]
         self.fig.canvas.draw()
         self.signals.figure_element_child_created.emit(self.element)
 
     def changePickable(self):
         """make the target pickable"""
         if self.input_picker.isChecked():
-            self.element._draggable.connect()
+            self.element._draggable.connect()  # ty:ignore[possibly-missing-attribute]
         else:
-            self.element._draggable.disconnect()
+            self.element._draggable.disconnect()  # ty:ignore[possibly-missing-attribute]
         self.signals.figure_element_child_created.emit(self.element)
 
     def setElement(self, element: Artist):
@@ -1528,7 +1532,7 @@ class QItemProperties(QtWidgets.QWidget):
         self.label.setText(str(element))
         self.element = element
         try:
-            element._draggable
+            element._draggable  # ty:ignore[unresolved-attribute]
         except AttributeError:
             pass
 
@@ -1553,7 +1557,7 @@ class QItemProperties(QtWidgets.QWidget):
         else:
             self.button_add_text.hide()
 
-        if isinstance(element, mpl.legend.Legend):
+        if isinstance(element, mpl.legend.Legend):  # ty:ignore[possibly-missing-attribute]
             self.input_legend_properties.show()
             self.input_legend_properties.setTarget(element)
         else:

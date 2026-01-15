@@ -21,13 +21,17 @@
 
 import numpy as np
 from matplotlib.artist import Artist
-from matplotlib.figure import Figure, SubFigure
+from matplotlib.figure import Figure, SubFigure  # ty:ignore[unresolved-import]
 from matplotlib.axes import Axes
 from matplotlib.text import Text
 from matplotlib.patches import Rectangle
 from matplotlib.backend_bases import MouseEvent, KeyEvent
-from typing import Sequence, Callable, Tuple
-from qtpy import QtCore, QtGui, QtWidgets
+from typing import TYPE_CHECKING, Sequence, Callable, Tuple
+
+if TYPE_CHECKING:
+    from PyQt5 import QtCore, QtGui, QtWidgets
+else:
+    from qtpy import QtCore, QtGui, QtWidgets
 
 from .snap import TargetWrapper, getSnaps, checkSnaps, checkSnapsActive, SnapBase
 from .change_tracker import ChangeTracker
@@ -70,14 +74,14 @@ class GrabFunctions(object):
         self.got_artist = True
         self.moved = False
 
-        self._c1 = self.figure.canvas.mpl_connect("motion_notify_event", self.on_motion)
+        self._c1 = self.figure.canvas.mpl_connect("motion_notify_event", self.on_motion)  # ty:ignore[possibly-missing-attribute]
         self.clickedEvent(evt)
 
     def button_release_event(self, event: MouseEvent):
         """when the mouse is released"""
         if self.got_artist:
             self.got_artist = False
-            self.figure.canvas.mpl_disconnect(self._c1)
+            self.figure.canvas.mpl_disconnect(self._c1)  # ty:ignore[possibly-missing-attribute]
             self.releasedEvent(event)
 
     def clickedEvent(self, event: MouseEvent):
@@ -85,11 +89,11 @@ class GrabFunctions(object):
         self.parent.start_move()
         self.mouse_xy = (event.x, event.y)
 
-        for s in self.snaps:
+        for s in self.snaps:  # ty:ignore[not-iterable]
             s.remove()
         self.snaps = []
 
-        self.snaps = getSnaps(self.targets, self.dir, no_height=self.no_height)
+        self.snaps = getSnaps(self.targets, self.dir, no_height=self.no_height)  # ty:ignore[invalid-argument-type, unresolved-attribute]
 
         if blit is True:
             for target in self.targets:
@@ -103,7 +107,7 @@ class GrabFunctions(object):
 
     def releasedEvent(self, event: MouseEvent):
         """when the mouse is released"""
-        for snap in self.snaps:
+        for snap in self.snaps:  # ty:ignore[not-iterable]
             snap.remove()
         self.snaps = []
 
@@ -117,7 +121,7 @@ class GrabFunctions(object):
 
     def movedEvent(self, event: MouseEvent):
         """when the mouse is moved"""
-        if len(self.targets) == 0:
+        if len(self.targets) == 0:  # ty:ignore[unresolved-attribute]
             return
 
         dx = event.x - self.mouse_xy[0]
@@ -148,7 +152,7 @@ class GrabFunctions(object):
             # flush any pending GUI events, re-painting the screen if needed
             fig.canvas.flush_events()
         else:
-            self.figure.canvas.schedule_draw()
+            self.figure.canvas.schedule_draw()  # ty:ignore[possibly-missing-attribute]
 
 
 class GrabbableRectangleSelection(GrabFunctions):
@@ -156,7 +160,7 @@ class GrabbableRectangleSelection(GrabFunctions):
 
     def addGrabber(self, x: float, y: float, dir: int, GrabberClass: object):
         # add a grabber object at the given coordinates
-        self.grabbers.append(GrabberClass(self, x, y, dir, self.graphics_scene))
+        self.grabbers.append(GrabberClass(self, x, y, dir, self.graphics_scene))  # ty:ignore[call-non-callable, possibly-missing-attribute]
 
     def __init__(self, figure: Figure, graphics_scene=None):
         self.grabbers = []
@@ -172,7 +176,7 @@ class GrabbableRectangleSelection(GrabFunctions):
         self.graphics_scene_snapparent = QtWidgets.QGraphicsRectItem(
             0, 0, 0, 0, self.graphics_scene
         )
-        figure._pyl_graphics_scene_snapparent = self.graphics_scene_snapparent
+        figure._pyl_graphics_scene_snapparent = self.graphics_scene_snapparent  # ty:ignore[unresolved-attribute]
 
         GrabFunctions.__init__(
             self, self, DIR_X0 | DIR_X1 | DIR_Y0 | DIR_Y1, no_height=True
@@ -187,7 +191,7 @@ class GrabbableRectangleSelection(GrabFunctions):
         self.addGrabber(1, 0, DIR_X1 | DIR_Y0, GrabberGenericRound)
         self.addGrabber(0, 0.5, DIR_X0, GrabberGenericRectangle)
 
-        self.c4 = self.figure.canvas.mpl_connect("key_press_event", self.keyPressEvent)
+        self.c4 = self.figure.canvas.mpl_connect("key_press_event", self.keyPressEvent)  # ty:ignore[unresolved-attribute]
 
         self.targets = []
         self.targets_rects = []
@@ -196,9 +200,9 @@ class GrabbableRectangleSelection(GrabFunctions):
 
     def add_target(self, target: Artist):
         """add an artist to the selection"""
-        target = TargetWrapper(target)
+        target = TargetWrapper(target)  # ty:ignore[invalid-assignment]
 
-        new_points = np.array(target.get_positions())
+        new_points = np.array(target.get_positions())  # ty:ignore[unresolved-attribute]
         if len(new_points) == 0:
             return
 
@@ -250,7 +254,7 @@ class GrabbableRectangleSelection(GrabFunctions):
         else:
             pen1 = QtGui.QPen(QtGui.QColor("white"), 2)
             pen2 = QtGui.QPen(QtGui.QColor("black"), 2)
-            pen2.setStyle(QtCore.Qt.DashLine)
+            pen2.setStyle(QtCore.Qt.DashLine)  # ty:ignore[unresolved-attribute]
             # pen3 = QtGui.QPen(QtGui.QColor("black"), 2)
             # brush1 = QtGui.QBrush(QtGui.QColor("red"))
 
@@ -283,7 +287,7 @@ class GrabbableRectangleSelection(GrabFunctions):
         if points is None:
             return
 
-        for grabber in self.grabbers:
+        for grabber in self.grabbers:  # ty:ignore[not-iterable]
             grabber.targets = self.targets
 
         self.positions[0] = np.min(points[:, 0])
@@ -348,7 +352,7 @@ class GrabbableRectangleSelection(GrabFunctions):
             self.has_moved = True
             self.end_move()
 
-            self.figure.canvas.draw()
+            self.figure.canvas.draw()  # ty:ignore[possibly-missing-attribute]
             self.update_selection_rectangles()
 
         def distribute(y: int):
@@ -372,7 +376,7 @@ class GrabbableRectangleSelection(GrabFunctions):
             self.has_moved = True
             self.end_move()
 
-            self.figure.canvas.draw()
+            self.figure.canvas.draw()  # ty:ignore[possibly-missing-attribute]
             self.update_selection_rectangles()
 
         if mode == "center_x":
@@ -399,7 +403,7 @@ class GrabbableRectangleSelection(GrabFunctions):
         if mode == "distribute_y":
             distribute(1)
 
-        self.figure.signals.figure_selection_moved.emit()
+        self.figure.signals.figure_selection_moved.emit()  # ty:ignore[possibly-missing-attribute]
 
     def update_selection_rectangles(self, use_previous_offset=False):
         """update the selection visualisation"""
@@ -458,20 +462,20 @@ class GrabbableRectangleSelection(GrabFunctions):
     def update_grabber(self):
         """update the position of the grabber elements"""
         if self.do_target_scale():
-            for grabber in self.grabbers:
+            for grabber in self.grabbers:  # ty:ignore[not-iterable]
                 grabber.updatePos()
         else:
             self.hide_grabber()
 
     def hide_grabber(self):
         """hide the grabber elements"""
-        for grabber in self.grabbers:
+        for grabber in self.grabbers:  # ty:ignore[not-iterable]
             grabber.set_xy((-100, -100))
 
     def clear_targets(self):
         """remove all elements from the selection"""
         for rect in self.targets_rects:
-            self.graphics_scene.scene().removeItem(rect)
+            self.graphics_scene.scene().removeItem(rect)  # ty:ignore[possibly-missing-attribute]
             # self.figure.patches.remove(rect)
         self.targets_rects = []
         self.targets = []
@@ -480,11 +484,11 @@ class GrabbableRectangleSelection(GrabFunctions):
 
     def do_target_scale(self) -> bool:
         """if any of the elements in the selection allows scaling"""
-        return np.any([target.do_scale for target in self.targets])
+        return np.any([target.do_scale for target in self.targets])  # ty:ignore[invalid-return-type]
 
     def do_change_aspect_ratio(self) -> bool:
         """if any of the element sin the selection wants to perserve its aspect ratio"""
-        return np.any([target.fixed_aspect for target in self.targets])
+        return np.any([target.fixed_aspect for target in self.targets])  # ty:ignore[invalid-return-type]
 
     def width(self) -> float:
         """the width of the current selection"""
@@ -534,7 +538,7 @@ class GrabbableRectangleSelection(GrabFunctions):
             for target, pos in zip(targets, positions):
                 target = TargetWrapper(target)
                 target.set_positions(pos)
-                self.add_target(target.target)
+                self.add_target(target.target)  # ty:ignore[invalid-argument-type]
 
         return undo
 
@@ -553,8 +557,8 @@ class GrabbableRectangleSelection(GrabFunctions):
 
         self.store_end = self.get_save_point()
         if self.has_moved is True:
-            self.figure.signals.figure_selection_moved.emit()
-            self.figure.change_tracker.addEdit(
+            self.figure.signals.figure_selection_moved.emit()  # ty:ignore[possibly-missing-attribute]
+            self.figure.change_tracker.addEdit(  # ty:ignore[possibly-missing-attribute]
                 [self.store_start, self.store_end, "Move"]
             )
 
@@ -627,12 +631,12 @@ class GrabbableRectangleSelection(GrabFunctions):
         self.has_moved = True
 
         if not ignore_snaps:
-            offx, offy = checkSnaps(snaps)
+            offx, offy = checkSnaps(snaps)  # ty:ignore[invalid-argument-type]
             self.addOffset((pos[0] - offx, pos[1] - offy), dir, keep_aspect_ratio)
 
-            offx, offy = checkSnaps(self.snaps)
+            offx, offy = checkSnaps(self.snaps)  # ty:ignore[invalid-argument-type]
 
-        checkSnapsActive(snaps)
+        checkSnapsActive(snaps)  # ty:ignore[invalid-argument-type]
 
     def apply_transform(self, transform: np.ndarray, point: Sequence[float]):
         """apply the given transformation to a point"""
@@ -654,45 +658,45 @@ class GrabbableRectangleSelection(GrabFunctions):
         if event.key == "pagedown":
             for target in self.targets:
                 target.target.set_zorder(target.target.get_zorder() - 1)
-                self.figure.change_tracker.addChange(
+                self.figure.change_tracker.addChange(  # ty:ignore[possibly-missing-attribute]
                     target.target, ".set_zorder(%d)" % target.target.get_zorder()
                 )
-            self.figure.canvas.draw()
+            self.figure.canvas.draw()  # ty:ignore[possibly-missing-attribute]
         if event.key == "pageup":
             for target in self.targets:
                 target.target.set_zorder(target.target.get_zorder() + 1)
-                self.figure.change_tracker.addChange(
+                self.figure.change_tracker.addChange(  # ty:ignore[possibly-missing-attribute]
                     target.target, ".set_zorder(%d)" % target.target.get_zorder()
                 )
-            self.figure.canvas.draw()
+            self.figure.canvas.draw()  # ty:ignore[possibly-missing-attribute]
         if event.key == "left":
             self.start_move()
-            self.addOffset((-1, 0), self.dir)
+            self.addOffset((-1, 0), self.dir)  # ty:ignore[invalid-argument-type]
             self.has_moved = True
             self.end_move()
-            self.figure.canvas.schedule_draw()
+            self.figure.canvas.schedule_draw()  # ty:ignore[possibly-missing-attribute]
         if event.key == "right":
             self.start_move()
-            self.addOffset((+1, 0), self.dir)
+            self.addOffset((+1, 0), self.dir)  # ty:ignore[invalid-argument-type]
             self.has_moved = True
             self.end_move()
-            self.figure.canvas.schedule_draw()
+            self.figure.canvas.schedule_draw()  # ty:ignore[possibly-missing-attribute]
         if event.key == "down":
             self.start_move()
-            self.addOffset((0, -1), self.dir)
+            self.addOffset((0, -1), self.dir)  # ty:ignore[invalid-argument-type]
             self.has_moved = True
             self.end_move()
-            self.figure.canvas.schedule_draw()
+            self.figure.canvas.schedule_draw()  # ty:ignore[possibly-missing-attribute]
         if event.key == "up":
             self.start_move()
-            self.addOffset((0, +1), self.dir)
+            self.addOffset((0, +1), self.dir)  # ty:ignore[invalid-argument-type]
             self.has_moved = True
             self.end_move()
-            self.figure.canvas.schedule_draw()
+            self.figure.canvas.schedule_draw()  # ty:ignore[possibly-missing-attribute]
         if event.key == "delete":
             for target in self.targets[::-1]:
-                self.figure.change_tracker.removeElement(target.target)
-            self.figure.canvas.draw()
+                self.figure.change_tracker.removeElement(target.target)  # ty:ignore[possibly-missing-attribute]
+            self.figure.canvas.draw()  # ty:ignore[possibly-missing-attribute]
 
 
 class DragManager:
@@ -705,14 +709,14 @@ class DragManager:
         self.figure = figure
         self.figure.figure_dragger = self
 
-        self.figure.canvas.mpl_disconnect(
-            self.figure.canvas.manager.key_press_handler_id
+        self.figure.canvas.mpl_disconnect(  # ty:ignore[unresolved-attribute]
+            self.figure.canvas.manager.key_press_handler_id  # ty:ignore[unresolved-attribute]
         )
 
         self.activate()
 
         # make all the subplots pickable
-        for index, axes in enumerate(self.figure.axes):
+        for index, axes in enumerate(self.figure.axes):  # ty:ignore[unresolved-attribute]
             axes.set_picker(True)
             leg = axes.get_legend()
             if leg:
@@ -730,44 +734,44 @@ class DragManager:
             self.make_dragable(axes)
 
         def make_figure_dragable(fig: Figure | SubFigure) -> None:
-            for text in fig.texts:
+            for text in fig.texts:  # ty:ignore[possibly-missing-attribute]
                 self.make_dragable(text)
-            for patch in fig.patches:
+            for patch in fig.patches:  # ty:ignore[possibly-missing-attribute]
                 self.make_dragable(patch)
-            for leg in fig.legends:
+            for leg in fig.legends:  # ty:ignore[possibly-missing-attribute]
                 self.make_dragable(leg)
 
         make_figure_dragable(self.figure)
-        for subfig in self.figure.subfigs:
+        for subfig in self.figure.subfigs:  # ty:ignore[unresolved-attribute]
             make_figure_dragable(subfig)
 
-        self.selection = GrabbableRectangleSelection(figure, figure._pyl_scene)
+        self.selection = GrabbableRectangleSelection(figure, figure._pyl_scene)  # ty:ignore[unresolved-attribute]
         self.figure.selection = self.selection
         self.change_tracker = ChangeTracker(figure, no_save)
         self.figure.change_tracker = self.change_tracker
 
     def activate(self):
         """activate the interaction callbacks from the figure"""
-        self.c3 = self.figure.canvas.mpl_connect(
+        self.c3 = self.figure.canvas.mpl_connect(  # ty:ignore[possibly-missing-attribute]
             "button_release_event", self.button_release_event0
         )
-        self.c2 = self.figure.canvas.mpl_connect(
+        self.c2 = self.figure.canvas.mpl_connect(  # ty:ignore[possibly-missing-attribute]
             "button_press_event", self.button_press_event0
         )
-        self.c4 = self.figure.canvas.mpl_connect(
+        self.c4 = self.figure.canvas.mpl_connect(  # ty:ignore[possibly-missing-attribute]
             "key_press_event", self.key_press_event
         )
 
     def deactivate(self):
         """deactivate the interaction callbacks from the figure"""
-        self.figure.canvas.mpl_disconnect(self.c3)
-        self.figure.canvas.mpl_disconnect(self.c2)
-        self.figure.canvas.mpl_disconnect(self.c4)
+        self.figure.canvas.mpl_disconnect(self.c3)  # ty:ignore[possibly-missing-attribute]
+        self.figure.canvas.mpl_disconnect(self.c2)  # ty:ignore[possibly-missing-attribute]
+        self.figure.canvas.mpl_disconnect(self.c4)  # ty:ignore[possibly-missing-attribute]
 
         self.selection.clear_targets()
         self.selected_element = None
-        self.on_select(None, None)
-        self.figure.canvas.draw()
+        self.on_select(None, None)  # ty:ignore[invalid-argument-type]
+        self.figure.canvas.draw()  # ty:ignore[possibly-missing-attribute]
 
     def make_dragable(self, target: Artist):
         """make an artist draggable"""
@@ -778,9 +782,9 @@ class DragManager:
     def get_picked_element(
         self,
         event: MouseEvent,
-        element: Artist = None,
-        picked_element: Artist = None,
-        last_selected: Artist = None,
+        element: Artist = None,  # ty:ignore[invalid-parameter-default]
+        picked_element: Artist = None,  # ty:ignore[invalid-parameter-default]
+        last_selected: Artist = None,  # ty:ignore[invalid-parameter-default]
     ):
         """get the picked element that an event refers to.
         To implement selection of elements at the back with multiple clicks.
@@ -799,7 +803,7 @@ class DragManager:
                 and child.contains(event)[0]
                 and (child.pickable() or isinstance(child, GrabberGeneric))
                 and not (
-                    child.get_label() is not None and child.get_label().startswith("_")
+                    child.get_label() is not None and child.get_label().startswith("_")  # ty:ignore[unresolved-attribute]
                 )
             ):
                 # if the element is the last selected, finish the search
@@ -836,7 +840,7 @@ class DragManager:
 
             # recursively iterate over all elements
             picked_element, _ = self.get_picked_element(
-                event, last_selected=last if event.dblclick else None
+                event, last_selected=last if event.dblclick else None  # ty:ignore[invalid-argument-type]
             )
 
             # if the element is a grabber, store it
@@ -854,7 +858,7 @@ class DragManager:
             elif contained:
                 self.selection.button_press_event(event)
 
-    def select_element(self, element: Artist, event: MouseEvent = None):
+    def select_element(self, element: Artist, event: MouseEvent = None):  # ty:ignore[invalid-parameter-default]
         """select an artist in a figure"""
         # do nothing if it is already selected
         if element == self.selected_element:
@@ -888,16 +892,16 @@ class DragManager:
         self.figure.change_tracker.backEdit()
         self.selection.clear_targets()
         self.selected_element = None
-        self.on_select(None, None)
-        self.figure.canvas.draw()
+        self.on_select(None, None)  # ty:ignore[invalid-argument-type]
+        self.figure.canvas.draw()  # ty:ignore[possibly-missing-attribute]
 
     def redo(self):
         print("forward edit")
         self.figure.change_tracker.forwardEdit()
         self.selection.clear_targets()
         self.selected_element = None
-        self.on_select(None, None)
-        self.figure.canvas.draw()
+        self.on_select(None, None)  # ty:ignore[invalid-argument-type]
+        self.figure.canvas.draw()  # ty:ignore[possibly-missing-attribute]
 
     def key_press_event(self, event: KeyEvent):
         """when a key is pressed"""
@@ -911,8 +915,8 @@ class DragManager:
         if event.key == "escape":
             self.selection.clear_targets()
             self.selected_element = None
-            self.on_select(None, None)
-            self.figure.canvas.draw()
+            self.on_select(None, None)  # ty:ignore[invalid-argument-type]
+            self.figure.canvas.draw()  # ty:ignore[possibly-missing-attribute]
 
 
 class GrabberGeneric(GrabFunctions):
@@ -931,18 +935,18 @@ class GrabberGeneric(GrabFunctions):
     def get_xy(self):
         return self.center
 
-    def set_xy(self, xy: (float, float)):
+    def set_xy(self, xy: (float, float)):  # ty:ignore[invalid-type-form]
         self.center = xy
 
     def getPos(self):
         x, y = self.get_xy()
-        return self.transform.transform((x, y))
+        return self.transform.transform((x, y))  # ty:ignore[unresolved-attribute]
 
     def updatePos(self):
         self.set_xy(self.parent.get_pos(self.pos))
 
-    def applyOffset(self, pos: (float, float), event: MouseEvent):
-        self.set_xy((self.ox + pos[0], self.oy + pos[1]))
+    def applyOffset(self, pos: (float, float), event: MouseEvent):  # ty:ignore[invalid-type-form]
+        self.set_xy((self.ox + pos[0], self.oy + pos[1]))  # ty:ignore[unresolved-attribute]
 
 
 class GrabberGenericRound(GrabberGeneric):
@@ -958,15 +962,15 @@ class GrabberGenericRound(GrabberGeneric):
         brush1 = QtGui.QBrush(QtGui.QColor("red"))
 
         self.ellipse = MyEllipse(x, y, 10, 10, scene)
-        self.ellipse.view = scene.view
-        self.ellipse.grabber = self
+        self.ellipse.view = scene.view  # ty:ignore[unresolved-attribute]
+        self.ellipse.grabber = self  # ty:ignore[unresolved-attribute]
         self.ellipse.setPen(pen3)
         self.ellipse.setBrush(brush1)
         self.center = (x, y)
 
         GrabberGeneric.__init__(self, parent, x, y, dir)
 
-    def set_xy(self, xy: (float, float)):
+    def set_xy(self, xy: (float, float)):  # ty:ignore[invalid-type-form]
         self.xy = xy
         self.ellipse.setRect(xy[0] - 5, xy[1] - 5, 10, 10)
 
@@ -993,8 +997,8 @@ class GrabberGenericRectangle(GrabberGeneric):
         brush1 = QtGui.QBrush(QtGui.QColor("red"))
 
         self.ellipse = MyRect(x - 5, y - 5, 10, 10, scene)
-        self.ellipse.view = scene.view
-        self.ellipse.grabber = self
+        self.ellipse.view = scene.view  # ty:ignore[unresolved-attribute]
+        self.ellipse.grabber = self  # ty:ignore[unresolved-attribute]
         self.ellipse.setPen(pen3)
         self.ellipse.setBrush(brush1)
 
@@ -1008,7 +1012,7 @@ class GrabberGenericRectangle(GrabberGeneric):
         xy = Rectangle.get_xy(self)
         return xy[0] + self.d / 2, xy[1] + self.d / 2
 
-    def set_xy(self, xy: (float, float)):
+    def set_xy(self, xy: (float, float)):  # ty:ignore[invalid-type-form]
         self.xy = xy
 
         self.ellipse.setRect(xy[0] - 5, xy[1] - 5, 10, 10)
@@ -1021,18 +1025,18 @@ class MyItem:
     w = 10
 
     def mousePressEvent(self, e):
-        super().mousePressEvent(e)
-        self.view.grabber_found = True
+        super().mousePressEvent(e)  # ty:ignore[unresolved-attribute]
+        self.view.grabber_found = True  # ty:ignore[unresolved-attribute]
         p = e.scenePos()
-        self.scene().grabber_pressed = self
-        self.grabber.button_press_event(MyEvent(p.x(), self.view.h - p.y()))
+        self.scene().grabber_pressed = self  # ty:ignore[unresolved-attribute]
+        self.grabber.button_press_event(MyEvent(p.x(), self.view.h - p.y()))  # ty:ignore[unresolved-attribute]
 
     def mouseReleaseEvent(self, e):
-        super().mouseReleaseEvent(e)
-        self.scene().grabber_pressed = None
-        self.view.grabber_found = True
+        super().mouseReleaseEvent(e)  # ty:ignore[unresolved-attribute]
+        self.scene().grabber_pressed = None  # ty:ignore[unresolved-attribute]
+        self.view.grabber_found = True  # ty:ignore[unresolved-attribute]
         p = e.scenePos()
-        self.grabber.button_release_event(MyEvent(p.x(), self.view.h - p.y()))
+        self.grabber.button_release_event(MyEvent(p.x(), self.view.h - p.y()))  # ty:ignore[unresolved-attribute]
 
 
 class MyRect(MyItem, QtWidgets.QGraphicsRectItem):

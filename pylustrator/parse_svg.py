@@ -97,7 +97,7 @@ def parseTransformation(transform_text: str) -> mtransforms.Transform:
     return base_trans
 
 
-def get_inline_style(node: minidom.Element, base_style: dict = None) -> dict:
+def get_inline_style(node: minidom.Element, base_style: dict = None) -> dict:  # ty:ignore[invalid-parameter-default]
     """update the basestyle with the style defined by the style property of the node"""
     style = {}
     if base_style is not None:
@@ -274,8 +274,8 @@ def apply_style(style: dict, patch: mpatches.Patch) -> dict:
                     pass
             elif key == "stroke-linecap":
                 try:
-                    patch.set_dash_capstyle(value)
-                    patch.set_solid_capstyle(value)
+                    patch.set_dash_capstyle(value)  # ty:ignore[unresolved-attribute]
+                    patch.set_solid_capstyle(value)  # ty:ignore[unresolved-attribute]
                 except AttributeError:
                     pass
             elif key == "font-size":
@@ -359,20 +359,20 @@ def plt_patch(
             plt.gca().add_patch(p)
     if node.getAttribute("id") != "":
         ids[node.getAttribute("id")] = patch
-    return patch
+    return patch  # ty:ignore[invalid-return-type]
 
 
-def clone_patch(patch: mpatches.Patch) -> mpatches.Patch:
+def clone_patch(patch: mpatches.Patch) -> mpatches.Patch:  # ty:ignore[invalid-return-type]
     """clone a patch element with the same properties as the given patch"""
     if isinstance(patch, mpatches.Rectangle):
         return mpatches.Rectangle(
             xy=patch.get_xy(), width=patch.get_width(), height=patch.get_height()
         )
     if isinstance(patch, mpatches.Circle):
-        return mpatches.Circle(xy=patch.get_xy(), radius=patch.get_radius())
+        return mpatches.Circle(xy=patch.get_xy(), radius=patch.get_radius())  # ty:ignore[unresolved-attribute]
     if isinstance(patch, mpatches.Ellipse):
         return mpatches.Ellipse(
-            xy=patch.get_xy(), width=patch.get_width(), height=patch.get_height()
+            xy=patch.get_xy(), width=patch.get_width(), height=patch.get_height()  # ty:ignore[unresolved-attribute]
         )
     if isinstance(patch, mpatches.PathPatch):
         return mpatches.PathPatch(patch.get_path())
@@ -383,15 +383,15 @@ def patch_rect(
 ) -> mpatches.Rectangle:
     """draw a svg rectangle node as a rectangle patch element into the figure (with the given transformation and style)"""
     if node.getAttribute("d") != "":
-        return patch_path(node, trans, style, ids)
+        return patch_path(node, trans, style, ids)  # ty:ignore[invalid-return-type]
     if node.getAttribute("ry") != "" and node.getAttribute("ry") != 0:
         return mpatches.FancyBboxPatch(
             xy=(float(node.getAttribute("x")), float(node.getAttribute("y"))),
             width=float(node.getAttribute("width")),
             height=float(node.getAttribute("height")),
-            boxstyle=mpatches.BoxStyle.Round(0, float(node.getAttribute("ry"))),
+            boxstyle=mpatches.BoxStyle.Round(0, float(node.getAttribute("ry"))),  # ty:ignore[too-many-positional-arguments]
             transform=trans,
-        )
+        )  # ty:ignore[invalid-return-type]
     return mpatches.Rectangle(
         xy=(float(node.getAttribute("x")), float(node.getAttribute("y"))),
         width=float(node.getAttribute("width")),
@@ -405,7 +405,7 @@ def patch_ellipse(
 ) -> mpatches.Ellipse:
     """draw a svg ellipse node as a ellipse patch element into the figure (with the given transformation and style)"""
     if node.getAttribute("d") != "":
-        return patch_path(node, trans, style, ids)
+        return patch_path(node, trans, style, ids)  # ty:ignore[invalid-return-type]
     return mpatches.Ellipse(
         xy=(float(node.getAttribute("cx")), float(node.getAttribute("cy"))),
         width=float(node.getAttribute("rx")) * 2,
@@ -419,7 +419,7 @@ def patch_circle(
 ) -> mpatches.Circle:
     """draw a svg circle node as a circle patch element into the figure (with the given transformation and style)"""
     if node.getAttribute("d") != "":
-        return patch_path(node, trans, style, ids)
+        return patch_path(node, trans, style, ids)  # ty:ignore[invalid-return-type]
     return mpatches.Circle(
         xy=(float(node.getAttribute("cx")), float(node.getAttribute("cy"))),
         radius=float(node.getAttribute("r")),
@@ -488,9 +488,9 @@ def plt_draw_text(
             if child.getAttribute("dy") != "":
                 pos_child[1] -= svgUnitToMpl(child.getAttribute("dy"))
 
-            text_content += partial_content
+            text_content += partial_content  # ty:ignore[unsupported-operator]
             path1 = TextPath(
-                pos_child, partial_content, prop=font_properties_from_style(style_child)
+                pos_child, partial_content, prop=font_properties_from_style(style_child)  # ty:ignore[invalid-argument-type]
             )
             patch = mpatches.PathPatch(path1, transform=trans)
 
@@ -612,7 +612,7 @@ def patch_path(
             # Smooth curve. First control point is the "reflection" of
             # the second control point in the previous path.
 
-            if last_command not in "cs":
+            if last_command not in "cs":  # ty:ignore[unsupported-operator]
                 # If there is no previous command or if the previous command
                 # was not an C, c, S or s, assume the first control point is
                 # coincident with the current point.
@@ -636,7 +636,7 @@ def patch_path(
             # Smooth curve. Control point is the "reflection" of
             # the second control point in the previous path.
 
-            if last_command not in "qt":
+            if last_command not in "qt":  # ty:ignore[unsupported-operator]
                 # If there is no previous command or if the previous command
                 # was not an Q, q, T or t, assume the first control point is
                 # coincident with the current point.
@@ -694,7 +694,7 @@ def patch_path(
                         mtransforms.Affine2D([[s, 0, 0], [0, s, 0], [0, 0, 1]]) + trans2
                     )
                 patch.set_transform(trans2)
-                patch.is_marker = True
+                patch.is_marker = True  # ty:ignore[unresolved-attribute]
                 patch_list.append(patch)
 
         add_list_elements(patches)
@@ -707,37 +707,37 @@ def patch_path(
     patch_list.append(mpatches.PathPatch(path, transform=trans))
 
     if style.get("marker-start"):
-        if style.get("marker-start").startswith("url(#"):
-            name = style.get("marker-start")[len("url(#") : -1]
+        if style.get("marker-start").startswith("url(#"):  # ty:ignore[possibly-missing-attribute]
+            name = style.get("marker-start")[len("url(#") : -1]  # ty:ignore[not-subscriptable]
             if name in ids:
                 addMarker(0, name)
     if style.get("marker-mid"):
-        if style.get("marker-mid").startswith("url(#"):
-            name = style.get("marker-mid")[len("url(#") : -1]
+        if style.get("marker-mid").startswith("url(#"):  # ty:ignore[possibly-missing-attribute]
+            name = style.get("marker-mid")[len("url(#") : -1]  # ty:ignore[not-subscriptable]
             if name in ids:
                 for i in range(1, len(angles) - 1):
                     addMarker(i, name)
     if style.get("marker-end"):
-        if style.get("marker-end").startswith("url(#"):
-            name = style.get("marker-end")[len("url(#") : -1]
+        if style.get("marker-end").startswith("url(#"):  # ty:ignore[possibly-missing-attribute]
+            name = style.get("marker-end")[len("url(#") : -1]  # ty:ignore[not-subscriptable]
             if name in ids:
                 addMarker(len(angles) - 1, name)
 
     return patch_list
 
 
-def svgUnitToMpl(unit: str, default=None) -> float:
+def svgUnitToMpl(unit: str, default=None) -> float:  # ty:ignore[invalid-return-type]
     """convert a unit text to svg pixels"""
     import re
 
     if unit == "":
-        return default
+        return default  # ty:ignore[invalid-return-type]
     match = re.match(r"^([-.\d]*)(\w*).*$", unit)
     if match:
         value, unit = match.groups()
         value = float(value)
         if unit == "pt":
-            value *= plt.gcf().dpi / 72
+            value *= plt.gcf().dpi / 72  # ty:ignore[unresolved-attribute]
         elif unit == "pc":
             value *= getattr(plt.gcf(), "dpi", 100) / 6
         elif unit == "in":
@@ -916,24 +916,24 @@ def svgread(filename: str):
         x1, y1, x2, y2 = [
             svgUnitToMpl(s.strip()) for s in svg.getAttribute("viewBox").split()
         ]
-        width, height = (x2 - x1) / plt.gcf().dpi, (y2 - y1) / plt.gcf().dpi
+        width, height = (x2 - x1) / plt.gcf().dpi, (y2 - y1) / plt.gcf().dpi  # ty:ignore[unresolved-attribute]
         if max([width, height]) > 8:
             f = 8 / max([width, height])
-            plt.gcf().set_size_inches(width * f, height * f)
+            plt.gcf().set_size_inches(width * f, height * f)  # ty:ignore[unresolved-attribute]
         else:
-            plt.gcf().set_size_inches(width, height)
+            plt.gcf().set_size_inches(width, height)  # ty:ignore[unresolved-attribute]
     except ValueError:
         width = svgUnitToMpl(svg.getAttribute("width"), default=100)
         height = svgUnitToMpl(svg.getAttribute("height"), default=100)
         x1, y1, x2, y2 = 0, 0, width, height
-        width /= plt.gcf().dpi
-        height /= plt.gcf().dpi
+        width /= plt.gcf().dpi  # ty:ignore[unresolved-attribute]
+        height /= plt.gcf().dpi  # ty:ignore[unresolved-attribute]
         if max([width, height]) > 8:
             f = 8 / max([width, height])
-            plt.gcf().set_size_inches(width * f, height * f)
+            plt.gcf().set_size_inches(width * f, height * f)  # ty:ignore[unresolved-attribute]
         else:
-            plt.gcf().set_size_inches(width, height)
-    ax = plt.axes([0, 0, 1, 1], label=filename, frameon=False)
+            plt.gcf().set_size_inches(width, height)  # ty:ignore[unresolved-attribute]
+    ax = plt.axes([0, 0, 1, 1], label=filename, frameon=False)  # ty:ignore[invalid-argument-type]
     plt.xticks([])
     plt.yticks([])
     for spine in ["left", "right", "top", "bottom"]:

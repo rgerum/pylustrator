@@ -1,5 +1,10 @@
 import os
-from qtpy import QtCore, QtGui, QtWidgets
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from PyQt5 import QtCore, QtGui, QtWidgets
+else:
+    from qtpy import QtCore, QtGui, QtWidgets
 
 
 class InfoDialog(QtWidgets.QWidget):
@@ -33,17 +38,17 @@ class InfoDialog(QtWidgets.QWidget):
         font = self.label.font()
         font.setPointSize(16)
         self.label.setFont(font)
-        self.label.setAlignment(QtCore.Qt.AlignCenter)
+        self.label.setAlignment(QtCore.Qt.AlignCenter)  # ty:ignore[unresolved-attribute]
         self.layout.addWidget(self.label)
 
         self.label = QtWidgets.QLabel("Copyright © 2016-2022, Richard Gerum")
-        self.label.setAlignment(QtCore.Qt.AlignCenter)
+        self.label.setAlignment(QtCore.Qt.AlignCenter)  # ty:ignore[unresolved-attribute]
         self.layout.addWidget(self.label)
 
         self.label = QtWidgets.QLabel(
             "<a href=https://pylustrator.readthedocs.io>Documentation</a>"
         )
-        self.label.setAlignment(QtCore.Qt.AlignCenter)
-        self.label.setTextInteractionFlags(QtCore.Qt.TextBrowserInteraction)
+        self.label.setAlignment(QtCore.Qt.AlignCenter)  # ty:ignore[unresolved-attribute]
+        self.label.setTextInteractionFlags(QtCore.Qt.TextBrowserInteraction)  # ty:ignore[unresolved-attribute]
         self.label.setOpenExternalLinks(True)
         self.layout.addWidget(self.label)

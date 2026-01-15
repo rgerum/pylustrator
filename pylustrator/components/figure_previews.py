@@ -1,4 +1,9 @@
-from qtpy import QtCore, QtGui, QtWidgets
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from PyQt5 import QtCore, QtGui, QtWidgets
+else:
+    from qtpy import QtCore, QtGui, QtWidgets
 
 
 class FigurePreviews(QtWidgets.QWidget):
@@ -19,7 +24,7 @@ class FigurePreviews(QtWidgets.QWidget):
         self.buttons.append(button)
         self.layout2.addWidget(button)
 
-        button.setAlignment(QtCore.Qt.AlignCenter)
+        button.setAlignment(QtCore.Qt.AlignCenter)  # ty:ignore[unresolved-attribute]
         pix = QtGui.QPixmap(20, 30)
         pix.fill(QtGui.QColor("#666666"))
 
@@ -36,4 +41,4 @@ class FigurePreviews(QtWidgets.QWidget):
         # scale pixmap to fit in label'size and keep ratio of pixmap
         # pix = pix.scaled(160, 90, QtCore.Qt.KeepAspectRatio)
         button.setPixmap(pix)
-        button.mousePressEvent = lambda e: self.parent.setFigure(figure)
+        button.mousePressEvent = lambda e: self.parent.setFigure(figure)  # ty:ignore[invalid-assignment, possibly-missing-attribute]

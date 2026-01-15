@@ -25,7 +25,7 @@ import matplotlib.pyplot as plt
 try:  # starting from mpl version 3.6.0
     from matplotlib.axes import Axes
 except ImportError:
-    from matplotlib.axes._subplots import Axes
+    from matplotlib.axes._subplots import Axes  # ty:ignore[unresolved-import]
 from matplotlib.figure import Figure
 from typing import List
 
@@ -67,7 +67,7 @@ def rasterizeAxes(fig: Figure):
         addContentToFigure(fig, [ax])
 
         buf = io.BytesIO()
-        fig.savefig(buf, format="png", dpi=100)
+        fig.savefig(buf, format="png", dpi=100)  # ty:ignore[unresolved-attribute]
         buf.seek(0)
         im = plt.imread(buf)
         buf.close()
@@ -110,7 +110,7 @@ def rasterizeAxes(fig: Figure):
 
 def restoreAxes(fig: Figure):
     """restore contents of a figure"""
-    list_axes = fig.axes
+    list_axes = fig.axes  # ty:ignore[unresolved-attribute]
     for ax in list_axes:
         im = getattr(ax, "pylustrator_rasterized", None)
         if im is not None:

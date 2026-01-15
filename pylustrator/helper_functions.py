@@ -27,7 +27,7 @@ from .parse_svg import svgread
 try:  # starting from mpl version 3.6.0
     from matplotlib.axes import Axes
 except ImportError:
-    from matplotlib.axes._subplots import Axes
+    from matplotlib.axes._subplots import Axes  # ty:ignore[unresolved-import]
 from matplotlib.figure import Figure
 from .pyjack import replace_all_refs
 import os
@@ -40,13 +40,13 @@ def fig_text(x: float, y: float, text: str, unit: str = "cm", *args, **kwargs):
     """
     fig = plt.gcf()
     if unit == "cm":
-        x = x / 2.54 / fig.get_size_inches()[0]
-        y = y / 2.54 / fig.get_size_inches()[1]
+        x = x / 2.54 / fig.get_size_inches()[0]  # ty:ignore[unresolved-attribute]
+        y = y / 2.54 / fig.get_size_inches()[1]  # ty:ignore[unresolved-attribute]
     if x < 0:
         x += 1
     if y < 0:
         y += 1
-    return fig.text(x, y, text, picker=True, *args, **kwargs)
+    return fig.text(x, y, text, picker=True, *args, **kwargs)  # ty:ignore[unresolved-attribute]
 
 
 def add_axes(dim: Sequence, unit: str = "cm", *args, **kwargs):
@@ -56,15 +56,15 @@ def add_axes(dim: Sequence, unit: str = "cm", *args, **kwargs):
     fig = plt.gcf()
     x, y, w, h = dim
     if unit == "cm":
-        x = x / 2.54 / fig.get_size_inches()[0]
-        y = y / 2.54 / fig.get_size_inches()[1]
-        w = w / 2.54 / fig.get_size_inches()[0]
-        h = h / 2.54 / fig.get_size_inches()[1]
+        x = x / 2.54 / fig.get_size_inches()[0]  # ty:ignore[unresolved-attribute]
+        y = y / 2.54 / fig.get_size_inches()[1]  # ty:ignore[unresolved-attribute]
+        w = w / 2.54 / fig.get_size_inches()[0]  # ty:ignore[unresolved-attribute]
+        h = h / 2.54 / fig.get_size_inches()[1]  # ty:ignore[unresolved-attribute]
     if x < 0:
         x += 1
     if y < 0:
         y += 1
-    return plt.axes([x, y, w, h], *args, **kwargs)
+    return plt.axes([x, y, w, h], *args, **kwargs)  # ty:ignore[invalid-argument-type]
 
 
 def add_image(filename: str):
@@ -79,17 +79,17 @@ def changeFigureSize(
     h: float,
     cut_from_top: bool = False,
     cut_from_left: bool = False,
-    fig: Figure = None,
+    fig: Figure = None,  # ty:ignore[invalid-parameter-default]
 ):
     """change the figure size to the given dimensions. Optionally define if to remove or add space at the top or bottom
     and left or right.
     """
     if fig is None:
         fig = plt.gcf()
-    oldw, oldh = fig.get_size_inches()
+    oldw, oldh = fig.get_size_inches()  # ty:ignore[unresolved-attribute]
     fx = oldw / w
     fy = oldh / h
-    for axe in fig.axes:
+    for axe in fig.axes:  # ty:ignore[unresolved-attribute]
         box = axe.get_position()
         if cut_from_top:
             if cut_from_left:
@@ -129,7 +129,7 @@ def changeFigureSize(
                         (box.y1 - box.y0) * fy,
                     ]
                 )
-    for text in fig.texts:
+    for text in fig.texts:  # ty:ignore[unresolved-attribute]
         x0, y0 = text.get_position()
         if cut_from_top:
             if cut_from_left:
@@ -141,32 +141,32 @@ def changeFigureSize(
                 text.set_position([1 - (1 - x0) * fx, 1 - (1 - y0) * fy])
             else:
                 text.set_position([x0 * fx, 1 - (1 - y0) * fy])
-    fig.set_size_inches(w, h, forward=True)
+    fig.set_size_inches(w, h, forward=True)  # ty:ignore[unresolved-attribute]
 
 
 def removeContentFromFigure(fig: Figure):
     """remove axes and text from a figure"""
     axes = []
-    for ax in fig._axstack.as_list():
+    for ax in fig._axstack.as_list():  # ty:ignore[unresolved-attribute]
         axes.append(ax)
-        fig._axstack.remove(ax)
-    text = fig.texts
-    fig.texts = []
+        fig._axstack.remove(ax)  # ty:ignore[unresolved-attribute]
+    text = fig.texts  # ty:ignore[unresolved-attribute]
+    fig.texts = []  # ty:ignore[unresolved-attribute]
     return axes + text
 
 
 def addContentToFigure(fig: Figure, axes: Sequence):
     """add axes and texts to a figure"""
-    index = len(fig._axstack.as_list())
+    index = len(fig._axstack.as_list())  # ty:ignore[unresolved-attribute]
     for ax in axes:
         if isinstance(ax, Axes):
             try:  # old matplotlib
-                fig._axstack.add(index, ax)
+                fig._axstack.add(index, ax)  # ty:ignore[unresolved-attribute]
             except TypeError:  # newer matplotlib
-                fig._axstack.add(ax)
+                fig._axstack.add(ax)  # ty:ignore[unresolved-attribute]
             index += 1
         else:
-            fig.texts.append(ax)
+            fig.texts.append(ax)  # ty:ignore[unresolved-attribute]
 
 
 def check_label_exists(fig, label):
@@ -192,8 +192,8 @@ def imShowFullFigure(im: np.ndarray, filename: str, fig1: Figure, dpi: int, labe
 
     if dpi is None:
         dpi = rcParams["figure.dpi"]
-    fig1.set_size_inches(im.shape[1] / dpi, im.shape[0] / dpi)
-    ax = plt.axes([0, 0, 1, 1], label=label)
+    fig1.set_size_inches(im.shape[1] / dpi, im.shape[0] / dpi)  # ty:ignore[unresolved-attribute]
+    ax = plt.axes([0, 0, 1, 1], label=label)  # ty:ignore[invalid-argument-type]
     plt.imshow(im, cmap="gray")
     plt.xticks([])
     plt.yticks([])
@@ -220,9 +220,9 @@ class changeFolder:
 
 def loadFigureFromFile(
     filename: str,
-    figure: Figure = None,
-    offset: list = None,
-    dpi: int = None,
+    figure: Figure = None,  # ty:ignore[invalid-parameter-default]
+    offset: list = None,  # ty:ignore[invalid-parameter-default]
+    dpi: int = None,  # ty:ignore[invalid-parameter-default]
     cache: bool = False,
     label: str = "",
 ):
@@ -278,8 +278,8 @@ def loadFigureFromFile(
                     pass
 
                 # set the show function to the empty function
-                plt.show = empty
-                pylustrator.start = empty
+                plt.show = empty  # ty:ignore[invalid-assignment]
+                pylustrator.start = empty  # ty:ignore[invalid-assignment]
 
             def __exit__(self, type, value, traceback):
                 # restore the old show function
@@ -295,21 +295,21 @@ def loadFigureFromFile(
                 fig = plt.gcf()
                 self.fig = plt.figure
                 figsize = rcParams["figure.figsize"]
-                fig.set_size_inches(figsize[0], figsize[1])
+                fig.set_size_inches(figsize[0], figsize[1])  # ty:ignore[unresolved-attribute]
 
                 def figure(num=None, figsize=None, *args, **kwargs):
                     fig = plt.gcf()
                     if figsize is not None:
-                        fig.set_size_inches(figsize[0], figsize[1], forward=True)
+                        fig.set_size_inches(figsize[0], figsize[1], forward=True)  # ty:ignore[unresolved-attribute]
                     return fig
 
-                plt.figure = figure
+                plt.figure = figure  # ty:ignore[invalid-assignment]
 
             def __exit__(self, type, value, traceback):
                 plt.figure = self.fig
 
         # get the size of the old figure
-        w1, h1 = figure.get_size_inches()
+        w1, h1 = figure.get_size_inches()  # ty:ignore[unresolved-attribute]
         axes1 = removeContentFromFigure(figure)
         if len(axes1) == 0:
             w1 = 0
@@ -330,7 +330,7 @@ def loadFigureFromFile(
         # if the image is a numpy array, just display the array
         elif isinstance(filename, np.ndarray):
             im = filename
-            imShowFullFigure(im, str(im.shape), figure, dpi)
+            imShowFullFigure(im, str(im.shape), figure, dpi)  # ty:ignore[missing-argument]
         # if it is a svg file, display the svg file
         elif filename.endswith(".svg"):
             svgread(filename)
@@ -353,19 +353,19 @@ def loadFigureFromFile(
                         print("loading from cached file", cache_filename)
                         fig2 = pickle.load(open(cache_filename, "rb"))
                         w, h = fig2.get_size_inches()
-                        figure.set_size_inches(w, h)
+                        figure.set_size_inches(w, h)  # ty:ignore[unresolved-attribute]
 
                         str(figure)  # important! (for some reason I don't know)
                         for ax in fig2.axes:
                             fig2.delaxes(ax)
-                            figure._axstack.add(figure._make_key(ax), ax)
-                            figure.bbox._parents.update(fig2.bbox._parents)
-                            figure.dpi_scale_trans._parents.update(
+                            figure._axstack.add(figure._make_key(ax), ax)  # ty:ignore[unresolved-attribute]
+                            figure.bbox._parents.update(fig2.bbox._parents)  # ty:ignore[unresolved-attribute]
+                            figure.dpi_scale_trans._parents.update(  # ty:ignore[unresolved-attribute]
                                 fig2.dpi_scale_trans._parents
                             )
-                            replace_all_refs(fig2.bbox, figure.bbox)
+                            replace_all_refs(fig2.bbox, figure.bbox)  # ty:ignore[unresolved-attribute]
                             replace_all_refs(
-                                fig2.dpi_scale_trans, figure.dpi_scale_trans
+                                fig2.dpi_scale_trans, figure.dpi_scale_trans  # ty:ignore[unresolved-attribute]
                             )
                             replace_all_refs(fig2, figure)
                     else:
@@ -375,16 +375,16 @@ def loadFigureFromFile(
                             globals(),
                         )
                         if cache is True:
-                            c = figure.canvas
-                            figure.canvas = None
-                            figure.bbox.pylustrator = True
-                            figure.dpi_scale_trans.pylustrator = True
+                            c = figure.canvas  # ty:ignore[unresolved-attribute]
+                            figure.canvas = None  # ty:ignore[unresolved-attribute]
+                            figure.bbox.pylustrator = True  # ty:ignore[unresolved-attribute]
+                            figure.dpi_scale_trans.pylustrator = True  # ty:ignore[unresolved-attribute]
                             pickle.dump(figure, open(cache_filename, "wb"))
 
-                            figure.canvas = c
+                            figure.canvas = c  # ty:ignore[unresolved-attribute]
 
         # get the size of the new figure
-        w2, h2 = figure.get_size_inches()
+        w2, h2 = figure.get_size_inches()  # ty:ignore[unresolved-attribute]
         if offset is not None:
             if len(offset) == 2 or offset[2] == "%":
                 w2 += w1 * offset[0]
@@ -444,12 +444,12 @@ def mark_inset(
     )
 
     try:
-        loc1a, loc1b = loc1
+        loc1a, loc1b = loc1  # ty:ignore[not-iterable]
     except TypeError:
         loc1a = loc1
         loc1b = loc1
     try:
-        loc2a, loc2b = loc2
+        loc2a, loc2b = loc2  # ty:ignore[not-iterable]
     except TypeError:
         loc2a = loc2
         loc2b = loc2
@@ -517,7 +517,7 @@ def mark_inset_pos(
 ):
     """add a box connector where the second axis is shrinked to a point"""
     kwargs["lw"] = 0.8
-    ax_new = plt.axes(inset_axes.get_position())
+    ax_new = plt.axes(inset_axes.get_position())  # ty:ignore[invalid-argument-type]
     ax_new.set_xlim(point[0], point[0])
     ax_new.set_ylim(point[1], point[1])
     mark_inset(parent_axes, ax_new, loc1, loc2, **kwargs)
@@ -529,8 +529,8 @@ def mark_inset_pos(
 def VoronoiPlot(
     points: Sequence,
     values: Sequence,
-    vmin: float = None,
-    vmax: float = None,
+    vmin: float = None,  # ty:ignore[invalid-parameter-default]
+    vmax: float = None,  # ty:ignore[invalid-parameter-default]
     cmap=None,
 ):
     """plot the voronoi regions of the poins with the given colormap"""
@@ -561,14 +561,14 @@ def VoronoiPlot(
             excluded_indices.append(index)
             continue
         region = np.array([vor.vertices[i] for i in reg])
-        polygon = Polygon(region, True)
+        polygon = Polygon(region, True)  # ty:ignore[too-many-positional-arguments]
         patches.append(polygon)
         dists = values[index]
         dist_list.append(dists)
         # plt.plot(p[0], p[1], 'ok', alpha=0.3, ms=1)
 
     p = PatchCollection(patches, cmap=cmap)
-    p.set_clim([vmin, vmax])
+    p.set_clim([vmin, vmax])  # ty:ignore[invalid-argument-type]
     p.set_array(np.array(dist_list))
     p.set_linewidth(10)
 
@@ -616,7 +616,7 @@ letter_index = 0
 
 
 def add_letter(
-    ax: Axes = None, offset: float = 0, offset2: float = 0, letter: str = None
+    ax: Axes = None, offset: float = 0, offset2: float = 0, letter: str = None  # ty:ignore[invalid-parameter-default]
 ):
     """add a letter indicating which subplot it is to the given figure"""
     global letter_index
@@ -645,8 +645,8 @@ def add_letter(
     # add a transform that gives the coordinates relative to the left top corner of the axes in cm
     transform = (
         Affine2D().scale(1 / 2.54, 1 / 2.54)
-        + fig.dpi_scale_trans
-        + ScaledTranslation(0, 1, ax.transAxes)
+        + fig.dpi_scale_trans  # ty:ignore[possibly-missing-attribute]
+        + ScaledTranslation(0, 1, ax.transAxes)  # ty:ignore[invalid-argument-type]
     )
 
     # add a text a the given position
@@ -670,13 +670,13 @@ def get_letter_font_prop():
     font.set_family("C:\\WINDOWS\\Fonts\\HelveticaNeue-CondensedBold.ttf")
     font.set_weight("heavy")
     font.set_size(10)
-    font.letter_format = "a"
+    font.letter_format = "a"  # ty:ignore[unresolved-attribute]
     return font
 
 
 def add_letters(*args, **kwargs):
     """add a letter indicating which subplot it is to all of the axes of the given figure"""
-    for ax in plt.gcf().axes:
+    for ax in plt.gcf().axes:  # ty:ignore[unresolved-attribute]
         add_letter(ax, *args, **kwargs)
 
 
@@ -684,7 +684,7 @@ def axes_to_grid(axes=None, track_changes=False):
     # get the axes list
     if axes is None:
         fig = plt.gcf()
-        axes = fig.axes
+        axes = fig.axes  # ty:ignore[unresolved-attribute]
     if len(axes) == 0:
         return
 

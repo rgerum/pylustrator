@@ -1,7 +1,11 @@
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 import qtawesome as qta
-from qtpy import QtCore, QtGui, QtWidgets
+
+if TYPE_CHECKING:
+    from PyQt5 import QtCore, QtGui, QtWidgets
+else:
+    from qtpy import QtCore, QtGui, QtWidgets
 
 import matplotlib as mpl
 from matplotlib.artist import Artist
@@ -12,11 +16,11 @@ class myTreeWidgetItem(QtGui.QStandardItem):
         """a tree view item to display the contents of the figure"""
         QtGui.QStandardItem.__init__(self, parent)
 
-    def __lt__(self, otherItem: QtGui.QStandardItem):
+    def __lt__(self, otherItem: QtGui.QStandardItem):  # ty:ignore[invalid-method-override]
         """how to sort the items"""
-        if self.sort is None:
+        if self.sort is None:  # ty:ignore[unresolved-attribute]
             return 0
-        return self.sort < otherItem.sort
+        return self.sort < otherItem.sort  # ty:ignore[unresolved-attribute]
 
 
 class MyTreeView(QtWidgets.QTreeView):
@@ -65,7 +69,7 @@ class MyTreeView(QtWidgets.QTreeView):
         self.marker_type_modelitems = {}
 
         # model for tree view
-        self.model = QtGui.QStandardItemModel(0, 0)
+        self.model = QtGui.QStandardItemModel(0, 0)  # ty:ignore[invalid-assignment]
 
         # some settings for the tree
         self.setUniformRowHeights(True)
@@ -75,14 +79,14 @@ class MyTreeView(QtWidgets.QTreeView):
         self.expanded.connect(self.TreeExpand)
         self.clicked.connect(self.treeClicked)
         self.activated.connect(self.treeActivated)
-        self.selectionModel().selectionChanged.connect(self.selectionChanged)
+        self.selectionModel().selectionChanged.connect(self.selectionChanged)  # ty:ignore[possibly-missing-attribute]
 
         # add context menu
-        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)  # ty:ignore[unresolved-attribute]
 
         # add hover highlight
-        self.viewport().setMouseTracking(True)
-        self.viewport().installEventFilter(self)
+        self.viewport().setMouseTracking(True)  # ty:ignore[possibly-missing-attribute]
+        self.viewport().installEventFilter(self)  # ty:ignore[possibly-missing-attribute]
 
         self.item_lookup = {}
 
@@ -95,11 +99,11 @@ class MyTreeView(QtWidgets.QTreeView):
 
     def setFigure(self, fig):
         self.fig = fig
-        self.model.removeRows(0, self.model.rowCount())
-        self.expand(None)
+        self.model.removeRows(0, self.model.rowCount())  # ty:ignore[possibly-missing-attribute]
+        self.expand(None)  # ty:ignore[invalid-argument-type]
 
         self.deleteEntry(self.fig)
-        self.expand(None)
+        self.expand(None)  # ty:ignore[invalid-argument-type]
         self.expand(self.fig)
         self.setCurrentIndex(self.fig)
 
@@ -111,7 +115,7 @@ class MyTreeView(QtWidgets.QTreeView):
             entry = (
                 selection.indexes()[0]
                 .model()
-                .itemFromIndex(selection.indexes()[0])
+                .itemFromIndex(selection.indexes()[0])  # ty:ignore[possibly-missing-attribute]
                 .entry
             )
         except IndexError:
@@ -126,31 +130,31 @@ class MyTreeView(QtWidgets.QTreeView):
             item = self.getItemFromEntry(entry)
             if item is not None:
                 try:
-                    super().setCurrentIndex(item.index())
+                    super().setCurrentIndex(item.index())  # ty:ignore[possibly-missing-attribute]
                 except RuntimeError:  # maybe find out why we run into this error when the figure is changed
                     pass
                 return
             try:
-                entry = entry.tree_parent
+                entry = entry.tree_parent  # ty:ignore[unresolved-attribute]
             except AttributeError:
                 return
 
     def treeClicked(self, index: QtCore.QModelIndex):
         """upon selecting one of the tree elements"""
-        data = index.model().itemFromIndex(index).entry
+        data = index.model().itemFromIndex(index).entry  # ty:ignore[possibly-missing-attribute]
         return self.item_clicked(data)
 
     def treeActivated(self, index: QtCore.QModelIndex):
         """upon selecting one of the tree elements"""
-        data = index.model().itemFromIndex(index).entry
+        data = index.model().itemFromIndex(index).entry  # ty:ignore[possibly-missing-attribute]
         return self.item_activated(data)
 
     def eventFilter(self, object: QtWidgets.QWidget, event: QtCore.QEvent):
         """event filter for tree view port to handle mouse over events and marker highlighting"""
-        if event.type() == QtCore.QEvent.HoverMove:
-            index = self.indexAt(event.pos())
+        if event.type() == QtCore.QEvent.HoverMove:  # ty:ignore[unresolved-attribute]
+            index = self.indexAt(event.pos())  # ty:ignore[unresolved-attribute]
             try:
-                item = index.model().itemFromIndex(index)
+                item = index.model().itemFromIndex(index)  # ty:ignore[possibly-missing-attribute]
                 entry = item.entry
             except AttributeError:
                 item = None
@@ -179,7 +183,7 @@ class MyTreeView(QtWidgets.QTreeView):
 
     def getParentEntry(self, entry: Artist) -> Artist:
         """get the parent of an item"""
-        return getattr(entry, "tree_parent", None)
+        return getattr(entry, "tree_parent", None)  # ty:ignore[invalid-return-type]
 
     def getNameOfEntry(self, entry: Artist) -> str:
         """convert an entry to a string"""
@@ -191,7 +195,7 @@ class MyTreeView(QtWidgets.QTreeView):
     def getIconOfEntry(self, entry: Artist) -> QtGui.QIcon:
         """get the icon of an entry"""
         if getattr(entry, "_draggable", None):
-            if entry._draggable.connected:
+            if entry._draggable.connected:  # ty:ignore[unresolved-attribute]
                 return qta.icon("fa5.hand-paper-o")
         return QtGui.QIcon()
 
@@ -224,14 +228,14 @@ class MyTreeView(QtWidgets.QTreeView):
         parent_entry = entry
 
         if parent_item:
-            if parent_item.expanded is False:
+            if parent_item.expanded is False:  # ty:ignore[possibly-missing-attribute]
                 # remove the dummy child
-                parent_item.removeRow(0)
-                parent_item.expanded = True
+                parent_item.removeRow(0)  # ty:ignore[possibly-missing-attribute]
+                parent_item.expanded = True  # ty:ignore[invalid-assignment]
             # force_reload: delete all child entries and re query content from DB
             elif force_reload:
                 # delete child entries
-                parent_item.removeRows(0, parent_item.rowCount())
+                parent_item.removeRows(0, parent_item.rowCount())  # ty:ignore[possibly-missing-attribute]
             else:
                 return
 
@@ -241,15 +245,15 @@ class MyTreeView(QtWidgets.QTreeView):
             entry.tree_parent = parent_entry
             if 1:
                 if (
-                    isinstance(entry, mpl.spines.Spine)
-                    or isinstance(entry, mpl.axis.XAxis)
-                    or isinstance(entry, mpl.axis.YAxis)
+                    isinstance(entry, mpl.spines.Spine)  # ty:ignore[possibly-missing-attribute]
+                    or isinstance(entry, mpl.axis.XAxis)  # ty:ignore[possibly-missing-attribute]
+                    or isinstance(entry, mpl.axis.YAxis)  # ty:ignore[possibly-missing-attribute]
                 ):
                     continue
-                if isinstance(entry, mpl.text.Text) and entry.get_text() == "":
+                if isinstance(entry, mpl.text.Text) and entry.get_text() == "":  # ty:ignore[possibly-missing-attribute]
                     continue
                 try:
-                    if entry == parent_entry.patch:
+                    if entry == parent_entry.patch:  # ty:ignore[unresolved-attribute]
                         continue
                 except AttributeError:
                     pass
@@ -259,7 +263,7 @@ class MyTreeView(QtWidgets.QTreeView):
                         continue
                 except AttributeError:
                     pass
-            self.addChild(parent_item, entry)
+            self.addChild(parent_item, entry)  # ty:ignore[invalid-argument-type]
 
     def addChild(self, parent_item: QtWidgets.QWidget, entry: Artist, row=None):
         """add a child to a tree view node"""
@@ -267,13 +271,13 @@ class MyTreeView(QtWidgets.QTreeView):
             parent_item = self.model
 
         # add item
-        item = myTreeWidgetItem(self.getNameOfEntry(entry))
-        item.expanded = False
-        item.entry = entry
+        item = myTreeWidgetItem(self.getNameOfEntry(entry))  # ty:ignore[invalid-argument-type]
+        item.expanded = False  # ty:ignore[unresolved-attribute]
+        item.entry = entry  # ty:ignore[unresolved-attribute]
 
         item.setIcon(self.getIconOfEntry(entry))
         item.setEditable(False)
-        item.sort = self.getEntrySortRole(entry)
+        item.sort = self.getEntrySortRole(entry)  # ty:ignore[unresolved-attribute]
 
         if parent_item is None:
             if row is None:
@@ -285,18 +289,18 @@ class MyTreeView(QtWidgets.QTreeView):
                 parent_item.appendRow(item)
             else:
                 parent_item.insertRow(row, item)
-        self.setItemForEntry(entry, item)
+        self.setItemForEntry(entry, item)  # ty:ignore[invalid-argument-type]
 
         # add dummy child
         if self.queryToExpandEntry(entry) is not None and len(
             self.queryToExpandEntry(entry)
         ):
             child = QtGui.QStandardItem("loading")
-            child.entry = None
+            child.entry = None  # ty:ignore[unresolved-attribute]
             child.setEditable(False)
             child.setIcon(qta.icon("fa5s.hourglass-half"))
             item.appendRow(child)
-            item.expanded = False
+            item.expanded = False  # ty:ignore[unresolved-attribute]
         return item
 
     def TreeExpand(self, index):
@@ -320,8 +324,8 @@ class MyTreeView(QtWidgets.QTreeView):
         self,
         entry: Artist,
         update_children: bool = False,
-        insert_before: Artist = None,
-        insert_after: Artist = None,
+        insert_before: Artist = None,  # ty:ignore[invalid-parameter-default]
+        insert_after: Artist = None,  # ty:ignore[invalid-parameter-default]
     ):
         """update a tree view node"""
         # get the tree view item for the database entry
@@ -334,9 +338,9 @@ class MyTreeView(QtWidgets.QTreeView):
             if parent_entry:
                 parent_item = self.getItemFromEntry(parent_entry)
                 # parent item not in list or not expanded, than we don't need to update it because it is not shown
-                if parent_item is None or parent_item.expanded is False:
+                if parent_item is None or parent_item.expanded is False:  # ty:ignore[possibly-missing-attribute]
                     if parent_item:
-                        parent_item.setText(self.getNameOfEntry(parent_entry))
+                        parent_item.setText(self.getNameOfEntry(parent_entry))  # ty:ignore[invalid-argument-type, missing-argument]
                     return
             else:
                 parent_item = None
@@ -344,17 +348,17 @@ class MyTreeView(QtWidgets.QTreeView):
             # define the row where the new item should be
             row = None
             if insert_before:
-                row = self.getItemFromEntry(insert_before).row()
+                row = self.getItemFromEntry(insert_before).row()  # ty:ignore[possibly-missing-attribute]
             if insert_after:
-                row = self.getItemFromEntry(insert_after).row() + 1
+                row = self.getItemFromEntry(insert_after).row() + 1  # ty:ignore[possibly-missing-attribute]
 
             # add the item as a child of its parent
-            self.addChild(parent_item, entry, row)
+            self.addChild(parent_item, entry, row)  # ty:ignore[invalid-argument-type]
             if parent_item:
                 if row is None:
-                    parent_item.sortChildren(0)
+                    parent_item.sortChildren(0)  # ty:ignore[missing-argument]
                 if parent_entry:
-                    parent_item.setText(self.getNameOfEntry(parent_entry))
+                    parent_item.setText(self.getNameOfEntry(parent_entry))  # ty:ignore[invalid-argument-type, missing-argument]
         else:
             # check if we have to change the parent
             parent_entry = self.getParentEntry(entry)
@@ -362,32 +366,32 @@ class MyTreeView(QtWidgets.QTreeView):
             if parent_item != item.parent():
                 # remove the item from the old position
                 if item.parent() is None:
-                    self.model.takeRow(item.row())
+                    self.model.takeRow(item.row())  # ty:ignore[possibly-missing-attribute]
                 else:
-                    item.parent().takeRow(item.row())
+                    item.parent().takeRow(item.row())  # ty:ignore[possibly-missing-attribute]
 
                 # determine a potential new position
                 row = None
                 if insert_before:
-                    row = self.getItemFromEntry(insert_before).row()
+                    row = self.getItemFromEntry(insert_before).row()  # ty:ignore[possibly-missing-attribute]
                 if insert_after:
-                    row = self.getItemFromEntry(insert_after).row() + 1
+                    row = self.getItemFromEntry(insert_after).row() + 1  # ty:ignore[possibly-missing-attribute]
 
                 # move the item to the new position
                 if parent_item is None:
                     if row is None:
-                        row = self.model.rowCount()
-                    self.model.insertRow(row)
-                    self.model.setItem(row, 0, item)
+                        row = self.model.rowCount()  # ty:ignore[possibly-missing-attribute]
+                    self.model.insertRow(row)  # ty:ignore[possibly-missing-attribute]
+                    self.model.setItem(row, 0, item)  # ty:ignore[possibly-missing-attribute]
                 else:
                     if row is None:
-                        parent_item.appendRow(item)
+                        parent_item.appendRow(item)  # ty:ignore[possibly-missing-attribute]
                     else:
-                        parent_item.insertRow(row, item)
+                        parent_item.insertRow(row, item)  # ty:ignore[possibly-missing-attribute]
 
             # update the items name, icon and children
-            item.setIcon(self.getIconOfEntry(entry))
-            item.setText(self.getNameOfEntry(entry))
+            item.setIcon(self.getIconOfEntry(entry))  # ty:ignore[invalid-argument-type, missing-argument]
+            item.setText(self.getNameOfEntry(entry))  # ty:ignore[invalid-argument-type, missing-argument]
             if update_children:
                 self.expand(entry, force_reload=True)
 
@@ -400,19 +404,19 @@ class MyTreeView(QtWidgets.QTreeView):
 
         parent_item = item.parent()
         if parent_item:
-            parent_entry = parent_item.entry
+            parent_entry = parent_item.entry  # ty:ignore[possibly-missing-attribute]
 
         key = self.getKey(entry)
         del self.item_lookup[key]
 
         # delete row from the treeview
         if parent_item is None:
-            self.model.removeRow(item.row())
+            self.model.removeRow(item.row())  # ty:ignore[possibly-missing-attribute]
         else:
-            item.parent().removeRow(item.row(), item.parent())
+            item.parent().removeRow(item.row(), item.parent())  # ty:ignore[possibly-missing-attribute]
 
         # update the label of parent item
         if parent_item:
             name = self.getNameOfEntry(parent_entry)
             if name is not None:
-                parent_item.setLabel(name)
+                parent_item.setLabel(name)  # ty:ignore[possibly-missing-attribute]

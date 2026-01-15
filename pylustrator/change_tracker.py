@@ -22,7 +22,7 @@
 import re
 import sys
 import traceback
-from typing import IO, Optional, Dict, Tuple, Any
+from typing import IO, Optional, Dict, Tuple, Callable
 from packaging import version
 
 import numpy as np
@@ -31,24 +31,20 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib import _pylab_helpers
 from matplotlib.artist import Artist
-
-try:  # starting from mpl version 3.6.0
-    from matplotlib.axes import Axes
-except ImportError:
-    from matplotlib.axes._subplots import Axes
+from matplotlib.axes import Axes
 from matplotlib.figure import Figure
-
-try:
-    from matplotlib.figure import SubFigure  # since matplotlib 3.4.0
-except ImportError:
-    SubFigure = None
 from matplotlib.text import Text
 from matplotlib.legend import Legend
 
 try:
+    from matplotlib.figure import SubFigure  # since matplotlib 3.4.0  # ty:ignore[unresolved-import]
+except ImportError:
+    SubFigure = None
+
+try:
     from natsort import natsorted
 except ImportError:
-    natsorted = sorted
+    natsorted: Callable = sorted
 
 from .exception_swallower import Dummy
 from .jupyter_cells import open
@@ -240,30 +236,30 @@ def getReference(element: Artist, allow_using_variable_names=True):
             name = getattr(element, "_variable_name", None)
             if name is not None:
                 return name
-        if isinstance(element.number, (float, int)):
-            return "plt.figure(%s)" % element.number
+        if isinstance(element.number, (float, int)):  # ty:ignore[unresolved-attribute]
+            return "plt.figure(%s)" % element.number  # ty:ignore[unresolved-attribute]
         else:
-            return 'plt.figure("%s")' % element.number
+            return 'plt.figure("%s")' % element.number  # ty:ignore[unresolved-attribute]
     # subfigures are only available in matplotlib>=3.4.0
     if version.parse(mpl.__version__) >= version.parse("3.4.0") and isinstance(
-        element, SubFigure
+        element, SubFigure  # ty:ignore[invalid-argument-type]
     ):
-        index = element._parent.subfigs.index(element)
-        return getReference(element._parent) + ".subfigs[%d]" % index
-    if isinstance(element, matplotlib.lines.Line2D):
+        index = element._parent.subfigs.index(element)  # ty:ignore[unresolved-attribute]
+        return getReference(element._parent) + ".subfigs[%d]" % index  # ty:ignore[unresolved-attribute]
+    if isinstance(element, matplotlib.lines.Line2D):  # ty:ignore[possibly-missing-attribute]
         index = element.axes.lines.index(element)
         return getReference(element.axes) + ".lines[%d]" % index
-    if isinstance(element, matplotlib.collections.Collection):
+    if isinstance(element, matplotlib.collections.Collection):  # ty:ignore[possibly-missing-attribute]
         index = element.axes.collections.index(element)
         return getReference(element.axes) + ".collections[%d]" % index
-    if isinstance(element, matplotlib.patches.Patch):
+    if isinstance(element, matplotlib.patches.Patch):  # ty:ignore[possibly-missing-attribute]
         if element.axes:
             index = element.axes.patches.index(element)
             return getReference(element.axes) + ".patches[%d]" % index
         index = element.figure.patches.index(element)
         return getReference(element.figure) + ".patches[%d]" % (index)
 
-    if isinstance(element, matplotlib.text.Text):
+    if isinstance(element, matplotlib.text.Text):  # ty:ignore[possibly-missing-attribute]
         if element.axes:
             try:
                 index = element.axes.texts.index(element)
@@ -332,7 +328,7 @@ def getReference(element: Artist, allow_using_variable_names=True):
                             + ".get_yaxis().get_minor_ticks()[%d].label2" % index
                         )
 
-    if isinstance(element, matplotlib.axes._axes.Axes):
+    if isinstance(element, matplotlib.axes._axes.Axes):  # ty:ignore[possibly-missing-attribute]
         if element.get_label():
 
             def check_fig_has_label(fig):
@@ -348,7 +344,7 @@ def getReference(element: Artist, allow_using_variable_names=True):
         index = element.figure.axes.index(element)
         return getReference(element.figure) + ".axes[%d]" % index
 
-    if isinstance(element, matplotlib.legend.Legend):
+    if isinstance(element, matplotlib.legend.Legend):  # ty:ignore[possibly-missing-attribute]
         return getReference(element.axes) + ".get_legend()"
     raise TypeError(str(type(element)) + " not found")
 
@@ -357,12 +353,12 @@ def setFigureVariableNames(figure: Figure):
     """get the global variable names that refer to the given figure"""
     import inspect
 
-    mpl_figure = _pylab_helpers.Gcf.figs[figure].canvas.figure
+    mpl_figure = _pylab_helpers.Gcf.figs[figure].canvas.figure  # ty:ignore[invalid-argument-type]
     calling_globals = inspect.stack()[2][0].f_globals
     fig_names = [
         name
         for name, val in calling_globals.items()
-        if isinstance(val, mpl.figure.Figure) and hash(val) == hash(mpl_figure)
+        if isinstance(val, mpl.figure.Figure) and hash(val) == hash(mpl_figure)  # ty:ignore[possibly-missing-attribute]
     ]
     # print("fig_names", fig_names)
     if len(fig_names):
@@ -379,7 +375,7 @@ class ChangeTracker:
     update_changes_signal = None
 
     def __init__(self, figure: Figure, no_save):
-        global stack_position
+        global stack_position  # ty:ignore[unresolved-global]
         self.figure = figure
         self.edits = []
         self.last_edit = -1
@@ -387,7 +383,7 @@ class ChangeTracker:
         self.no_save = no_save
 
         # make all the subplots pickable
-        for index, axes in enumerate(self.figure.axes):
+        for index, axes in enumerate(self.figure.axes):  # ty:ignore[unresolved-attribute]
             # axes.set_title(index)
             axes.number = index
 
@@ -397,7 +393,7 @@ class ChangeTracker:
         else:
             stack_position = custom_stack_position
 
-        self.fig_inch_size = self.figure.get_size_inches()
+        self.fig_inch_size = self.figure.get_size_inches()  # ty:ignore[unresolved-attribute]
 
         self.load()
 
@@ -413,7 +409,7 @@ class ChangeTracker:
         if reference_obj is None:
             reference_obj = command_obj
         if reference_command is None:
-            (reference_command,) = re.match(r"(\.[^(=]*)", command).groups()
+            (reference_command,) = re.match(r"(\.[^(=]*)", command).groups()  # ty:ignore[possibly-missing-attribute]
         self.changes[reference_obj, reference_command] = (command_obj, command)
         self.saved = False
         self.changeCountChanged()
@@ -512,7 +508,7 @@ class ChangeTracker:
                 return element, f".set({kwargs})"
         elif isinstance(element, Legend):
             ncols_name = "ncols"
-            if version.parse(mpl._get_version()) < version.parse("3.6.0"):
+            if version.parse(mpl._get_version()) < version.parse("3.6.0"):  # ty:ignore[unresolved-attribute]
                 ncols_name = "ncol"
 
             property_names = [
@@ -771,15 +767,15 @@ class ChangeTracker:
             is_label = np.any(
                 [
                     ax.xaxis.get_label() == element or ax.yaxis.get_label() == element
-                    for ax in element.figure.axes
+                    for ax in element.figure.axes  # ty:ignore[possibly-missing-attribute]
                 ]
             )
             if is_label:
-                text_content = element.get_text()
+                text_content = element.get_text()  # ty:ignore[unresolved-attribute]
 
             def redo():
                 if is_label:
-                    element.set_text("")
+                    element.set_text("")  # ty:ignore[unresolved-attribute]
                 else:
                     element.set_visible(False)
                 if isinstance(element, Text):
@@ -789,7 +785,7 @@ class ChangeTracker:
 
             def undo():
                 if is_label:
-                    element.set_text(text_content)
+                    element.set_text(text_content)  # ty:ignore[unresolved-attribute]
                 else:
                     element.set_visible(True)
                 if isinstance(element, Text):
@@ -822,7 +818,7 @@ class ChangeTracker:
         edit = self.edits[self.last_edit]
         edit[0]()
         self.last_edit -= 1
-        self.figure.canvas.draw()
+        self.figure.canvas.draw()  # ty:ignore[possibly-missing-attribute]
         # print("backEdit", len(self.edits), self.last_edit)
         self.changeCountChanged()
 
@@ -834,7 +830,7 @@ class ChangeTracker:
         edit = self.edits[self.last_edit + 1]
         edit[1]()
         self.last_edit += 1
-        self.figure.canvas.draw()
+        self.figure.canvas.draw()  # ty:ignore[possibly-missing-attribute]
         # print("forwardEdit", len(self.edits), self.last_edit)
         self.changeCountChanged()
 
@@ -842,7 +838,7 @@ class ChangeTracker:
         """load a set of changes from a script file. The changes are the code that pylustrator generated"""
         regex = re.compile(r"(\.[^\(= ]*)(.*)")
         command_obj_regexes = [
-            getReference(self.figure),
+            getReference(self.figure),  # ty:ignore[invalid-argument-type]
             r"plt\.figure\([^)]*\)",
             r"fig",
             r"\.subfigs\[\d*\]",
@@ -861,16 +857,16 @@ class ChangeTracker:
 
         # fig = self.figure
         header = []
-        header += ["fig = plt.figure(%s)" % self.figure.number]
+        header += ["fig = plt.figure(%s)" % self.figure.number]  # ty:ignore[possibly-missing-attribute]
         header += ["import matplotlib as mpl"]
 
         self.get_reference_cached = {}
 
-        block, lineno = getTextFromFile(getReference(self.figure), stack_position)
+        block, lineno = getTextFromFile(getReference(self.figure), stack_position)  # ty:ignore[invalid-argument-type, unresolved-reference]
         if not block:
             block, lineno = getTextFromFile(
-                getReference(self.figure, allow_using_variable_names=False),
-                stack_position,
+                getReference(self.figure, allow_using_variable_names=False),  # ty:ignore[invalid-argument-type]
+                stack_position,  # ty:ignore[unresolved-reference]
             )
         for line in block:
             try:
@@ -888,7 +884,7 @@ class ChangeTracker:
                 for r in command_obj_regexes:
                     while True:
                         try:
-                            found = r.match(line).group()
+                            found = r.match(line).group()  # ty:ignore[possibly-missing-attribute]
                             line = line[len(found) :]
                             command_obj += found
                         except AttributeError:
@@ -896,7 +892,7 @@ class ChangeTracker:
                             break
 
                 try:
-                    command, parameter = regex.match(line).groups()
+                    command, parameter = regex.match(line).groups()  # ty:ignore[possibly-missing-attribute]
                 except AttributeError:  # no regex match
                     continue
 
@@ -940,9 +936,9 @@ class ChangeTracker:
                                     reference_obj = getReference(t)
                                     break
                         else:
-                            reference_obj, _ = re.match(r"(.*)(\..*)", key).groups()
+                            reference_obj, _ = re.match(r"(.*)(\..*)", key).groups()  # ty:ignore[possibly-missing-attribute]
                     else:
-                        reference_obj, _ = re.match(r"(.*)(\..*)", key).groups()
+                        reference_obj, _ = re.match(r"(.*)(\..*)", key).groups()  # ty:ignore[possibly-missing-attribute]
                     reference_command = ".new"
                     if command == ".text":
                         eval(reference_obj).is_new_text = True
@@ -1064,12 +1060,12 @@ class ChangeTracker:
         if self.no_save is True:
             return
         header = [
-            getReference(self.figure)
+            getReference(self.figure)  # ty:ignore[invalid-argument-type]
             + ".ax_dict = {ax.get_label(): ax for ax in "
-            + getReference(self.figure)
+            + getReference(self.figure)  # ty:ignore[invalid-argument-type]
             + ".axes}",
             "import matplotlib as mpl",
-            f"getattr({getReference(self.figure)}, '_pylustrator_init', lambda: ...)()",
+            f"getattr({getReference(self.figure)}, '_pylustrator_init', lambda: ...)()",  # ty:ignore[invalid-argument-type]
         ]
 
         # block = getTextFromFile(header[0], self.stack_position)
@@ -1089,13 +1085,13 @@ class ChangeTracker:
         )
         print("\n" + "\n".join(output) + "\n")
 
-        block_id = getReference(self.figure)
-        block = getTextFromFile(block_id, stack_position)
+        block_id = getReference(self.figure)  # ty:ignore[invalid-argument-type]
+        block = getTextFromFile(block_id, stack_position)  # ty:ignore[unresolved-reference]
         if not block:
-            block_id = getReference(self.figure, allow_using_variable_names=False)
-            block = getTextFromFile(block_id, stack_position)
+            block_id = getReference(self.figure, allow_using_variable_names=False)  # ty:ignore[invalid-argument-type]
+            block = getTextFromFile(block_id, stack_position)  # ty:ignore[unresolved-reference]
         try:
-            insertTextToFile(output, stack_position, block_id)
+            insertTextToFile(output, stack_position, block_id)  # ty:ignore[invalid-argument-type, unresolved-reference]
         except FileNotFoundError:
             print(
                 "WARNING: no file to save the above changes was found, you are probably using pylustrator from a shell session.",
@@ -1184,14 +1180,14 @@ def getIndent(line: str):
 
 def addLineCounter(fp: IO):
     """wrap a file pointer to store th line numbers"""
-    fp.lineno = 0
+    fp.lineno = 0  # ty:ignore[unresolved-attribute]
     write = fp.write
 
     def write_with_linenumbers(line: str):
         write(line)
-        fp.lineno += line.count("\n")
+        fp.lineno += line.count("\n")  # ty:ignore[unresolved-attribute]
 
-    fp.write = write_with_linenumbers
+    fp.write = write_with_linenumbers  # ty:ignore[invalid-assignment]
 
 
 def lineToId(line: str):

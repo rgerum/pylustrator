@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
-from typing import Optional, Sequence, Callable
+from typing import TYPE_CHECKING, Optional, Sequence, Callable
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -27,19 +27,23 @@ import numpy as np
 from matplotlib.artist import Artist
 from matplotlib.text import Text
 from matplotlib.axes import Axes
-from qtpy import QtCore, QtGui, QtWidgets
+
+if TYPE_CHECKING:
+    from PyQt5 import QtCore, QtGui, QtWidgets
+else:
+    from qtpy import QtCore, QtGui, QtWidgets
 from .helper_functions import main_figure
 
 
 class Linkable:
     """a class that automatically links a widget with the property of a matplotlib artist"""
 
-    editingFinished = QtCore.Signal()
+    editingFinished = QtCore.Signal()  # ty:ignore[unresolved-attribute]
 
     def link(
         self,
         property_name: str,
-        signal: QtCore.Signal = None,
+        signal: QtCore.Signal = None,  # ty:ignore[unresolved-attribute]
         condition: Optional[Callable] = None,
         direct: bool = False,
     ):
@@ -228,7 +232,7 @@ class Linkable:
         new_value = self.getLinkedPropertyAll()
 
         def save_change(element):
-            if isinstance(element, mpl.figure.Figure):
+            if isinstance(element, mpl.figure.Figure):  # ty:ignore[possibly-missing-attribute]
                 fig = element
             else:
                 fig = main_figure(element)
@@ -261,7 +265,7 @@ class Linkable:
                 save_change(elem)
 
         element = elements[0]
-        if isinstance(element, mpl.figure.Figure):
+        if isinstance(element, mpl.figure.Figure):  # ty:ignore[possibly-missing-attribute]
             fig = element
         else:
             fig = main_figure(element)
@@ -286,7 +290,7 @@ class Linkable:
 
 class FreeNumberInput(QtWidgets.QLineEdit):
     send_signal = True
-    valueChanged = QtCore.Signal(float)
+    valueChanged = QtCore.Signal(float)  # ty:ignore[unresolved-attribute]
 
     def __init__(self):
         """Like a QSpinBox for number import, but without min or max range or a fixed resolution.
@@ -333,9 +337,9 @@ class FreeNumberInput(QtWidgets.QLineEdit):
 
 
 class DimensionsWidget(QtWidgets.QWidget, Linkable):
-    valueChanged = QtCore.Signal(tuple)
-    valueChangedX = QtCore.Signal(float)
-    valueChangedY = QtCore.Signal(float)
+    valueChanged = QtCore.Signal(tuple)  # ty:ignore[unresolved-attribute]
+    valueChangedX = QtCore.Signal(float)  # ty:ignore[unresolved-attribute]
+    valueChangedY = QtCore.Signal(float)  # ty:ignore[unresolved-attribute]
     transform = None
     noSignal = False
 
@@ -402,7 +406,7 @@ class DimensionsWidget(QtWidgets.QWidget, Linkable):
         self.input1.setSuffix(" " + unit)
         self.input2.setSuffix(" " + unit)
 
-    def setTransform(self, transform: mpl.transforms.Transform):
+    def setTransform(self, transform: mpl.transforms.Transform):  # ty:ignore[possibly-missing-attribute]
         """set the transform for the units"""
         self.transform = transform
 
@@ -458,7 +462,7 @@ class DimensionsWidget(QtWidgets.QWidget, Linkable):
 
 
 class TextWidget(QtWidgets.QWidget, Linkable):
-    editingFinished = QtCore.Signal()
+    editingFinished = QtCore.Signal()  # ty:ignore[unresolved-attribute]
     noSignal = False
     last_text = None
 
@@ -549,7 +553,7 @@ class TextWidget(QtWidgets.QWidget, Linkable):
 
 
 class NumberWidget(QtWidgets.QWidget, Linkable):
-    editingFinished = QtCore.Signal()
+    editingFinished = QtCore.Signal()  # ty:ignore[unresolved-attribute]
     noSignal = False
 
     def __init__(
@@ -620,7 +624,7 @@ class NumberWidget(QtWidgets.QWidget, Linkable):
 
 
 class ComboWidget(QtWidgets.QWidget, Linkable):
-    editingFinished = QtCore.Signal()
+    editingFinished = QtCore.Signal()  # ty:ignore[unresolved-attribute]
     noSignal = False
 
     def __init__(self, layout: QtWidgets.QLayout, text: str, values: Sequence):
@@ -684,8 +688,8 @@ class ComboWidget(QtWidgets.QWidget, Linkable):
 
 
 class CheckWidget(QtWidgets.QWidget, Linkable):
-    editingFinished = QtCore.Signal()
-    stateChanged = QtCore.Signal(int)
+    editingFinished = QtCore.Signal()  # ty:ignore[unresolved-attribute]
+    stateChanged = QtCore.Signal(int)  # ty:ignore[unresolved-attribute]
     noSignal = False
 
     def __init__(self, layout: QtWidgets.QLabel, text: str):
@@ -740,7 +744,7 @@ class CheckWidget(QtWidgets.QWidget, Linkable):
 
 
 class RadioWidget(QtWidgets.QWidget):
-    stateChanged = QtCore.Signal(int, str)
+    stateChanged = QtCore.Signal(int, str)  # ty:ignore[unresolved-attribute]
     noSignal = False
 
     def __init__(self, layout: QtWidgets.QLayout, texts: Sequence[str]):
@@ -789,7 +793,7 @@ class RadioWidget(QtWidgets.QWidget):
 
 
 class QColorWidget(QtWidgets.QWidget, Linkable):
-    valueChanged = QtCore.Signal(str)
+    valueChanged = QtCore.Signal(str)  # ty:ignore[unresolved-attribute]
 
     def __init__(
         self,
@@ -827,7 +831,7 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
 
     def changeEvent(self, event):
         """when the widget is enabled"""
-        if event.type() == QtCore.QEvent.EnabledChange:
+        if event.type() == QtCore.QEvent.EnabledChange:  # ty:ignore[unresolved-attribute]
             if not self.isEnabled():
                 self.button.setStyleSheet("background-color: #f0f0f0;")
             else:
@@ -839,7 +843,7 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
         self.current_color = QtGui.QColor(
             *tuple(int(x) for x in mpl.colors.to_rgba_array(self.getColor())[0] * 255)
         )
-        self.dialog = QtWidgets.QColorDialog(self.current_color, self.parent())
+        self.dialog = QtWidgets.QColorDialog(self.current_color, self.parent())  # ty:ignore[invalid-argument-type]
         self.dialog.setOptions(QtWidgets.QColorDialog.ShowAlphaChannel)
         for index, color in enumerate(
             plt.rcParams["axes.prop_cycle"].by_key()["color"]
@@ -880,7 +884,7 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
         # display and save the new color
         if value is None:
             value = "#FF0000FF"
-        self.button.setAttribute(QtCore.Qt.WA_TranslucentBackground, True)
+        self.button.setAttribute(QtCore.Qt.WA_TranslucentBackground, True)  # ty:ignore[unresolved-attribute]
         if len(value) == 9:
             self.button.setStyleSheet(
                 "background-color: rgba(%d, %d, %d, %d%%);"

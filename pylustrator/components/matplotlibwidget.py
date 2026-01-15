@@ -35,20 +35,25 @@ Copyright © 2005 Florent Rougon, 2006 Darren Dale
 __version__ = "1.0.0"
 
 import time
+from typing import TYPE_CHECKING
 
 import qtawesome as qta
-from qtpy import QtWidgets, QtCore
+
+if TYPE_CHECKING:
+    from PyQt5 import QtWidgets, QtCore
+else:
+    from qtpy import QtWidgets, QtCore
 
 try:  # for matplotlib > 3.0
     from matplotlib.backends.backend_qtagg import (
-        FigureCanvas,
-        FigureManager,
+        FigureCanvas,  # ty:ignore[unresolved-import]
+        FigureManager,  # ty:ignore[unresolved-import]
         NavigationToolbar2QT as NavigationToolbar,
     )
 except ModuleNotFoundError:
     from matplotlib.backends.backend_qt5agg import (
-        FigureCanvas,
-        FigureManager,
+        FigureCanvas,  # ty:ignore[unresolved-import]
+        FigureManager,  # ty:ignore[unresolved-import]
         NavigationToolbar2QT as NavigationToolbar,
     )
 from matplotlib.figure import Figure
@@ -81,11 +86,11 @@ class MatplotlibWidget(FigureCanvas):
     def schedule_draw(self):
         if self.quick_draw is True:
             return super().draw()
-        if not self.timer.isActive():
-            self.timer.start()
+        if not self.timer.isActive():  # ty:ignore[possibly-missing-attribute]
+            self.timer.start()  # ty:ignore[possibly-missing-attribute]
 
     def draw(self):
-        self.timer.stop()
+        self.timer.stop()  # ty:ignore[possibly-missing-attribute]
         # import traceback
         # print(traceback.print_stack())
         t = time.time()
@@ -127,7 +132,7 @@ except AttributeError:
 
 
 class CanvasWindow(QtWidgets.QWidget):
-    signal = QtCore.Signal()
+    signal = QtCore.Signal()  # ty:ignore[unresolved-attribute]
 
     def __init__(self, num="", *args, **kwargs):
         QtWidgets.QWidget.__init__(self)

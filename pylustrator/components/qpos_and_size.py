@@ -1,5 +1,9 @@
-from typing import Optional
-from qtpy import QtWidgets
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    from PyQt5 import QtWidgets
+else:
+    from qtpy import QtWidgets
 
 import matplotlib as mpl
 import matplotlib.transforms as transforms
@@ -9,7 +13,7 @@ from matplotlib.artist import Artist
 try:  # starting from mpl version 3.6.0
     from matplotlib.axes import Axes
 except ImportError:
-    from matplotlib.axes._subplots import Axes
+    from matplotlib.axes._subplots import Axes  # ty:ignore[unresolved-import]
 from matplotlib.text import Text
 
 from pylustrator.helper_functions import changeFigureSize, main_figure
@@ -37,12 +41,12 @@ class QPosAndSize(QtWidgets.QWidget):
         self.signals = signals
 
         layout.addWidget(self)
-        self.layout = QtWidgets.QHBoxLayout(self)
+        self.layout = QtWidgets.QHBoxLayout(self)  # ty:ignore[invalid-assignment]
         self.layout.setContentsMargins(10, 0, 10, 0)
 
         self.input_position = DimensionsWidget(self.layout, "X:", "Y:", "cm")
-        self.input_position.valueChangedX.connect(lambda x: self.changePos(x, None))
-        self.input_position.valueChangedY.connect(lambda y: self.changePos(None, y))
+        self.input_position.valueChangedX.connect(lambda x: self.changePos(x, None))  # ty:ignore[invalid-argument-type]
+        self.input_position.valueChangedY.connect(lambda y: self.changePos(None, y))  # ty:ignore[invalid-argument-type]
 
         self.input_shape = DimensionsWidget(self.layout, "W:", "H:", "cm")
         self.input_shape.valueChanged.connect(self.changeSize)
@@ -68,7 +72,7 @@ class QPosAndSize(QtWidgets.QWidget):
             self.setElement(element)
 
     def selection_moved(self):
-        self.setElement(self.element)
+        self.setElement(self.element)  # ty:ignore[invalid-argument-type]
 
     def changeTransform(self):
         """change the transform and the units of the position and size widgets"""
@@ -78,7 +82,7 @@ class QPosAndSize(QtWidgets.QWidget):
             name = ""
         self.input_shape.setUnit(name)
         self.input_position.setUnit(name)
-        self.setElement(self.element)
+        self.setElement(self.element)  # ty:ignore[invalid-argument-type]
 
     def changeTransform2(self):  # , state: int, name: str):
         """when the dimension change type is changed from 'scale' to 'bottom right' or 'bottom left'"""
@@ -96,7 +100,7 @@ class QPosAndSize(QtWidgets.QWidget):
         old_positions = []
         new_positions = []
         for element in elements:
-            old_pos = element.get_position()
+            old_pos = element.get_position()  # ty:ignore[possibly-missing-attribute]
             try:
                 old_positions.append(
                     [old_pos.x0, old_pos.y0, old_pos.width, old_pos.height]
@@ -202,14 +206,14 @@ class QPosAndSize(QtWidgets.QWidget):
             elements = [self.element]
             elements += [
                 element.target
-                for element in self.element.figure.selection.targets
+                for element in self.element.figure.selection.targets  # ty:ignore[possibly-missing-attribute]
                 if element.target != self.element and isinstance(element.target, Axes)
             ]
 
             old_positions = []
             new_positions = []
             for element in elements:
-                pos = element.get_position()
+                pos = element.get_position()  # ty:ignore[possibly-missing-attribute]
                 old_positions.append(pos)
                 pos = [pos.x0, pos.y0, pos.width, pos.height]
                 pos[2] = value[0]
@@ -253,16 +257,16 @@ class QPosAndSize(QtWidgets.QWidget):
             if self.transform_index == 0:
                 return (
                     transforms.Affine2D().scale(2.54, 2.54)
-                    + element.figure.dpi_scale_trans.inverted()
-                    + element.figure.transFigure
+                    + element.figure.dpi_scale_trans.inverted()  # ty:ignore[possibly-missing-attribute]
+                    + element.figure.transFigure  # ty:ignore[possibly-missing-attribute]
                 )
             if self.transform_index == 1:
                 return (
-                    element.figure.dpi_scale_trans.inverted()
-                    + element.figure.transFigure
+                    element.figure.dpi_scale_trans.inverted()  # ty:ignore[possibly-missing-attribute]
+                    + element.figure.transFigure  # ty:ignore[possibly-missing-attribute]
                 )
             if self.transform_index == 2:
-                return element.figure.transFigure
+                return element.figure.transFigure  # ty:ignore[possibly-missing-attribute]
             return None
         if self.transform_index == 0:
             return (
@@ -285,7 +289,7 @@ class QPosAndSize(QtWidgets.QWidget):
         self.input_transform.setDisabled(True)
 
         if isinstance(element, Figure):
-            pos = element.get_size_inches()
+            pos = element.get_size_inches()  # ty:ignore[unresolved-attribute]
             self.input_shape.setTransform(self.getTransform(element))
             self.input_shape.setValue((pos[0], pos[1]))
             self.input_shape.setEnabled(True)
@@ -302,7 +306,7 @@ class QPosAndSize(QtWidgets.QWidget):
             self.input_shape.setDisabled(True)
 
         try:
-            pos = element.get_position()
+            pos = element.get_position()  # ty:ignore[unresolved-attribute]
             self.input_position.setTransform(self.getTransform(element))
             try:
                 self.input_position.setValue(pos)

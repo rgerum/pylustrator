@@ -19,7 +19,12 @@
 # You should have received a copy of the GNU General Public License
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
-from qtpy import QtCore, QtGui, QtWidgets
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from PyQt5 import QtCore, QtGui, QtWidgets
+else:
+    from qtpy import QtCore, QtGui, QtWidgets
 from matplotlib import pyplot as plt
 import matplotlib as mpl
 
@@ -33,8 +38,8 @@ class QDragableColor(QtWidgets.QLabel):
     The button can represent either a single color or a colormap.
     """
 
-    color_changed = QtCore.Signal(str)
-    color_changed_by_color_picker = QtCore.Signal(bool)
+    color_changed = QtCore.Signal(str)  # ty:ignore[unresolved-attribute]
+    color_changed_by_color_picker = QtCore.Signal(bool)  # ty:ignore[unresolved-attribute]
 
     def __init__(self, value: str):
         """initialize with a color"""
@@ -43,7 +48,7 @@ class QDragableColor(QtWidgets.QLabel):
 
         self.maps = plt.colormaps()
         self.setAcceptDrops(True)
-        self.setAlignment(QtCore.Qt.AlignHCenter)
+        self.setAlignment(QtCore.Qt.AlignHCenter)  # ty:ignore[unresolved-attribute]
         self.setColor(value, True)
 
     def getBackground(self) -> str:
@@ -85,7 +90,7 @@ class QDragableColor(QtWidgets.QLabel):
     def mousePressEvent(self, event):
         """when a mouse button is pressed"""
         # a left mouse button lets the user drag the color
-        if event.button() == QtCore.Qt.LeftButton:
+        if event.button() == QtCore.Qt.LeftButton:  # ty:ignore[unresolved-attribute]
             drag = QtGui.QDrag(self)
             drag.setPixmap(self.grab())
             mime = QtCore.QMimeData()
@@ -109,7 +114,7 @@ class QDragableColor(QtWidgets.QLabel):
                     f"text-align: center; background-color: {self.color}; border: 2px solid black; padding: 0.1em; "
                 )
         # a right mouse button opens a color choose menu
-        elif event.button() == QtCore.Qt.RightButton:
+        elif event.button() == QtCore.Qt.RightButton:  # ty:ignore[unresolved-attribute]
             self.openDialog()
 
     def dragEnterEvent(self, event):
@@ -145,7 +150,7 @@ class QDragableColor(QtWidgets.QLabel):
     def openDialog(self):
         """open a color choosed dialog"""
         if self.color in self.maps:
-            dialog = ColorMapChoose(self.parent(), self.color)
+            dialog = ColorMapChoose(self.parent(), self.color)  # ty:ignore[invalid-argument-type]
             colormap, selected = dialog.exec()
             if selected is False:
                 return
@@ -155,7 +160,7 @@ class QDragableColor(QtWidgets.QLabel):
             qcolor = QtGui.QColor(
                 *tuple(int(x * 255) for x in mpl.colors.to_rgb(self.getColor()))
             )
-            color = QtWidgets.QColorDialog.getColor(qcolor, self.parent())
+            color = QtWidgets.QColorDialog.getColor(qcolor, self.parent())  # ty:ignore[invalid-argument-type]
             # if a color is set, apply it
             if color.isValid():
                 color = "#%02x%02x%02x" % color.getRgb()[:3]
@@ -172,7 +177,7 @@ class ColorMapChoose(QtWidgets.QDialog):
         """initialize the dialog with all the colormap of matplotlib"""
         QtWidgets.QDialog.__init__(self, parent)
         main_layout = QtWidgets.QVBoxLayout(self)
-        self.layout = QtWidgets.QHBoxLayout()
+        self.layout = QtWidgets.QHBoxLayout()  # ty:ignore[invalid-assignment]
         main_layout.addLayout(self.layout)
         button_layout = QtWidgets.QHBoxLayout()
         main_layout.addLayout(button_layout)
