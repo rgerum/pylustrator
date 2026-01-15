@@ -1,0 +1,5 @@
+[environment]
+python-version = "3.9"
+
+[src]
+exclude = ["docs/"]
