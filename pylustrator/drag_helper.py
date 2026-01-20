@@ -720,37 +720,9 @@ class DragManager:
 
         self.activate()
 
-        # make all the subplots pickable
-        for index, axes in enumerate(self.figure.axes):
-            axes.set_picker(True)
-            leg = axes.get_legend()
-            if leg:
-                self.make_dragable(leg)
-            for text in axes.texts:
-                self.make_dragable(text)
-            for attribute_name in ["title", "_left_title", "_right_title"]:
-                text = getattr(axes, attribute_name, None)
-                if text is not None:
-                    self.make_dragable(text)
-            for patch in axes.patches:
-                self.make_dragable(patch)
-            self.make_dragable(axes.xaxis.get_label())
-            self.make_dragable(axes.yaxis.get_label())
-            self.make_dragable(axes)
-
-        def make_figure_dragable(fig: Figure | SubFigure) -> None:
-            for text in fig.texts:
-                self.make_dragable(text)
-            for patch in fig.patches:
-                self.make_dragable(patch)
-            for leg in fig.legends:  # ty:ignore[unresolved-attribute]
-                self.make_dragable(leg)
-
-        make_figure_dragable(self.figure)
-        for subfig in self.figure.subfigs:  # ty:ignore[unresolved-attribute]
-            make_figure_dragable(subfig)
-
-        self.selection = GrabbableRectangleSelection(figure, figure._pyl_scene)  # ty:ignore[unresolved-attribute]
+        self.make_figure_draggable(self.figure)
+        self.make_axes_draggable(self.figure.axes)
+        self.selection = GrabbableRectangleSelection(figure, figure._pyl_scene)
         self.figure.selection = self.selection
         self.change_tracker = ChangeTracker(figure, no_save)
         self.figure.change_tracker = self.change_tracker
@@ -778,11 +750,40 @@ class DragManager:
         self.on_select(None, None)  # ty:ignore[invalid-argument-type]
         self.figure.canvas.draw()
 
-    def make_dragable(self, target: Artist):
+    def make_draggable(self, target: Artist):
         """make an artist draggable"""
         target.set_picker(True)
         if isinstance(target, Text):
             target.set_bbox(dict(facecolor="none", edgecolor="none"))
+
+    def make_axes_draggable(self, axes: list[Axes]) -> None:
+        for index, ax in enumerate(axes):
+            ax.set_picker(True)
+            leg = ax.get_legend()
+            if leg:
+                self.make_draggable(leg)
+            for text in ax.texts:
+                self.make_draggable(text)
+            for attribute_name in ["title", "_left_title", "_right_title"]:
+                text = getattr(ax, attribute_name, None)
+                if text is not None:
+                    self.make_draggable(text)
+            for patch in ax.patches:
+                self.make_draggable(patch)
+            self.make_draggable(ax.xaxis.get_label())
+            self.make_draggable(ax.yaxis.get_label())
+            self.make_draggable(ax)
+            self.make_axes_draggable(ax.child_axes)
+
+    def make_figure_draggable(self, fig: Figure | SubFigure) -> None:
+        for text in fig.texts:
+            self.make_draggable(text)
+        for patch in fig.patches:
+            self.make_draggable(patch)
+        for leg in fig.legends:
+            self.make_draggable(leg)
+        for subfig in fig.subfigs:
+            self.make_figure_draggable(subfig)
 
     def get_picked_element(
         self,

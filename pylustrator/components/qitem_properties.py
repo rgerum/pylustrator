@@ -581,7 +581,7 @@ class LegendPropertiesWidget(QtWidgets.QWidget):
                 )
             )
             fig.change_tracker.addNewLegendChange(target)
-            fig.figure_dragger.make_dragable(target)
+            fig.figure_dragger.make_draggable(target)
             fig.figure_dragger.select_element(target)
             fig.canvas.draw()
             fig.selection.update_selection_rectangles()
@@ -1356,7 +1356,7 @@ class QItemProperties(QtWidgets.QWidget):
             addChange(axes, ".spines[:].set_visible(False)")
 
         self.signals.figure_element_child_created.emit(self.element)
-        self.fig.figure_dragger.make_dragable(axes)
+        self.fig.figure_dragger.make_draggable(axes)
         self.fig.figure_dragger.select_element(axes)
         self.fig.canvas.draw()
         self.setElement(axes)
@@ -1382,7 +1382,7 @@ class QItemProperties(QtWidgets.QWidget):
             self.fig.change_tracker.addNewTextChange(text)
 
         self.signals.figure_element_child_created.emit(self.element)
-        self.fig.figure_dragger.make_dragable(text)
+        self.fig.figure_dragger.make_draggable(text)
         self.fig.canvas.draw()
         self.fig.figure_dragger.on_deselect(None)
         self.fig.figure_dragger.selection.clear_targets()
@@ -1415,7 +1415,7 @@ class QItemProperties(QtWidgets.QWidget):
         )
 
         self.signals.figure_element_child_created.emit(self.element)
-        self.fig.figure_dragger.make_dragable(text)
+        self.fig.figure_dragger.make_draggable(text)
         self.fig.figure_dragger.select_element(text)
         self.fig.canvas.draw()
         self.setElement(text)
@@ -1442,7 +1442,7 @@ class QItemProperties(QtWidgets.QWidget):
         )
 
         self.signals.figure_element_child_created.emit(self.element)
-        self.fig.figure_dragger.make_dragable(p)
+        self.fig.figure_dragger.make_draggable(p)
         self.fig.figure_dragger.select_element(p)
         self.fig.canvas.draw()
         self.setElement(p)
@@ -1480,7 +1480,7 @@ class QItemProperties(QtWidgets.QWidget):
         )
 
         self.signals.figure_element_child_created.emit(self.element)
-        self.fig.figure_dragger.make_dragable(p)
+        self.fig.figure_dragger.make_draggable(p)
         self.fig.figure_dragger.select_element(p)
         self.fig.canvas.draw()
         self.setElement(p)
@@ -1560,7 +1560,7 @@ class QItemProperties(QtWidgets.QWidget):
             return
         self.element.legend()
         self.fig.change_tracker.addChange(self.element, ".legend()")
-        self.fig.figure_dragger.make_dragable(self.element.get_legend())
+        self.fig.figure_dragger.make_draggable(self.element.get_legend())
         self.fig.canvas.draw()
         self.signals.figure_element_child_created.emit(self.element)
 
