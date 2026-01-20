@@ -339,7 +339,7 @@ class TextPropertiesWidget2(QtWidgets.QWidget):
         """open a font select dialog"""
         font0 = QtGui.QFont()
         font0.setFamily(self.target.get_fontname())
-        font0.setWeight(self.convertMplWeightToQtWeight(self.target.get_weight()))
+        font0.setWeight(self.convertMplWeightToQtWeight(str(self.target.get_fontweight())))
         font0.setItalic(self.target.get_fontstyle() == "italic")
         font0.setPointSizeF(int(self.target.get_fontsize()))
         font, x = QtWidgets.QFontDialog.getFont(font0, self)

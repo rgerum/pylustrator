@@ -173,8 +173,18 @@ def add_text_default(element):
             except AttributeError:
                 continue
         if getattr(element, "is_new_text", False):
+            # For new text elements, use matplotlib's default text properties
+            # so that any customizations will be detected and saved
             old_args["position"] = None
             old_args["text"] = None
+            old_args["ha"] = "left"
+            old_args["va"] = "baseline"
+            old_args["fontsize"] = 10.0
+            old_args["color"] = "black"
+            old_args["style"] = "normal"
+            old_args["weight"] = "normal"
+            old_args["fontname"] = "DejaVu Sans"
+            old_args["rotation"] = 0.0
         element._pylustrator_old_args = old_args
 
 
@@ -492,10 +502,8 @@ class ChangeTracker:
 
             # compose text
             if getattr(element, "is_new_text", False) and exclude_default:
-                text = kwargs["text"]
-                del kwargs["text"]
-                position = kwargs["position"]
-                del kwargs["position"]
+                text = kwargs.pop("text", element.get_text())
+                position = kwargs.pop("position", element.get_position())
                 kwargs = kwargs_to_string(kwargs)
                 return (
                     element.axes or element.figure,
