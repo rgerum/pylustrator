@@ -22,6 +22,8 @@ class Figure:
     axes: List[Axes]
     texts: List[Text]
     patches: List[Patch]
+    def text(self, x: float, y: float, s: str, *args: Any, **kwargs: Any) -> Text: ...
+    def savefig(self, fname: Any, *args: Any, **kwargs: Any) -> None: ...
     # signals: Any
     # no_figure_dragger_selection_update: bool
 

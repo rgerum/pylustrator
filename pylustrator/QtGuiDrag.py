@@ -20,7 +20,7 @@
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 import sys
 import traceback
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 from matplotlib import _pylab_helpers
 
@@ -70,6 +70,9 @@ app = None
 keys_for_lines = {}
 
 no_save_allowed = False
+setting_use_global_variable_names = False
+old_pltshow: Optional[Any] = None
+old_pltfigure: Optional[Any] = None
 
 
 def initialize(
@@ -88,7 +91,13 @@ def initialize(
     use_global_variable_names : bool, optional
         if used, try to find global variables that reference a figure and use them in the generated code.
     """
-    global app, keys_for_lines, old_pltshow, old_pltfigure, setting_use_global_variable_names, no_save_allowed  # ty:ignore[unresolved-global]
+    global \
+        app, \
+        keys_for_lines, \
+        old_pltshow, \
+        old_pltfigure, \
+        setting_use_global_variable_names, \
+        no_save_allowed
 
     # remember line-numbers where texts are created
     def wrap_text_function(text):
@@ -134,7 +143,7 @@ def initialize(
         return wrapped_text
 
     Axes.text = wrap_text_function(Axes.text)
-    Figure.text = wrap_text_function(Figure.text)  # ty:ignore[unresolved-attribute]
+    Figure.text = wrap_text_function(Figure.text)
 
     setattr(Figure, "_pylustrator_init", init_figure)
 
@@ -160,27 +169,28 @@ def initialize(
         app = QtWidgets.QApplication(sys.argv)
     old_pltshow = plt.show
     old_pltfigure = plt.figure
-    plt.show = show  # ty:ignore[invalid-assignment]
+    cast(Any, plt).show = pyl_show
     patchColormapsWithMetaInfo()
 
     # stack_call_position = traceback.extract_stack()[-2]
     # stack_call_position.filename
 
-    plt.keys_for_lines = keys_for_lines  # ty:ignore[unresolved-attribute]
+    cast(Any, plt).keys_for_lines = keys_for_lines
 
     # store the last figure save filename
-    sf = Figure.savefig  # ty:ignore[unresolved-attribute]
+    sf = Figure.savefig
 
-    def savefig(self, filename, *args, **kwargs):
-        self._last_saved_figure = getattr(self, "_last_saved_figure", []) + [
+    def savefig(self: Figure, filename: Any, *args: Any, **kwargs: Any) -> None:
+        s_any = cast(Any, self)
+        s_any._last_saved_figure = getattr(self, "_last_saved_figure", []) + [
             (filename, args, kwargs)
         ]
         sf(self, filename, *args, **kwargs)
 
-    Figure.savefig = savefig  # ty:ignore[unresolved-attribute]
+    cast(Any, Figure).savefig = savefig
 
 
-def pyl_show(hide_window: bool = False):
+def pyl_show(hide_window: bool = False) -> None:
     """the function overloads the matplotlib show function.
     It opens a DragManager window instead of the default matplotlib window.
     """
@@ -192,6 +202,10 @@ def pyl_show(hide_window: bool = False):
         myappid = "rgerum.pylustrator"  # arbitrary string
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 
+    if app is None:
+        app = QtWidgets.QApplication(sys.argv)
+    if app is None:
+        app = QtWidgets.QApplication(sys.argv)
     if app is None:
         app = QtWidgets.QApplication(sys.argv)
     # iterate over figures
@@ -206,24 +220,27 @@ def pyl_show(hide_window: bool = False):
         # window = _pylab_helpers.Gcf.figs[figure].canvas.window_pylustrator
         # warn about ticks not fitting tick labels
         warnAboutTicks(fig)
-        # add dragger
-        DragManager(fig, no_save_allowed)
+        # set up window canvas, which initializes figure._pyl_scene
         window.setFigure(fig)
+        # initialize figure state and add dragger
+        init_figure(fig)
+        DragManager(fig, no_save_allowed)
         window.addFigure(fig)
         window.update()
         # and show it
         if hide_window is False:
             window.show()
-    if hide_window is False:
+    if hide_window is False and app is not None:
         # execute the application
         app.exec_()
 
 
-def show(hide_window: bool = False):
+def show(*args, **kwargs) -> None:
     """the function overloads the matplotlib show function.
     It opens a DragManager window instead of the default matplotlib window.
     """
-    global figures
+    global figures, app, old_pltshow, old_pltfigure
+    hide_window = kwargs.pop("hide_window", False)
     # set an application id, so that windows properly stacks them in the task bar
     if sys.platform[:3] == "win":
         import ctypes
@@ -233,8 +250,8 @@ def show(hide_window: bool = False):
     # iterate over figures
     for figure in _pylab_helpers.Gcf.figs.copy():
         # get variable names that point to this figure
-        if setting_use_global_variable_names:  # ty:ignore[unresolved-reference]
-            setFigureVariableNames(figure)  # ty:ignore[invalid-argument-type]
+        if setting_use_global_variable_names:
+            setFigureVariableNames(figure)
         # get the window
         # window = _pylab_helpers.Gcf.figs[figure].canvas.window_pylustrator
         window = PlotWindow()
@@ -248,12 +265,14 @@ def show(hide_window: bool = False):
         # and show it
         if hide_window is False:
             window.show()
-    if hide_window is False:
+    if hide_window is False and app is not None:
         # execute the application
-        app.exec_()  # ty:ignore[unresolved-attribute]
+        app.exec_()
 
-    plt.show = old_pltshow  # ty:ignore[unresolved-reference]
-    plt.figure = old_pltfigure  # ty:ignore[unresolved-reference]
+    if old_pltshow is not None:
+        plt.show = old_pltshow
+    if old_pltfigure is not None:
+        plt.figure = old_pltfigure
 
 
 class CmapColor(list):
@@ -270,14 +289,14 @@ def patchColormapsWithMetaInfo():
 
     cm_call = Colormap.__call__
 
-    def new_call(self, *args, **kwargs):
+    def new_call(self, *args: Any, **kwargs: Any) -> Any:
         c = cm_call(self, *args, **kwargs)
         if isinstance(c, (tuple, list)):
             c = CmapColor(c)
             c.setMeta(args[0], self.name)
         return c
 
-    Colormap.__call__ = new_call  # ty:ignore[invalid-assignment]
+    cast(Any, Colormap).__call__ = new_call
 
 
 def figure(num=None, figsize=None, force_add=False, *args, **kwargs):
@@ -298,7 +317,7 @@ def figure(num=None, figsize=None, force_add=False, *args, **kwargs):
     manager = _pylab_helpers.Gcf.figs[num]
     # set the size if it is defined
     if figsize is not None:
-        _pylab_helpers.Gcf.figs[num].window.setGeometry(  # ty:ignore[unresolved-attribute]
+        cast(Any, _pylab_helpers.Gcf.figs[num]).window.setGeometry(
             100, 100, figsize[0] * 80, figsize[1] * 80
         )
     # set the figure as the active figure
@@ -385,8 +404,10 @@ class PlotWindow(QtWidgets.QWidget):
         # self.preview.addFigure(figure)
 
     def selectionProperyChanged(self):
-        self.fig.selection.update_selection_rectangles()  # ty:ignore[possibly-missing-attribute]
-        self.fig.selection.update_extent()  # ty:ignore[possibly-missing-attribute]
+        if self.fig is None:
+            return
+        self.fig.selection.update_selection_rectangles()
+        self.fig.selection.update_extent()
 
     def create_menu(self, layout_parent):
         self.menuBar = QtWidgets.QMenuBar()
@@ -404,7 +425,7 @@ class PlotWindow(QtWidgets.QWidget):
         file_menu.addAction(open_act)
 
         open_act = QAction("Exit", self)
-        open_act.triggered.connect(self.close)  # ty:ignore[invalid-argument-type]
+        open_act.triggered.connect(lambda checked=False: self.close())
         open_act.setShortcut("Ctrl+Q")
         file_menu.addAction(open_act)
 
@@ -429,10 +450,14 @@ class PlotWindow(QtWidgets.QWidget):
         layout_parent.addWidget(self.menuBar)
 
     def undo(self):
-        self.fig.figure_dragger.undo()  # ty:ignore[possibly-missing-attribute]
+        if self.fig is None:
+            return None
+        self.fig.figure_dragger.undo()
 
     def redo(self):
-        self.fig.figure_dragger.redo()  # ty:ignore[possibly-missing-attribute]
+        if self.fig is None:
+            return None
+        self.fig.figure_dragger.redo()
 
     def __init__(self, number: int = 0):
         """The main window of pylustrator
@@ -563,26 +588,32 @@ class PlotWindow(QtWidgets.QWidget):
 
     def rasterize(self, rasterize: bool):
         """convert the figur elements to an image"""
-        if len(self.fig.selection.targets):  # ty:ignore[possibly-missing-attribute]
-            self.fig.figure_dragger.select_element(None)  # ty:ignore[possibly-missing-attribute]
+        if self.fig is None:
+            return
+        if len(self.fig.selection.targets):
+            self.fig.figure_dragger.select_element(None)
         if rasterize:
-            rasterizeAxes(self.fig)  # ty:ignore[invalid-argument-type]
+            rasterizeAxes(self.fig)
             self.button_derasterize.setDisabled(False)
         else:
-            restoreAxes(self.fig)  # ty:ignore[invalid-argument-type]
+            restoreAxes(self.fig)
             self.button_derasterize.setDisabled(True)
-        self.fig.canvas.draw()  # ty:ignore[possibly-missing-attribute]
+        self.fig.canvas.draw()
 
     def actionSave(self):
         """save the code for the figure"""
-        self.fig.change_tracker.save()  # ty:ignore[possibly-missing-attribute]
+        if self.fig is None:
+            return
+        self.fig.change_tracker.save()
         for _last_saved_figure, args, kwargs in getattr(
             self.fig, "_last_saved_figure", []
         ):
-            self.fig.savefig(_last_saved_figure, *args, **kwargs)  # ty:ignore[possibly-missing-attribute]
+            self.fig.savefig(_last_saved_figure, *args, **kwargs)
 
     def actionSaveImage(self):
         """save figure as an image"""
+        if self.fig is None:
+            return
         path = QtWidgets.QFileDialog.getSaveFileName(
             self,
             "Save Image",
@@ -596,9 +627,9 @@ class PlotWindow(QtWidgets.QWidget):
         if not path:
             return
         if os.path.splitext(path)[1] == ".pdf":
-            self.fig.savefig(path, dpi=300)  # ty:ignore[possibly-missing-attribute]
+            self.fig.savefig(path, dpi=300)
         else:
-            self.fig.savefig(path)  # ty:ignore[possibly-missing-attribute]
+            self.fig.savefig(path)
         print("Saved plot image as", path)
 
     def showInfo(self):
@@ -612,21 +643,25 @@ class PlotWindow(QtWidgets.QWidget):
 
     def update(self):
         """update the tree view"""
+        if self.fig is None:
+            return
 
         # self.input_size.setValue(np.array(self.fig.get_size_inches()) * 2.54)
 
         def wrap(func):
             def newfunc(element, event=None):
-                self.fig.no_figure_dragger_selection_update = True  # ty:ignore[invalid-assignment]
+                if self.fig is None:
+                    return
+                self.fig.no_figure_dragger_selection_update = True
                 self.signals.figure_element_selected.emit(element)
                 ret = func(element, event)
-                self.fig.no_figure_dragger_selection_update = False  # ty:ignore[invalid-assignment]
+                self.fig.no_figure_dragger_selection_update = False
                 return ret
 
             return newfunc
 
-        self.fig.figure_dragger.on_select = wrap(self.fig.figure_dragger.on_select)  # ty:ignore[possibly-missing-attribute]
-        self.fig.change_tracker.update_changes_signal = self.update_changes_signal  # ty:ignore[possibly-missing-attribute]
+        self.fig.figure_dragger.on_select = wrap(self.fig.figure_dragger.on_select)
+        self.fig.change_tracker.update_changes_signal = self.update_changes_signal
         self.update_changes_signal.emit(True, True, "", "")
 
         def wrap(func):
@@ -636,20 +671,24 @@ class PlotWindow(QtWidgets.QWidget):
 
             return newfunc
 
-        self.fig.change_tracker.addChange = wrap(self.fig.change_tracker.addChange)  # ty:ignore[possibly-missing-attribute]
-        self.fig.change_tracker.save = wrap(self.fig.change_tracker.save)  # ty:ignore[possibly-missing-attribute]
+        self.fig.change_tracker.addChange = wrap(self.fig.change_tracker.addChange)
+        self.fig.change_tracker.save = wrap(self.fig.change_tracker.save)
         self.signals.figure_element_selected.emit(self.fig)
 
     def updateTitle(self):
         """update the title of the window to display if it is saved or not"""
-        if self.fig.change_tracker.saved:  # ty:ignore[possibly-missing-attribute]
-            self.setWindowTitle("Figure %s - Pylustrator" % self.fig.number)  # ty:ignore[possibly-missing-attribute]
+        if self.fig is None:
+            return
+        if self.fig.change_tracker.saved:
+            self.setWindowTitle("Figure %s - Pylustrator" % self.fig.number)
         else:
-            self.setWindowTitle("Figure %s* - Pylustrator" % self.fig.number)  # ty:ignore[possibly-missing-attribute]
+            self.setWindowTitle("Figure %s* - Pylustrator" % self.fig.number)
 
     def closeEvent(self, event: QtCore.QEvent):
         """when the window is closed, ask the user to save"""
-        if not self.fig.change_tracker.saved and not no_save_allowed:  # ty:ignore[possibly-missing-attribute]
+        if self.fig is None:
+            return
+        if not self.fig.change_tracker.saved and not no_save_allowed:
             reply = QtWidgets.QMessageBox.question(
                 self,
                 "Warning - Pylustrator",
@@ -664,5 +703,5 @@ class PlotWindow(QtWidgets.QWidget):
             if reply == QtWidgets.QMessageBox.Cancel:
                 event.ignore()
             if reply == QtWidgets.QMessageBox.Yes:
-                self.fig.change_tracker.save()  # ty:ignore[possibly-missing-attribute]
+                self.fig.change_tracker.save()
                 # app.clipboard().setText("\r\n".join(output))

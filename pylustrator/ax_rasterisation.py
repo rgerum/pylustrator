@@ -67,7 +67,7 @@ def rasterizeAxes(fig: Figure):
         addContentToFigure(fig, [ax])
 
         buf = io.BytesIO()
-        fig.savefig(buf, format="png", dpi=100)  # ty:ignore[unresolved-attribute]
+        fig.savefig(buf, format="png", dpi=100)
         buf.seek(0)
         im = plt.imread(buf)
         buf.close()

@@ -46,7 +46,7 @@ def fig_text(x: float, y: float, text: str, unit: str = "cm", *args, **kwargs):
         x += 1
     if y < 0:
         y += 1
-    return fig.text(x, y, text, picker=True, *args, **kwargs)  # ty:ignore[unresolved-attribute]
+    return fig.text(x, y, text, picker=True, *args, **kwargs)
 
 
 def add_axes(dim: Sequence, unit: str = "cm", *args, **kwargs):
