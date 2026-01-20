@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Optional
 
 import qtawesome as qta
 
@@ -448,8 +448,8 @@ class MyTreeView(QtWidgets.QTreeView):
             return
 
         parent_item = item.parent()
-        if parent_item:
-            parent_entry = parent_item.entry
+        # if parent_item:
+        #    parent_entry = parent_item.entry
 
         key = self.getKey(entry)
         del self.item_lookup[key]
