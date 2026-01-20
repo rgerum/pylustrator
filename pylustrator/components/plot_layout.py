@@ -257,7 +257,7 @@ class Canvas(QtWidgets.QWidget):
                     int(o - 3),
                     int(self.fontMetrics().width(text)),
                     int(o + self.fontMetrics().height()),
-                    QtCore.Qt.Alignment.AlignLeft,
+                    QtCore.Qt.AlignLeft,  # ty:ignore[unresolved-attribute]
                     text,
                 )
             elif pos_cm % medium_lines == 0:

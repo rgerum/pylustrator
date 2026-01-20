@@ -40,8 +40,8 @@ def fig_text(x: float, y: float, text: str, unit: str = "cm", *args, **kwargs):
     """
     fig = plt.gcf()
     if unit == "cm":
-        x = x / 2.54 / fig.get_size_inches()[0]  # ty:ignore[unresolved-attribute]
-        y = y / 2.54 / fig.get_size_inches()[1]  # ty:ignore[unresolved-attribute]
+        x = x / 2.54 / fig.get_size_inches()[0]
+        y = y / 2.54 / fig.get_size_inches()[1]
     if x < 0:
         x += 1
     if y < 0:
@@ -56,10 +56,10 @@ def add_axes(dim: Sequence, unit: str = "cm", *args, **kwargs):
     fig = plt.gcf()
     x, y, w, h = dim
     if unit == "cm":
-        x = x / 2.54 / fig.get_size_inches()[0]  # ty:ignore[unresolved-attribute]
-        y = y / 2.54 / fig.get_size_inches()[1]  # ty:ignore[unresolved-attribute]
-        w = w / 2.54 / fig.get_size_inches()[0]  # ty:ignore[unresolved-attribute]
-        h = h / 2.54 / fig.get_size_inches()[1]  # ty:ignore[unresolved-attribute]
+        x = x / 2.54 / fig.get_size_inches()[0]
+        y = y / 2.54 / fig.get_size_inches()[1]
+        w = w / 2.54 / fig.get_size_inches()[0]
+        h = h / 2.54 / fig.get_size_inches()[1]
     if x < 0:
         x += 1
     if y < 0:
@@ -86,62 +86,62 @@ def changeFigureSize(
     """
     if fig is None:
         fig = plt.gcf()
-    oldw, oldh = fig.get_size_inches()  # ty:ignore[unresolved-attribute]
+    oldw, oldh = fig.get_size_inches()
     fx = oldw / w
     fy = oldh / h
-    for axe in fig.axes:  # ty:ignore[unresolved-attribute]
+    for axe in fig.axes:
         box = axe.get_position()
         if cut_from_top:
             if cut_from_left:
                 axe.set_position(
-                    [
+                    (
                         1 - (1 - box.x0) * fx,
                         box.y0 * fy,
                         (box.x1 - box.x0) * fx,
                         (box.y1 - box.y0) * fy,
-                    ]
+                    )
                 )
             else:
                 axe.set_position(
-                    [
+                    (
                         box.x0 * fx,
                         box.y0 * fy,
                         (box.x1 - box.x0) * fx,
                         (box.y1 - box.y0) * fy,
-                    ]
+                    )
                 )
         else:
             if cut_from_left:
                 axe.set_position(
-                    [
+                    (
                         1 - (1 - box.x0) * fx,
                         1 - (1 - box.y0) * fy,
                         (box.x1 - box.x0) * fx,
                         (box.y1 - box.y0) * fy,
-                    ]
+                    )
                 )
             else:
                 axe.set_position(
-                    [
+                    (
                         box.x0 * fx,
                         1 - (1 - box.y0) * fy,
                         (box.x1 - box.x0) * fx,
                         (box.y1 - box.y0) * fy,
-                    ]
+                    )
                 )
-    for text in fig.texts:  # ty:ignore[unresolved-attribute]
+    for text in fig.texts:
         x0, y0 = text.get_position()
         if cut_from_top:
             if cut_from_left:
-                text.set_position([1 - (1 - x0) * fx, y0 * fy])
+                text.set_position((1 - (1 - x0) * fx, y0 * fy))
             else:
-                text.set_position([x0 * fx, y0 * fy])
+                text.set_position((x0 * fx, y0 * fy))
         else:
             if cut_from_left:
-                text.set_position([1 - (1 - x0) * fx, 1 - (1 - y0) * fy])
+                text.set_position((1 - (1 - x0) * fx, 1 - (1 - y0) * fy))
             else:
-                text.set_position([x0 * fx, 1 - (1 - y0) * fy])
-    fig.set_size_inches(w, h, forward=True)  # ty:ignore[unresolved-attribute]
+                text.set_position((x0 * fx, 1 - (1 - y0) * fy))
+    fig.set_size_inches(w, h, forward=True)  # ty:ignore[missing-argument, unknown-argument]
 
 
 def removeContentFromFigure(fig: Figure):
@@ -150,8 +150,8 @@ def removeContentFromFigure(fig: Figure):
     for ax in fig._axstack.as_list():  # ty:ignore[unresolved-attribute]
         axes.append(ax)
         fig._axstack.remove(ax)  # ty:ignore[unresolved-attribute]
-    text = fig.texts  # ty:ignore[unresolved-attribute]
-    fig.texts = []  # ty:ignore[unresolved-attribute]
+    text = fig.texts
+    fig.texts = []
     return axes + text
 
 
@@ -166,7 +166,7 @@ def addContentToFigure(fig: Figure, axes: Sequence):
                 fig._axstack.add(ax)  # ty:ignore[unresolved-attribute]
             index += 1
         else:
-            fig.texts.append(ax)  # ty:ignore[unresolved-attribute]
+            fig.texts.append(ax)
 
 
 def check_label_exists(fig, label):
@@ -192,7 +192,7 @@ def imShowFullFigure(im: np.ndarray, filename: str, fig1: Figure, dpi: int, labe
 
     if dpi is None:
         dpi = rcParams["figure.dpi"]
-    fig1.set_size_inches(im.shape[1] / dpi, im.shape[0] / dpi)  # ty:ignore[unresolved-attribute]
+    fig1.set_size_inches(im.shape[1] / dpi, im.shape[0] / dpi)  # ty:ignore[missing-argument]
     ax = plt.axes([0, 0, 1, 1], label=label)  # ty:ignore[invalid-argument-type]
     plt.imshow(im, cmap="gray")
     plt.xticks([])
@@ -295,12 +295,12 @@ def loadFigureFromFile(
                 fig = plt.gcf()
                 self.fig = plt.figure
                 figsize = rcParams["figure.figsize"]
-                fig.set_size_inches(figsize[0], figsize[1])  # ty:ignore[unresolved-attribute]
+                fig.set_size_inches(figsize[0], figsize[1])  # ty:ignore[missing-argument]
 
                 def figure(num=None, figsize=None, *args, **kwargs):
                     fig = plt.gcf()
                     if figsize is not None:
-                        fig.set_size_inches(figsize[0], figsize[1], forward=True)  # ty:ignore[unresolved-attribute]
+                        fig.set_size_inches(figsize[0], figsize[1], forward=True)  # ty:ignore[missing-argument, unknown-argument]
                     return fig
 
                 plt.figure = figure  # ty:ignore[invalid-assignment]
@@ -309,7 +309,7 @@ def loadFigureFromFile(
                 plt.figure = self.fig
 
         # get the size of the old figure
-        w1, h1 = figure.get_size_inches()  # ty:ignore[unresolved-attribute]
+        w1, h1 = figure.get_size_inches()
         axes1 = removeContentFromFigure(figure)
         if len(axes1) == 0:
             w1 = 0
@@ -353,7 +353,7 @@ def loadFigureFromFile(
                         print("loading from cached file", cache_filename)
                         fig2 = pickle.load(open(cache_filename, "rb"))
                         w, h = fig2.get_size_inches()
-                        figure.set_size_inches(w, h)  # ty:ignore[unresolved-attribute]
+                        figure.set_size_inches(w, h)  # ty:ignore[missing-argument]
 
                         str(figure)  # important! (for some reason I don't know)
                         for ax in fig2.axes:
@@ -365,7 +365,8 @@ def loadFigureFromFile(
                             )
                             replace_all_refs(fig2.bbox, figure.bbox)  # ty:ignore[unresolved-attribute]
                             replace_all_refs(
-                                fig2.dpi_scale_trans, figure.dpi_scale_trans  # ty:ignore[unresolved-attribute]
+                                fig2.dpi_scale_trans,
+                                figure.dpi_scale_trans,  # ty:ignore[unresolved-attribute]
                             )
                             replace_all_refs(fig2, figure)
                     else:
@@ -375,16 +376,16 @@ def loadFigureFromFile(
                             globals(),
                         )
                         if cache is True:
-                            c = figure.canvas  # ty:ignore[unresolved-attribute]
-                            figure.canvas = None  # ty:ignore[unresolved-attribute]
+                            c = figure.canvas
+                            figure.canvas = None
                             figure.bbox.pylustrator = True  # ty:ignore[unresolved-attribute]
                             figure.dpi_scale_trans.pylustrator = True  # ty:ignore[unresolved-attribute]
                             pickle.dump(figure, open(cache_filename, "wb"))
 
-                            figure.canvas = c  # ty:ignore[unresolved-attribute]
+                            figure.canvas = c
 
         # get the size of the new figure
-        w2, h2 = figure.get_size_inches()  # ty:ignore[unresolved-attribute]
+        w2, h2 = figure.get_size_inches()
         if offset is not None:
             if len(offset) == 2 or offset[2] == "%":
                 w2 += w1 * offset[0]
@@ -616,7 +617,10 @@ letter_index = 0
 
 
 def add_letter(
-    ax: Axes = None, offset: float = 0, offset2: float = 0, letter: str = None  # ty:ignore[invalid-parameter-default]
+    ax: Axes = None,
+    offset: float = 0,
+    offset2: float = 0,
+    letter: str = None,  # ty:ignore[invalid-parameter-default]
 ):
     """add a letter indicating which subplot it is to the given figure"""
     global letter_index
@@ -676,7 +680,7 @@ def get_letter_font_prop():
 
 def add_letters(*args, **kwargs):
     """add a letter indicating which subplot it is to all of the axes of the given figure"""
-    for ax in plt.gcf().axes:  # ty:ignore[unresolved-attribute]
+    for ax in plt.gcf().axes:
         add_letter(ax, *args, **kwargs)
 
 
@@ -684,7 +688,7 @@ def axes_to_grid(axes=None, track_changes=False):
     # get the axes list
     if axes is None:
         fig = plt.gcf()
-        axes = fig.axes  # ty:ignore[unresolved-attribute]
+        axes = fig.axes
     if len(axes) == 0:
         return
 

@@ -259,16 +259,16 @@ class QPosAndSize(QtWidgets.QWidget):
             if self.transform_index == 0:
                 return (
                     transforms.Affine2D().scale(2.54, 2.54)
-                    + element.figure.dpi_scale_trans.inverted()  # ty:ignore[possibly-missing-attribute]
-                    + element.figure.transFigure  # ty:ignore[possibly-missing-attribute]
+                    + element.figure.dpi_scale_trans.inverted()  # ty:ignore[unresolved-attribute]
+                    + element.figure.transFigure
                 )
             if self.transform_index == 1:
                 return (
-                    element.figure.dpi_scale_trans.inverted()  # ty:ignore[possibly-missing-attribute]
-                    + element.figure.transFigure  # ty:ignore[possibly-missing-attribute]
+                    element.figure.dpi_scale_trans.inverted()  # ty:ignore[unresolved-attribute]
+                    + element.figure.transFigure
                 )
             if self.transform_index == 2:
-                return element.figure.transFigure  # ty:ignore[possibly-missing-attribute]
+                return element.figure.transFigure
             return None
         if self.transform_index == 0:
             return (
@@ -291,7 +291,7 @@ class QPosAndSize(QtWidgets.QWidget):
         self.input_transform.setDisabled(True)
 
         if isinstance(element, Figure):
-            pos = element.get_size_inches()  # ty:ignore[unresolved-attribute]
+            pos = element.get_size_inches()
             self.input_shape.setTransform(self.getTransform(element))
             self.input_shape.setValue((pos[0], pos[1]))
             self.input_shape.setEnabled(True)

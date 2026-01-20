@@ -372,7 +372,9 @@ def clone_patch(patch: mpatches.Patch) -> mpatches.Patch:  # ty:ignore[invalid-r
         return mpatches.Circle(xy=patch.get_xy(), radius=patch.get_radius())  # ty:ignore[unresolved-attribute]
     if isinstance(patch, mpatches.Ellipse):
         return mpatches.Ellipse(
-            xy=patch.get_xy(), width=patch.get_width(), height=patch.get_height()  # ty:ignore[unresolved-attribute]
+            xy=patch.get_xy(),  # ty:ignore[unresolved-attribute]
+            width=patch.get_width(),
+            height=patch.get_height(),
         )
     if isinstance(patch, mpatches.PathPatch):
         return mpatches.PathPatch(patch.get_path())
@@ -471,7 +473,7 @@ def plt_draw_text(
             part_id = node.getAttribute("id")
             if child.firstChild is None:
                 continue
-            partial_content = child.firstChild.nodeValue
+            partial_content = child.firstChild.nodeValue or ""
             style_child = get_inline_style(
                 child, get_css_style(child, ids["css"], style)
             )
@@ -488,9 +490,11 @@ def plt_draw_text(
             if child.getAttribute("dy") != "":
                 pos_child[1] -= svgUnitToMpl(child.getAttribute("dy"))
 
-            text_content += partial_content  # ty:ignore[unsupported-operator]
+            text_content += partial_content
             path1 = TextPath(
-                pos_child, partial_content, prop=font_properties_from_style(style_child)  # ty:ignore[invalid-argument-type]
+                pos_child,
+                partial_content,
+                prop=font_properties_from_style(style_child),
             )
             patch = mpatches.PathPatch(path1, transform=trans)
 
@@ -737,7 +741,7 @@ def svgUnitToMpl(unit: str, default=None) -> float:  # ty:ignore[invalid-return-
         value, unit = match.groups()
         value = float(value)
         if unit == "pt":
-            value *= plt.gcf().dpi / 72  # ty:ignore[unresolved-attribute]
+            value *= plt.gcf().dpi / 72
         elif unit == "pc":
             value *= getattr(plt.gcf(), "dpi", 100) / 6
         elif unit == "in":
@@ -916,23 +920,23 @@ def svgread(filename: str):
         x1, y1, x2, y2 = [
             svgUnitToMpl(s.strip()) for s in svg.getAttribute("viewBox").split()
         ]
-        width, height = (x2 - x1) / plt.gcf().dpi, (y2 - y1) / plt.gcf().dpi  # ty:ignore[unresolved-attribute]
+        width, height = (x2 - x1) / plt.gcf().dpi, (y2 - y1) / plt.gcf().dpi
         if max([width, height]) > 8:
             f = 8 / max([width, height])
-            plt.gcf().set_size_inches(width * f, height * f)  # ty:ignore[unresolved-attribute]
+            plt.gcf().set_size_inches(width * f, height * f)  # ty:ignore[missing-argument]
         else:
-            plt.gcf().set_size_inches(width, height)  # ty:ignore[unresolved-attribute]
+            plt.gcf().set_size_inches(width, height)  # ty:ignore[missing-argument]
     except ValueError:
         width = svgUnitToMpl(svg.getAttribute("width"), default=100)
         height = svgUnitToMpl(svg.getAttribute("height"), default=100)
         x1, y1, x2, y2 = 0, 0, width, height
-        width /= plt.gcf().dpi  # ty:ignore[unresolved-attribute]
-        height /= plt.gcf().dpi  # ty:ignore[unresolved-attribute]
+        width /= plt.gcf().dpi
+        height /= plt.gcf().dpi
         if max([width, height]) > 8:
             f = 8 / max([width, height])
-            plt.gcf().set_size_inches(width * f, height * f)  # ty:ignore[unresolved-attribute]
+            plt.gcf().set_size_inches(width * f, height * f)  # ty:ignore[missing-argument]
         else:
-            plt.gcf().set_size_inches(width, height)  # ty:ignore[unresolved-attribute]
+            plt.gcf().set_size_inches(width, height)  # ty:ignore[missing-argument]
     ax = plt.axes([0, 0, 1, 1], label=filename, frameon=False)  # ty:ignore[invalid-argument-type]
     plt.xticks([])
     plt.yticks([])

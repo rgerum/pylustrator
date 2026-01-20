@@ -110,7 +110,7 @@ def rasterizeAxes(fig: Figure):
 
 def restoreAxes(fig: Figure):
     """restore contents of a figure"""
-    list_axes = fig.axes  # ty:ignore[unresolved-attribute]
+    list_axes = fig.axes
     for ax in list_axes:
         im = getattr(ax, "pylustrator_rasterized", None)
         if im is not None:

@@ -121,7 +121,7 @@ def swallow_get_exceptions():
     from the figure.
     """
     Figure._get_axes = get_axes  # ty:ignore[unresolved-attribute]
-    Figure.axes = property(fget=get_axes)  # ty:ignore[unresolved-attribute]
+    Figure.axes = property(fget=get_axes)  # ty:ignore[invalid-assignment]
     Figure.ax_dict = SaveListDescriptor("ax_dict")  # ty:ignore[unresolved-attribute]
     _AxesBase.texts = SaveListDescriptor("texts")  # ty:ignore[invalid-assignment]
     _AxesBase.lines = SaveListDescriptor("lines")  # ty:ignore[invalid-assignment]

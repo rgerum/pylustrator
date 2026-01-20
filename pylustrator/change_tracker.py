@@ -37,9 +37,9 @@ from matplotlib.text import Text
 from matplotlib.legend import Legend
 
 try:
-    from matplotlib.figure import SubFigure  # since matplotlib 3.4.0  # ty:ignore[unresolved-import]
+    from matplotlib.figure import SubFigure  # since matplotlib 3.4.0
 except ImportError:
-    SubFigure = None
+    SubFigure = None  # type: ignore[assignment]
 
 try:
     from natsort import natsorted
@@ -242,7 +242,7 @@ def getReference(element: Artist, allow_using_variable_names=True):
             return 'plt.figure("%s")' % element.number  # ty:ignore[unresolved-attribute]
     # subfigures are only available in matplotlib>=3.4.0
     if version.parse(mpl.__version__) >= version.parse("3.4.0") and isinstance(
-        element, SubFigure  # ty:ignore[invalid-argument-type]
+        element, SubFigure
     ):
         index = element._parent.subfigs.index(element)  # ty:ignore[unresolved-attribute]
         return getReference(element._parent) + ".subfigs[%d]" % index  # ty:ignore[unresolved-attribute]
@@ -383,9 +383,9 @@ class ChangeTracker:
         self.no_save = no_save
 
         # make all the subplots pickable
-        for index, axes in enumerate(self.figure.axes):  # ty:ignore[unresolved-attribute]
+        for index, axes in enumerate(self.figure.axes):
             # axes.set_title(index)
-            axes.number = index
+            axes.number = index  # ty:ignore[unresolved-attribute]
 
         # store the position where StartPylustrator was called
         if custom_stack_position is None:
@@ -393,7 +393,7 @@ class ChangeTracker:
         else:
             stack_position = custom_stack_position
 
-        self.fig_inch_size = self.figure.get_size_inches()  # ty:ignore[unresolved-attribute]
+        self.fig_inch_size = self.figure.get_size_inches()
 
         self.load()
 
@@ -767,7 +767,7 @@ class ChangeTracker:
             is_label = np.any(
                 [
                     ax.xaxis.get_label() == element or ax.yaxis.get_label() == element
-                    for ax in element.figure.axes  # ty:ignore[possibly-missing-attribute]
+                    for ax in element.figure.axes
                 ]
             )
             if is_label:
@@ -818,7 +818,7 @@ class ChangeTracker:
         edit = self.edits[self.last_edit]
         edit[0]()
         self.last_edit -= 1
-        self.figure.canvas.draw()  # ty:ignore[possibly-missing-attribute]
+        self.figure.canvas.draw()
         # print("backEdit", len(self.edits), self.last_edit)
         self.changeCountChanged()
 
@@ -830,7 +830,7 @@ class ChangeTracker:
         edit = self.edits[self.last_edit + 1]
         edit[1]()
         self.last_edit += 1
-        self.figure.canvas.draw()  # ty:ignore[possibly-missing-attribute]
+        self.figure.canvas.draw()
         # print("forwardEdit", len(self.edits), self.last_edit)
         self.changeCountChanged()
 
