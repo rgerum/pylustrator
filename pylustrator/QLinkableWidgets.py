@@ -697,7 +697,7 @@ class CheckWidget(QtWidgets.QWidget, Linkable):
     stateChanged = Signal(int)
     noSignal = False
 
-    def __init__(self, layout: QtWidgets.QLabel, text: str):
+    def __init__(self, layout: QtWidgets.QLayout, text: str):
         """a widget that contains a checkbox with a label
 
         Args:

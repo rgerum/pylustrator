@@ -32,10 +32,12 @@ from matplotlib.axes._axes import Axes
 
 if TYPE_CHECKING:
     from PyQt5 import QtCore, QtGui, QtWidgets
+
     QAction = QtWidgets.QAction
     from PyQt5.QtCore import pyqtSignal as Signal
 else:
     from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets, _version_info
+
     if _version_info[0] == 6:
         QAction = QtGui.QAction
     else:
@@ -86,13 +88,7 @@ def initialize(
     use_global_variable_names : bool, optional
         if used, try to find global variables that reference a figure and use them in the generated code.
     """
-    global \
-        app, \
-        keys_for_lines, \
-        old_pltshow, \
-        old_pltfigure, \
-        setting_use_global_variable_names, \
-        no_save_allowed  # ty:ignore[unresolved-global]
+    global app, keys_for_lines, old_pltshow, old_pltfigure, setting_use_global_variable_names, no_save_allowed  # ty:ignore[unresolved-global]
 
     # remember line-numbers where texts are created
     def wrap_text_function(text):

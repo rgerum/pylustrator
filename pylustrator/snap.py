@@ -196,15 +196,19 @@ class TargetWrapper(object):
             bbox = self.target.get_bbox_patch()
             if bbox:
                 points.append(
-                    _to_point(bbox.get_transform().transform((bbox.get_x(), bbox.get_y())))
+                    _to_point(
+                        bbox.get_transform().transform((bbox.get_x(), bbox.get_y()))
+                    )
                 )
                 points.append(
-                    _to_point(bbox.get_transform().transform(
-                        (
-                            bbox.get_x() + bbox.get_width(),
-                            bbox.get_y() + bbox.get_height(),
+                    _to_point(
+                        bbox.get_transform().transform(
+                            (
+                                bbox.get_x() + bbox.get_width(),
+                                bbox.get_y() + bbox.get_height(),
+                            )
                         )
-                    ))
+                    )
                 )
             points[-2:] = self.transform_inverted_points(points[-2:])
             if use_previous_offset is True:
