@@ -1,4 +1,5 @@
 from matplotlib.axes import Axes
+from matplotlib.legend import Legend
 from matplotlib.patches import Patch
 
 from pylustrator.QtGuiDrag import PlotWindow
@@ -22,6 +23,8 @@ class Figure:
     axes: List[Axes]
     texts: List[Text]
     patches: List[Patch]
+    legends: List[Legend]
+    subfigs: List[SubFigure]
     def text(self, x: float, y: float, s: str, *args: Any, **kwargs: Any) -> Text: ...
     def savefig(self, fname: Any, *args: Any, **kwargs: Any) -> None: ...
     # signals: Any
@@ -33,6 +36,8 @@ class SubFigure:
     axes: List[Axes]
     texts: List[Text]
     patches: List[Patch]
+    legends: List[Legend]
+    subfigs: List[SubFigure]
 
     transFigure: Transform
     transSubfigure: Transform

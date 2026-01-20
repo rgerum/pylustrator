@@ -25,8 +25,8 @@ from matplotlib.figure import Figure, SubFigure
 from matplotlib.axes import Axes
 from matplotlib.text import Text
 from matplotlib.patches import Rectangle
-from matplotlib.backend_bases import MouseEvent, KeyEvent
-from typing import TYPE_CHECKING, Sequence, Callable, Tuple, List
+from matplotlib.backend_bases import MouseEvent, KeyEvent, Event
+from typing import TYPE_CHECKING, Sequence, Callable, Tuple, List, Any, cast
 
 if TYPE_CHECKING:
     from PyQt5 import QtCore, QtGui, QtWidgets
@@ -714,15 +714,17 @@ class DragManager:
         self.figure = figure
         self.figure.figure_dragger = self
 
-        self.figure.canvas.mpl_disconnect(
-            self.figure.canvas.manager.key_press_handler_id
-        )
+        manager = getattr(self.figure.canvas, "manager", None)
+        cid = getattr(manager, "key_press_handler_id", None)
+        if isinstance(cid, int):
+            self.figure.canvas.mpl_disconnect(cid)
 
         self.activate()
 
         self.make_figure_draggable(self.figure)
         self.make_axes_draggable(self.figure.axes)
-        self.selection = GrabbableRectangleSelection(figure, figure._pyl_scene)
+        graphics_scene = getattr(figure, "_pyl_scene", None)
+        self.selection = GrabbableRectangleSelection(figure, graphics_scene)
         self.figure.selection = self.selection
         self.change_tracker = ChangeTracker(figure, no_save)
         self.figure.change_tracker = self.change_tracker
@@ -773,7 +775,7 @@ class DragManager:
             self.make_draggable(ax.xaxis.get_label())
             self.make_draggable(ax.yaxis.get_label())
             self.make_draggable(ax)
-            self.make_axes_draggable(ax.child_axes)
+            self.make_axes_draggable([a for a in ax.child_axes if isinstance(a, Axes)])
 
     def make_figure_draggable(self, fig: Figure | SubFigure) -> None:
         for text in fig.texts:
@@ -826,8 +828,9 @@ class DragManager:
                 break
         return picked_element, finished
 
-    def button_release_event0(self, event: MouseEvent):
+    def button_release_event0(self, event: Event):
         """when the mouse button is released"""
+        event = cast(MouseEvent, event)
         # release the grabber
         if self.grab_element:
             self.grab_element.button_release_event(event)
@@ -836,8 +839,9 @@ class DragManager:
         elif len(self.selection.targets):
             self.selection.button_release_event(event)
 
-    def button_press_event0(self, event: MouseEvent):
+    def button_press_event0(self, event: Event):
         """when the mouse button is pressed"""
+        event = cast(MouseEvent, event)
         if event.button == 1:
             last = self.selection.targets[-1] if len(self.selection.targets) else None
             contained = np.any(
@@ -910,8 +914,9 @@ class DragManager:
         self.on_select(None, None)  # ty:ignore[invalid-argument-type]
         self.figure.canvas.draw()
 
-    def key_press_event(self, event: KeyEvent):
+    def key_press_event(self, event: Event):
         """when a key is pressed"""
+        event = cast(KeyEvent, event)
         # space: print code to restore current configuration
         if event.key == "ctrl+s":
             self.figure.change_tracker.save()
