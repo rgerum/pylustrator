@@ -27,8 +27,9 @@ class Figure:
     subfigs: List[SubFigure]
     def text(self, x: float, y: float, s: str, *args: Any, **kwargs: Any) -> Text: ...
     def savefig(self, fname: Any, *args: Any, **kwargs: Any) -> None: ...
-    # signals: Any
-    # no_figure_dragger_selection_update: bool
+    signals: Any
+    _pyl_graphics_scene_snapparent: Any
+    no_figure_dragger_selection_update: bool
 
 class SubFigure:
     bbox: Any

@@ -32,6 +32,11 @@ except ModuleNotFoundError:
 from .matplotlibwidget import MatplotlibWidget
 
 
+class GraphicsRectItemWithView(QtWidgets.QGraphicsRectItem):
+    view: QtWidgets.QGraphicsView | None = None
+    pass
+
+
 class MyScene(QtWidgets.QGraphicsScene):
     grabber_pressed = None
 
@@ -131,7 +136,7 @@ class Canvas(QtWidgets.QWidget):
         self.y_scale = QtWidgets.QLabel(self.canvas_canvas)
 
         self.selections_scene = MyScene()
-        self.selections_scene_origin = QtWidgets.QGraphicsRectItem()
+        self.selections_scene_origin = GraphicsRectItemWithView()
         self.selections_scene_origin.setTransform(QtGui.QTransform(1, 0, 0, -1, 0, 0))
 
         self.selections_scene.addItem(self.selections_scene_origin)
