@@ -897,14 +897,14 @@ class DragManager:
         if element == self.selected_element:
             return
         # if there was was previously selected element, deselect it
-        if self.selected_element is not None and event is not None:
+        if self.selected_element is not None:
             self.on_deselect(event)
 
         # if there is a new element, select it
         self.on_select(element, event)
         self.selected_element = element
 
-    def on_deselect(self, event: MouseEvent):
+    def on_deselect(self, event: MouseEvent | None):
         """deselect currently selected artists"""
         modifier = (
             "shift" in event.key.split("+")

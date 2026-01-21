@@ -6,7 +6,7 @@ from matplotlib.patches import Patch
 from pylustrator.QtGuiDrag import PlotWindow
 from pylustrator.change_tracker import ChangeTracker
 from pylustrator.drag_helper import DragManager, GrabbableRectangleSelection
-from typing import Optional, Any, List, Callable, Tuple
+from typing import Any, List, Callable, Tuple
 from matplotlib.text import Text
 from matplotlib.transforms import Transform
 

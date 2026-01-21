@@ -64,7 +64,9 @@ class LabColormap(ListedColormap):
 
     def _init(self):
         """generate the colormap from the given colors (used by ListedColormap)"""
-        assert self.init_colors is not None, "init_colors must be set before calling _init"
+        assert self.init_colors is not None, (
+            "init_colors must be set before calling _init"
+        )
         # convert to lab
         lab_colors = convert_rgb2lab(self.init_colors)
         # initialize new list

@@ -222,9 +222,10 @@ def pyl_show(hide_window: bool = False) -> None:
         warnAboutTicks(fig)
         # set up window canvas, which initializes figure._pyl_scene
         window.setFigure(fig)
-        # initialize figure state and add dragger
-        init_figure(fig)
+        # add dragger (ChangeTracker.load() sets is_new_text on texts from generated code)
         DragManager(fig, no_save_allowed)
+        # initialize figure defaults AFTER load, so is_new_text is properly set
+        init_figure(fig)
         window.addFigure(fig)
         window.update()
         # and show it
@@ -258,8 +259,9 @@ def show(*args, **kwargs) -> None:
         window.setFigure(_pylab_helpers.Gcf.figs[figure].canvas.figure)
         # warn about ticks not fitting tick labels
         warnAboutTicks(window.fig)
-        # add dragger
+        # add dragger (ChangeTracker.load() sets is_new_text on texts from generated code)
         DragManager(_pylab_helpers.Gcf.figs[figure].canvas.figure, no_save_allowed)
+        # initialize figure defaults AFTER load, so is_new_text is properly set
         init_figure(_pylab_helpers.Gcf.figs[figure].canvas.figure)
         window.update()
         # and show it
