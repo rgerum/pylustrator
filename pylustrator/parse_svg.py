@@ -362,7 +362,7 @@ def plt_patch(
     return patch
 
 
-def clone_patch(patch: mpatches.Patch) -> mpatches.Patch | None:
+def clone_patch(patch: mpatches.Patch) -> mpatches.Patch:
     """clone a patch element with the same properties as the given patch"""
     if isinstance(patch, mpatches.Rectangle):
         return mpatches.Rectangle(
@@ -378,7 +378,7 @@ def clone_patch(patch: mpatches.Patch) -> mpatches.Patch | None:
         )
     if isinstance(patch, mpatches.PathPatch):
         return mpatches.PathPatch(patch.get_path())
-    return None
+    raise TypeError("unknown patch type")
 
 
 def patch_rect(
@@ -392,7 +392,9 @@ def patch_rect(
             xy=(float(node.getAttribute("x")), float(node.getAttribute("y"))),
             width=float(node.getAttribute("width")),
             height=float(node.getAttribute("height")),
-            boxstyle=mpatches.BoxStyle.Round(0, float(node.getAttribute("ry"))),
+            boxstyle=mpatches.BoxStyle.Round(
+                0, rounding_size=float(node.getAttribute("ry"))
+            ),
             transform=trans,
         )
     return mpatches.Rectangle(
@@ -682,6 +684,7 @@ def patch_path(
             else:
                 parent_patch = element
                 patch = clone_patch(parent_patch)
+
                 apply_style(parent_patch.style, patch)
 
                 a = angles[i]
@@ -731,7 +734,7 @@ def patch_path(
     return patch_list
 
 
-def svgUnitToMpl(unit: str, default: float | None = None) -> float | None:
+def svgUnitToMpl(unit: str, default: float = 0) -> float:
     """convert a unit text to svg pixels"""
     import re
 
@@ -754,6 +757,7 @@ def svgUnitToMpl(unit: str, default: float | None = None) -> float | None:
         elif unit == "mm":
             value *= getattr(plt.gcf(), "dpi", 100) / 25
         return value
+    return default
 
 
 def openImageFromLink(link: str) -> np.ndarray:
@@ -924,9 +928,9 @@ def svgread(filename: str):
         width, height = (x2 - x1) / plt.gcf().dpi, (y2 - y1) / plt.gcf().dpi
         if max([width, height]) > 8:
             f = 8 / max([width, height])
-            plt.gcf().set_size_inches(width * f, height * f)  # ty:ignore[missing-argument]
+            plt.gcf().set_size_inches(width * f, height * f)
         else:
-            plt.gcf().set_size_inches(width, height)  # ty:ignore[missing-argument]
+            plt.gcf().set_size_inches(width, height)
     except ValueError:
         width = svgUnitToMpl(svg.getAttribute("width"), default=100)
         height = svgUnitToMpl(svg.getAttribute("height"), default=100)
@@ -935,9 +939,9 @@ def svgread(filename: str):
         height /= plt.gcf().dpi
         if max([width, height]) > 8:
             f = 8 / max([width, height])
-            plt.gcf().set_size_inches(width * f, height * f)  # ty:ignore[missing-argument]
+            plt.gcf().set_size_inches(width * f, height * f)
         else:
-            plt.gcf().set_size_inches(width, height)  # ty:ignore[missing-argument]
+            plt.gcf().set_size_inches(width, height)
     ax = plt.axes((0, 0, 1, 1), label=filename, frameon=False)
     plt.xticks([])
     plt.yticks([])

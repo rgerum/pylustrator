@@ -1,3 +1,4 @@
+from matplotlib.figure import _AxesStack  # ty:ignore[unresolved-import]
 from matplotlib.axes import Axes
 from matplotlib.legend import Legend
 from matplotlib.patches import Patch
@@ -16,19 +17,25 @@ class Figure:
     selection: GrabbableRectangleSelection
     transFigure: Transform
     get_size_inches: Callable[[], Tuple[float, float]]
-    set_size_inches: Callable[[float, float, Optional[bool]], None]
+    def set_size_inches(
+        self, w: float, h: float, *args: Any, **kwargs: Any
+    ) -> None: ...
     dpi: float
     canvas: Any
     figure: Any
+    bbox: Any
     axes: List[Axes]
     texts: List[Text]
     patches: List[Patch]
     legends: List[Legend]
     subfigs: List[SubFigure]
-    def text(self, x: float, y: float, s: str, *args: Any, **kwargs: Any) -> Text: ...
+    def text(self, x: float, y: float, *args: Any, **kwargs: Any) -> Text: ...
     def savefig(self, fname: Any, *args: Any, **kwargs: Any) -> None: ...
     signals: Any
     _pyl_graphics_scene_snapparent: Any
+    _axstack: _AxesStack
+    dpi_scale_trans: Any
+    def _make_key(self, ax: Axes) -> Any: ...
     no_figure_dragger_selection_update: bool
 
 class SubFigure:
@@ -42,3 +49,5 @@ class SubFigure:
 
     transFigure: Transform
     transSubfigure: Transform
+
+    dpi_scale_trans: Any

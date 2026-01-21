@@ -259,12 +259,12 @@ class QPosAndSize(QtWidgets.QWidget):
             if self.transform_index == 0:
                 return (
                     transforms.Affine2D().scale(2.54, 2.54)
-                    + element.figure.dpi_scale_trans.inverted()  # ty:ignore[unresolved-attribute]
+                    + element.figure.dpi_scale_trans.inverted()
                     + element.figure.transFigure
                 )
             if self.transform_index == 1:
                 return (
-                    element.figure.dpi_scale_trans.inverted()  # ty:ignore[unresolved-attribute]
+                    element.figure.dpi_scale_trans.inverted()
                     + element.figure.transFigure
                 )
             if self.transform_index == 2:

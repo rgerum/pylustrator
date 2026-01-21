@@ -141,15 +141,15 @@ def changeFigureSize(
                 text.set_position((1 - (1 - x0) * fx, 1 - (1 - y0) * fy))
             else:
                 text.set_position((x0 * fx, 1 - (1 - y0) * fy))
-    fig.set_size_inches(w, h, forward=True)  # ty:ignore[missing-argument, unknown-argument]
+    fig.set_size_inches(w, h, forward=True)
 
 
 def removeContentFromFigure(fig: Figure):
     """remove axes and text from a figure"""
     axes = []
-    for ax in fig._axstack.as_list():  # ty:ignore[unresolved-attribute]
+    for ax in fig._axstack.as_list():
         axes.append(ax)
-        fig._axstack.remove(ax)  # ty:ignore[unresolved-attribute]
+        fig._axstack.remove(ax)
     text = fig.texts
     fig.texts = []
     return axes + text
@@ -157,13 +157,13 @@ def removeContentFromFigure(fig: Figure):
 
 def addContentToFigure(fig: Figure, axes: Sequence):
     """add axes and texts to a figure"""
-    index = len(fig._axstack.as_list())  # ty:ignore[unresolved-attribute]
+    index = len(fig._axstack.as_list())
     for ax in axes:
         if isinstance(ax, Axes):
             try:  # old matplotlib
-                fig._axstack.add(index, ax)  # ty:ignore[unresolved-attribute]
+                fig._axstack.add(index, ax)
             except TypeError:  # newer matplotlib
-                fig._axstack.add(ax)  # ty:ignore[unresolved-attribute]
+                fig._axstack.add(ax)
             index += 1
         else:
             fig.texts.append(ax)
@@ -186,13 +186,19 @@ def get_unique_label(fig1, label_base):
     return label
 
 
-def imShowFullFigure(im: np.ndarray, filename: str, fig1: Figure, dpi: int | None, label: str):
+def imShowFullFigure(
+    im: np.ndarray,
+    filename: str,
+    fig1: Figure,
+    dpi: int | None,
+    label: str | None = None,
+):
     """create a new axes and display an image in this axes"""
     from matplotlib import rcParams
 
     if dpi is None:
         dpi = rcParams["figure.dpi"]
-    fig1.set_size_inches(im.shape[1] / dpi, im.shape[0] / dpi)  # ty:ignore[missing-argument]
+    fig1.set_size_inches(im.shape[1] / dpi, im.shape[0] / dpi)
     ax = plt.axes((0, 0, 1, 1), label=label)
     plt.imshow(im, cmap="gray")
     plt.xticks([])
@@ -295,12 +301,12 @@ def loadFigureFromFile(
                 fig = plt.gcf()
                 self.fig = plt.figure
                 figsize = rcParams["figure.figsize"]
-                fig.set_size_inches(figsize[0], figsize[1])  # ty:ignore[missing-argument]
+                fig.set_size_inches(figsize[0], figsize[1])
 
                 def figure(num=None, figsize=None, *args, **kwargs):
                     fig = plt.gcf()
                     if figsize is not None:
-                        fig.set_size_inches(figsize[0], figsize[1], forward=True)  # ty:ignore[missing-argument, unknown-argument]
+                        fig.set_size_inches(figsize[0], figsize[1], forward=True)
                     return fig
 
                 plt.figure = figure  # ty:ignore[invalid-assignment]
@@ -330,7 +336,7 @@ def loadFigureFromFile(
         # if the image is a numpy array, just display the array
         elif isinstance(filename, np.ndarray):
             im = filename
-            imShowFullFigure(im, str(im.shape), figure, dpi)  # ty:ignore[missing-argument]
+            imShowFullFigure(im, str(im.shape), figure, dpi)
         # if it is a svg file, display the svg file
         elif filename.endswith(".svg"):
             svgread(filename)
@@ -353,20 +359,20 @@ def loadFigureFromFile(
                         print("loading from cached file", cache_filename)
                         fig2 = pickle.load(open(cache_filename, "rb"))
                         w, h = fig2.get_size_inches()
-                        figure.set_size_inches(w, h)  # ty:ignore[missing-argument]
+                        figure.set_size_inches(w, h)
 
                         str(figure)  # important! (for some reason I don't know)
                         for ax in fig2.axes:
                             fig2.delaxes(ax)
-                            figure._axstack.add(figure._make_key(ax), ax)  # ty:ignore[unresolved-attribute]
-                            figure.bbox._parents.update(fig2.bbox._parents)  # ty:ignore[unresolved-attribute]
-                            figure.dpi_scale_trans._parents.update(  # ty:ignore[unresolved-attribute]
+                            figure._axstack.add(figure._make_key(ax), ax)
+                            figure.bbox._parents.update(fig2.bbox._parents)
+                            figure.dpi_scale_trans._parents.update(
                                 fig2.dpi_scale_trans._parents
                             )
-                            replace_all_refs(fig2.bbox, figure.bbox)  # ty:ignore[unresolved-attribute]
+                            replace_all_refs(fig2.bbox, figure.bbox)
                             replace_all_refs(
                                 fig2.dpi_scale_trans,
-                                figure.dpi_scale_trans,  # ty:ignore[unresolved-attribute]
+                                figure.dpi_scale_trans,
                             )
                             replace_all_refs(fig2, figure)
                     else:
@@ -378,8 +384,8 @@ def loadFigureFromFile(
                         if cache is True:
                             c = figure.canvas
                             figure.canvas = None
-                            figure.bbox.pylustrator = True  # ty:ignore[unresolved-attribute]
-                            figure.dpi_scale_trans.pylustrator = True  # ty:ignore[unresolved-attribute]
+                            figure.bbox.pylustrator = True
+                            figure.dpi_scale_trans.pylustrator = True
                             pickle.dump(figure, open(cache_filename, "wb"))
 
                             figure.canvas = c
@@ -444,16 +450,18 @@ def mark_inset(
         BboxConnector,
     )
 
-    try:
-        loc1a, loc1b = loc1  # ty:ignore[not-iterable]
-    except TypeError:
+    if isinstance(loc1, int):
         loc1a = loc1
         loc1b = loc1
-    try:
-        loc2a, loc2b = loc2  # ty:ignore[not-iterable]
-    except TypeError:
+    else:
+        loc1a, loc1b = loc1
+
+    if isinstance(loc2, int):
         loc2a = loc2
         loc2b = loc2
+    else:
+        loc2a, loc2b = loc2
+
     rect = TransformedBbox(inset_axes.viewLim, parent_axes.transData)
 
     pp = BboxPatch(rect, fill=False, **kwargs)
@@ -516,9 +524,9 @@ def mark_inset_pos(
     point: Sequence,
     **kwargs,
 ):
-    """add a box connector where the second axis is shrinked to a point"""
+    """add a box connector where the second axis is shrunk to a point"""
     kwargs["lw"] = 0.8
-    ax_new = plt.axes(inset_axes.get_position())  # ty:ignore[invalid-argument-type]
+    ax_new = plt.axes(inset_axes.get_position().bounds)
     ax_new.set_xlim(point[0], point[0])
     ax_new.set_ylim(point[1], point[1])
     mark_inset(parent_axes, ax_new, loc1, loc2, **kwargs)
@@ -649,8 +657,8 @@ def add_letter(
     # add a transform that gives the coordinates relative to the left top corner of the axes in cm
     transform = (
         Affine2D().scale(1 / 2.54, 1 / 2.54)
-        + fig.dpi_scale_trans  # ty:ignore[possibly-missing-attribute]
-        + ScaledTranslation(0, 1, ax.transAxes)  # ty:ignore[invalid-argument-type]
+        + fig.dpi_scale_trans
+        + ScaledTranslation(0, 1, fig.dpi_scale_trans)
     )
 
     # add a text a the given position
