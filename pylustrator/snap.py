@@ -175,11 +175,11 @@ class TargetWrapper(object):
             )
             points.append(_to_point(p2))
         elif isinstance(self.target, Ellipse):
-            c = self.target.center
+            c = cast(Tuple[float, float], self.target.center)
             w = self.target.width
             h = self.target.height
-            points.append(_to_point((c[0] - w / 2, c[1] - h / 2)))  # ty:ignore[not-subscriptable]
-            points.append(_to_point((c[0] + w / 2, c[1] + h / 2)))  # ty:ignore[not-subscriptable]
+            points.append(_to_point((c[0] - w / 2, c[1] - h / 2)))
+            points.append(_to_point((c[0] + w / 2, c[1] + h / 2)))
         elif isinstance(self.target, FancyArrowPatch):
             points.append(_to_point(self.target._posA_posB[0]))  # ty:ignore[unresolved-attribute]
             points.append(_to_point(self.target._posA_posB[1]))  # ty:ignore[unresolved-attribute]
@@ -736,9 +736,9 @@ class SnapCenterWith(SnapBase):
         self.set_data((p1[0], p2[0]), (p1[1], p2[1]))
 
 
-def checkSnaps(snaps: List[SnapBase]) -> Tuple[float, float]:
+def checkSnaps(snaps: List[SnapBase]) -> list[float]:
     """get the x and y offsets the snaps suggest"""
-    result = [0, 0]
+    result: list[float] = [0, 0]
     # iterate over x and y
     for index in range(2):
         # find the best snap
@@ -751,7 +751,7 @@ def checkSnaps(snaps: List[SnapBase]) -> Tuple[float, float]:
         if best < np.inf:
             result[index] = best
     # return the best suggestion
-    return result  # ty:ignore[invalid-return-type]
+    return result
 
 
 def checkSnapsActive(snaps: List[SnapBase]):

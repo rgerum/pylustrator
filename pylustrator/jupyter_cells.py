@@ -73,11 +73,11 @@ def open(filename: str, *args, **kwargs):
     if filename.startswith("<ipython") or "ipykernel" in filename:
 
         class IPythonCell:
-            text = None
-            write_text = None
-            is_cell = False
+            text: str | None = None
+            write_text: str | None = None
+            is_cell: bool = False
 
-            def __init__(self, filename, mode, **kwargs):
+            def __init__(self, filename: str, mode: str, **kwargs):
                 self.filename = filename.strip()
 
                 if mode == "r":
@@ -93,13 +93,15 @@ def open(filename: str, *args, **kwargs):
 
             def __iter__(self):
                 text = self.text
-                while len(text):  # ty:ignore[invalid-argument-type]
-                    pos = text.find("\n")  # ty:ignore[possibly-missing-attribute]
+                if text is None:
+                    return
+                while len(text):
+                    pos = text.find("\n")
                     if pos == -1:
                         yield text
                         break
-                    yield text[: pos + 1]  # ty:ignore[not-subscriptable]
-                    text = text[pos + 1 :]  # ty:ignore[not-subscriptable]
+                    yield text[: pos + 1]
+                    text = text[pos + 1 :]
 
             def write(self, line):
                 if self.write_text is None:

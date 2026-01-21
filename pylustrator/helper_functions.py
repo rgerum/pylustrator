@@ -64,7 +64,7 @@ def add_axes(dim: Sequence, unit: str = "cm", *args, **kwargs):
         x += 1
     if y < 0:
         y += 1
-    return plt.axes([x, y, w, h], *args, **kwargs)  # ty:ignore[invalid-argument-type]
+    return plt.axes((x, y, w, h), *args, **kwargs)
 
 
 def add_image(filename: str):
@@ -79,7 +79,7 @@ def changeFigureSize(
     h: float,
     cut_from_top: bool = False,
     cut_from_left: bool = False,
-    fig: Figure = None,  # ty:ignore[invalid-parameter-default]
+    fig: Figure | None = None,
 ):
     """change the figure size to the given dimensions. Optionally define if to remove or add space at the top or bottom
     and left or right.
@@ -186,14 +186,14 @@ def get_unique_label(fig1, label_base):
     return label
 
 
-def imShowFullFigure(im: np.ndarray, filename: str, fig1: Figure, dpi: int, label: str):
+def imShowFullFigure(im: np.ndarray, filename: str, fig1: Figure, dpi: int | None, label: str):
     """create a new axes and display an image in this axes"""
     from matplotlib import rcParams
 
     if dpi is None:
         dpi = rcParams["figure.dpi"]
     fig1.set_size_inches(im.shape[1] / dpi, im.shape[0] / dpi)  # ty:ignore[missing-argument]
-    ax = plt.axes([0, 0, 1, 1], label=label)  # ty:ignore[invalid-argument-type]
+    ax = plt.axes((0, 0, 1, 1), label=label)
     plt.imshow(im, cmap="gray")
     plt.xticks([])
     plt.yticks([])
@@ -220,9 +220,9 @@ class changeFolder:
 
 def loadFigureFromFile(
     filename: str,
-    figure: Figure = None,  # ty:ignore[invalid-parameter-default]
-    offset: list = None,  # ty:ignore[invalid-parameter-default]
-    dpi: int = None,  # ty:ignore[invalid-parameter-default]
+    figure: Figure | None = None,
+    offset: list | None = None,
+    dpi: int | None = None,
     cache: bool = False,
     label: str = "",
 ):
@@ -530,8 +530,8 @@ def mark_inset_pos(
 def VoronoiPlot(
     points: Sequence,
     values: Sequence,
-    vmin: float = None,  # ty:ignore[invalid-parameter-default]
-    vmax: float = None,  # ty:ignore[invalid-parameter-default]
+    vmin: float | None = None,
+    vmax: float | None = None,
     cmap=None,
 ):
     """plot the voronoi regions of the poins with the given colormap"""
@@ -569,7 +569,7 @@ def VoronoiPlot(
         # plt.plot(p[0], p[1], 'ok', alpha=0.3, ms=1)
 
     p = PatchCollection(patches, cmap=cmap)
-    p.set_clim([vmin, vmax])  # ty:ignore[invalid-argument-type]
+    p.set_clim((vmin, vmax))  # ty:ignore[invalid-argument-type] - matplotlib accepts None for auto-calculation
     p.set_array(np.array(dist_list))
     p.set_linewidth(10)
 
@@ -620,7 +620,7 @@ def add_letter(
     ax: Axes = None,
     offset: float = 0,
     offset2: float = 0,
-    letter: str = None,  # ty:ignore[invalid-parameter-default]
+    letter: str | None = None,
 ):
     """add a letter indicating which subplot it is to the given figure"""
     global letter_index
