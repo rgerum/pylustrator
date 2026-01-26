@@ -50,7 +50,6 @@ from .exception_swallower import Dummy
 from .jupyter_cells import open
 from .helper_functions import main_figure
 
-
 """ External overload """
 
 
@@ -90,19 +89,19 @@ def unescape_string(str):
 def to_str(v):
     if isinstance(v, list) and len(v) and isinstance(v[0], float):
         return (
-            "["
-            + ", ".join(
-                np.format_float_positional(a, 4, fractional=False, trim=".") for a in v
-            )
-            + "]"
+                "["
+                + ", ".join(
+            np.format_float_positional(a, 4, fractional=False, trim=".") for a in v
+        )
+                + "]"
         )
     elif isinstance(v, tuple) and len(v) and isinstance(v[0], float):
         return (
-            "("
-            + ", ".join(
-                np.format_float_positional(a, 4, fractional=False, trim=".") for a in v
-            )
-            + ")"
+                "("
+                + ", ".join(
+            np.format_float_positional(a, 4, fractional=False, trim=".") for a in v
+        )
+                + ")"
         )
     elif isinstance(v, float):
         return np.format_float_positional(v, 4, fractional=False, trim=".")
@@ -219,8 +218,8 @@ def add_axes_default(element):
         old_args["yticks-locator"] = element.get_yaxis().major.locator
         old_args["yticklabels"] = [t.get_text() for t in old_args["yticklabels"]]
         old_args["grid"] = (
-            getattr(element.xaxis, "_gridOnMajor", False)
-            or getattr(element.xaxis, "_major_tick_kw", {"gridOn": False})["gridOn"]
+                getattr(element.xaxis, "_gridOnMajor", False)
+                or getattr(element.xaxis, "_major_tick_kw", {"gridOn": False})["gridOn"]
         )
         old_args["spines"] = {s: v.get_visible() for s, v in element.spines.items()}
 
@@ -237,7 +236,7 @@ def add_axes_default(element):
     add_text_default(element.get_yaxis().get_label())
 
 
-def getReference(element: Artist, allow_using_variable_names=True):
+def getReference(element: Artist | Figure, allow_using_variable_names=True):
     """get the code string that represents the given Artist."""
     if element is None:
         return ""
@@ -246,30 +245,30 @@ def getReference(element: Artist, allow_using_variable_names=True):
             name = getattr(element, "_variable_name", None)
             if name is not None:
                 return name
-        if isinstance(element.number, (float, int)):  # ty:ignore[unresolved-attribute]
-            return "plt.figure(%s)" % element.number  # ty:ignore[unresolved-attribute]
+        if isinstance(element.number, (float, int)):
+            return "plt.figure(%s)" % element.number
         else:
-            return 'plt.figure("%s")' % element.number  # ty:ignore[unresolved-attribute]
-    # subfigures are only available in matplotlib>=3.4.0
+            return 'plt.figure("%s")' % element.number
+            # subfigures are only available in matplotlib>=3.4.0
     if version.parse(mpl.__version__) >= version.parse("3.4.0") and isinstance(
-        element, SubFigure
+            element, SubFigure
     ):
-        index = element._parent.subfigs.index(element)  # ty:ignore[unresolved-attribute]
-        return getReference(element._parent) + ".subfigs[%d]" % index  # ty:ignore[unresolved-attribute]
-    if isinstance(element, matplotlib.lines.Line2D):  # ty:ignore[possibly-missing-attribute]
+        index = element._parent.subfigs.index(element)
+        return getReference(element._parent) + ".subfigs[%d]" % index
+    if isinstance(element, matplotlib.lines.Line2D):
         index = element.axes.lines.index(element)
         return getReference(element.axes) + ".lines[%d]" % index
-    if isinstance(element, matplotlib.collections.Collection):  # ty:ignore[possibly-missing-attribute]
+    if isinstance(element, matplotlib.collections.Collection):
         index = element.axes.collections.index(element)
         return getReference(element.axes) + ".collections[%d]" % index
-    if isinstance(element, matplotlib.patches.Patch):  # ty:ignore[possibly-missing-attribute]
+    if isinstance(element, matplotlib.patches.Patch):
         if element.axes:
             index = element.axes.patches.index(element)
             return getReference(element.axes) + ".patches[%d]" % index
         index = element.figure.patches.index(element)
         return getReference(element.figure) + ".patches[%d]" % (index)
 
-    if isinstance(element, matplotlib.text.Text):  # ty:ignore[possibly-missing-attribute]
+    if isinstance(element, matplotlib.text.Text):
         if element.axes:
             try:
                 index = element.axes.texts.index(element)
@@ -294,51 +293,51 @@ def getReference(element: Artist, allow_using_variable_names=True):
             for index, label in enumerate(axes.get_xaxis().get_major_ticks()):
                 if element == label.label1:
                     return (
-                        getReference(axes)
-                        + ".get_xaxis().get_major_ticks()[%d].label1" % index
+                            getReference(axes)
+                            + ".get_xaxis().get_major_ticks()[%d].label1" % index
                     )
                 if element == label.label2:
                     return (
-                        getReference(axes)
-                        + ".get_xaxis().get_major_ticks()[%d].label2" % index
+                            getReference(axes)
+                            + ".get_xaxis().get_major_ticks()[%d].label2" % index
                     )
             for index, label in enumerate(axes.get_xaxis().get_minor_ticks()):
                 if element == label.label1:
                     return (
-                        getReference(axes)
-                        + ".get_xaxis().get_minor_ticks()[%d].label1" % index
+                            getReference(axes)
+                            + ".get_xaxis().get_minor_ticks()[%d].label1" % index
                     )
                 if element == label.label2:
                     return (
-                        getReference(axes)
-                        + ".get_xaxis().get_minor_ticks()[%d].label2" % index
+                            getReference(axes)
+                            + ".get_xaxis().get_minor_ticks()[%d].label2" % index
                     )
 
             for axes in element.figure.axes:
                 for index, label in enumerate(axes.get_yaxis().get_major_ticks()):
                     if element == label.label1:
                         return (
-                            getReference(axes)
-                            + ".get_yaxis().get_major_ticks()[%d].label1" % index
+                                getReference(axes)
+                                + ".get_yaxis().get_major_ticks()[%d].label1" % index
                         )
                     if element == label.label2:
                         return (
-                            getReference(axes)
-                            + ".get_yaxis().get_major_ticks()[%d].label2" % index
+                                getReference(axes)
+                                + ".get_yaxis().get_major_ticks()[%d].label2" % index
                         )
                 for index, label in enumerate(axes.get_yaxis().get_minor_ticks()):
                     if element == label.label1:
                         return (
-                            getReference(axes)
-                            + ".get_yaxis().get_minor_ticks()[%d].label1" % index
+                                getReference(axes)
+                                + ".get_yaxis().get_minor_ticks()[%d].label1" % index
                         )
                     if element == label.label2:
                         return (
-                            getReference(axes)
-                            + ".get_yaxis().get_minor_ticks()[%d].label2" % index
+                                getReference(axes)
+                                + ".get_yaxis().get_minor_ticks()[%d].label2" % index
                         )
 
-    if isinstance(element, matplotlib.axes._axes.Axes):  # ty:ignore[possibly-missing-attribute]
+    if isinstance(element, matplotlib.axes._axes.Axes):
         if element.get_label():
 
             def check_fig_has_label(fig):
@@ -354,7 +353,7 @@ def getReference(element: Artist, allow_using_variable_names=True):
         index = element.figure.axes.index(element)
         return getReference(element.figure) + ".axes[%d]" % index
 
-    if isinstance(element, matplotlib.legend.Legend):  # ty:ignore[possibly-missing-attribute]
+    if isinstance(element, matplotlib.legend.Legend):
         return getReference(element.axes) + ".get_legend()"
     raise TypeError(str(type(element)) + " not found")
 
@@ -363,7 +362,7 @@ def setFigureVariableNames(figure: Figure):
     """get the global variable names that refer to the given figure"""
     import inspect
 
-    mpl_figure = _pylab_helpers.Gcf.figs[figure].canvas.figure  # ty:ignore[invalid-argument-type]
+    mpl_figure = _pylab_helpers.Gcf.figs[figure].canvas.figure
     calling_globals = inspect.stack()[2][0].f_globals
     fig_names = [
         name
@@ -385,8 +384,10 @@ class ChangeTracker:
     update_changes_signal = None
 
     def __init__(self, figure: Figure, no_save):
-        global stack_position  # ty:ignore[unresolved-global]
-        self.figure = figure
+        global stack_position
+        if not isinstance(figure, Figure):
+            raise ValueError("figure must be a matplotlib figure")
+        self.figure: Figure = figure
         self.edits = []
         self.last_edit = -1
         self.changes: Dict[Tuple[Artist, str], Tuple[Artist, str]] = {}
@@ -395,9 +396,9 @@ class ChangeTracker:
         # make all the subplots pickable
         for index, axes in enumerate(self.figure.axes):
             # axes.set_title(index)
-            axes.number = index  # ty:ignore[unresolved-attribute]
+            axes.number = index
 
-        # store the position where StartPylustrator was called
+            # store the position where StartPylustrator was called
         if custom_stack_position is None:
             stack_position = traceback.extract_stack()[-4]
         else:
@@ -408,18 +409,18 @@ class ChangeTracker:
         self.load()
 
     def addChange(
-        self,
-        command_obj: Artist,
-        command: str,
-        reference_obj: Optional[Artist] = None,
-        reference_command: Optional[str] = None,
+            self,
+            command_obj: Artist,
+            command: str,
+            reference_obj: Optional[Artist] = None,
+            reference_command: Optional[str] = None,
     ):
         """add a change"""
         command = command.replace("\n", "\\n")
         if reference_obj is None:
             reference_obj = command_obj
         if reference_command is None:
-            (reference_command,) = re.match(r"(\.[^(=]*)", command).groups()  # ty:ignore[possibly-missing-attribute]
+            (reference_command,) = re.match(r"(\.[^(=]*)", command).groups()
         self.changes[reference_obj, reference_command] = (command_obj, command)
         self.saved = False
         self.changeCountChanged()
@@ -516,7 +517,7 @@ class ChangeTracker:
                 return element, f".set({kwargs})"
         elif isinstance(element, Legend):
             ncols_name = "ncols"
-            if version.parse(mpl._get_version()) < version.parse("3.6.0"):  # ty:ignore[unresolved-attribute]
+            if version.parse(mpl._get_version()) < version.parse("3.6.0"):
                 ncols_name = "ncol"
 
             property_names = [
@@ -548,7 +549,7 @@ class ChangeTracker:
                         default = None
                     pass
                 if (prop == "fontsize" or prop == "title_fontsize") and (
-                    default == "medium" or default is None
+                        default == "medium" or default is None
                 ):
                     if value == plt.rcParams["font.size"]:
                         continue
@@ -605,14 +606,14 @@ class ChangeTracker:
                     del kwargs["xticks"]
                     del kwargs["xticklabels"]
             if (
-                isinstance(element.get_xaxis().major.locator, AutoLocator)
-                and element._pylustrator_old_args["xticks-locator"]
+                    isinstance(element.get_xaxis().major.locator, AutoLocator)
+                    and element._pylustrator_old_args["xticks-locator"]
             ):
                 del kwargs["xticks"]
                 del kwargs["xticklabels"]
             if (
-                isinstance(element.get_yaxis().major.locator, AutoLocator)
-                and element._pylustrator_old_args["yticks-locator"]
+                    isinstance(element.get_yaxis().major.locator, AutoLocator)
+                    and element._pylustrator_old_args["yticks-locator"]
             ):
                 del kwargs["yticks"]
                 del kwargs["yticklabels"]
@@ -650,8 +651,8 @@ class ChangeTracker:
 
             # the grid
             has_grid = (
-                getattr(element.xaxis, "_gridOnMajor", False)
-                or getattr(element.xaxis, "_major_tick_kw", {"gridOn": False})["gridOn"]
+                    getattr(element.xaxis, "_gridOnMajor", False)
+                    or getattr(element.xaxis, "_major_tick_kw", {"gridOn": False})["gridOn"]
             )
             if has_grid != element._pylustrator_old_args["grid"] or not exclude_default:
                 desc_strings.append([element, f".grid({has_grid})"])
@@ -660,8 +661,8 @@ class ChangeTracker:
             hidden = []
             for name, spine in element.spines.items():
                 if (
-                    spine.get_visible() != element._pylustrator_old_args["spines"][name]
-                    or not exclude_default
+                        spine.get_visible() != element._pylustrator_old_args["spines"][name]
+                        or not exclude_default
                 ):
                     if spine.get_visible():
                         visible.append(name)
@@ -751,8 +752,8 @@ class ChangeTracker:
                 name_undo = self.edits[self.last_edit][2]
             name_redo = ""
             if (
-                self.last_edit < len(self.edits) - 1
-                and len(self.edits[self.last_edit + 1]) > 2
+                    self.last_edit < len(self.edits) - 1
+                    and len(self.edits[self.last_edit + 1]) > 2
             ):
                 name_redo = self.edits[self.last_edit + 1][2]
             self.update_changes_signal.emit(
@@ -779,11 +780,11 @@ class ChangeTracker:
                 ]
             )
             if is_label:
-                text_content = element.get_text()  # ty:ignore[unresolved-attribute]
+                text_content = element.get_text()
 
             def redo():
                 if is_label:
-                    element.set_text("")  # ty:ignore[unresolved-attribute]
+                    element.set_text("")
                 else:
                     element.set_visible(False)
                 if isinstance(element, Text):
@@ -793,7 +794,7 @@ class ChangeTracker:
 
             def undo():
                 if is_label:
-                    element.set_text(text_content)  # ty:ignore[unresolved-attribute]
+                    element.set_text(text_content)
                 else:
                     element.set_visible(True)
                 if isinstance(element, Text):
@@ -846,7 +847,7 @@ class ChangeTracker:
         """load a set of changes from a script file. The changes are the code that pylustrator generated"""
         regex = re.compile(r"(\.[^\(= ]*)(.*)")
         command_obj_regexes = [
-            getReference(self.figure),  # ty:ignore[invalid-argument-type]
+            getReference(self.figure),
             r"plt\.figure\([^)]*\)",
             r"fig",
             r"\.subfigs\[\d*\]",
@@ -865,16 +866,16 @@ class ChangeTracker:
 
         # fig = self.figure
         header = []
-        header += ["fig = plt.figure(%s)" % self.figure.number]  # ty:ignore[possibly-missing-attribute]
+        header += ["fig = plt.figure(%s)" % self.figure.number]
         header += ["import matplotlib as mpl"]
 
         self.get_reference_cached = {}
 
-        block, lineno = getTextFromFile(getReference(self.figure), stack_position)  # ty:ignore[invalid-argument-type, unresolved-reference]
+        block, lineno = getTextFromFile(getReference(self.figure), stack_position)
         if not block:
             block, lineno = getTextFromFile(
-                getReference(self.figure, allow_using_variable_names=False),  # ty:ignore[invalid-argument-type]
-                stack_position,  # ty:ignore[unresolved-reference]
+                getReference(self.figure, allow_using_variable_names=False),
+                stack_position,
             )
         for line in block:
             try:
@@ -891,18 +892,17 @@ class ChangeTracker:
                 command_obj = ""
                 for r in command_obj_regexes:
                     while True:
-                        try:
-                            found = r.match(line).group()  # ty:ignore[possibly-missing-attribute]
-                            line = line[len(found) :]
+                        match = r.match(line)
+                        if match:
+                            found = match.group()
+                            line = line[len(found):]
                             command_obj += found
-                        except AttributeError:
-                            pass
+                        else:
                             break
 
-                try:
-                    command, parameter = regex.match(line).groups()  # ty:ignore[possibly-missing-attribute]
-                except AttributeError:  # no regex match
-                    continue
+                match = regex.match(line)
+                if match:
+                    command, parameter = match.groups()
 
                 m = re.match(r".*# id=(.*)", line)
                 if m:
@@ -915,19 +915,19 @@ class ChangeTracker:
                 reference_command = command
 
                 if (
-                    command == ".set_xticks"
-                    or command == ".set_yticks"
-                    or command == ".set_xlabels"
-                    or command == ".set_ylabels"
+                        command == ".set_xticks"
+                        or command == ".set_yticks"
+                        or command == ".set_xlabels"
+                        or command == ".set_ylabels"
                 ):
                     if line.find("minor=True") != -1:
                         reference_command = command + "_minor"
 
                 # for new created texts, the reference object is the text and not the axis/figure
                 if (
-                    command == ".text"
-                    or command == ".annotate"
-                    or command == ".add_patch"
+                        command == ".text"
+                        or command == ".annotate"
+                        or command == ".add_patch"
                 ):
                     # for texts we stored the linenumbers where they were created
                     if command == ".text":
@@ -938,15 +938,19 @@ class ChangeTracker:
                             # and find if one of the texts was created in the line we are currently looking at
                             if getattr(t, "_pylustrator_reference", None):
                                 if (
-                                    t._pylustrator_reference["stack_position"].lineno
-                                    == lineno
+                                        t._pylustrator_reference["stack_position"].lineno
+                                        == lineno
                                 ):
                                     reference_obj = getReference(t)
                                     break
                         else:
-                            reference_obj, _ = re.match(r"(.*)(\..*)", key).groups()  # ty:ignore[possibly-missing-attribute]
+                            match = re.match(r"(.*)(\..*)", key)
+                            if match:
+                                reference_obj, _ = match.groups()
                     else:
-                        reference_obj, _ = re.match(r"(.*)(\..*)", key).groups()  # ty:ignore[possibly-missing-attribute]
+                        match = re.match(r"(.*)(\..*)", key)
+                        if match:
+                            reference_obj, _ = match.groups()
                     reference_command = ".new"
                     if command == ".text":
                         eval(reference_obj).is_new_text = True
@@ -1005,30 +1009,30 @@ class ChangeTracker:
                     obj_indices = ("", "", "", "")
                 else:
                     if getattr(
-                        reference_obj, "axes", None
+                            reference_obj, "axes", None
                     ) is not None and not isinstance(
                         getattr(reference_obj, "axes", None), list
                     ):
                         if reference_command == ".new":
                             index = "0"
                         elif (
-                            reference_command == ".set_xscale"
-                            or reference_command == ".set_yscale"
+                                reference_command == ".set_xscale"
+                                or reference_command == ".set_yscale"
                         ):
                             index = "1"
                         elif (
-                            reference_command == ".set_xlim"
-                            or reference_command == ".set_ylim"
+                                reference_command == ".set_xlim"
+                                or reference_command == ".set_ylim"
                         ):
                             index = "2"
                         elif (
-                            reference_command == ".set_xticks"
-                            or reference_command == ".set_yticks"
+                                reference_command == ".set_xticks"
+                                or reference_command == ".set_yticks"
                         ):
                             index = "3"
                         elif (
-                            reference_command == ".set_xticklabels"
-                            or reference_command == ".set_yticklabels"
+                                reference_command == ".set_xticklabels"
+                                or reference_command == ".set_yticklabels"
                         ):
                             index = "4"
                         else:
@@ -1068,12 +1072,12 @@ class ChangeTracker:
         if self.no_save is True:
             return
         header = [
-            getReference(self.figure)  # ty:ignore[invalid-argument-type]
+            getReference(self.figure)
             + ".ax_dict = {ax.get_label(): ax for ax in "
-            + getReference(self.figure)  # ty:ignore[invalid-argument-type]
+            + getReference(self.figure)
             + ".axes}",
             "import matplotlib as mpl",
-            f"getattr({getReference(self.figure)}, '_pylustrator_init', lambda: ...)()",  # ty:ignore[invalid-argument-type]
+            f"getattr({getReference(self.figure)}, '_pylustrator_init', lambda: ...)()",
         ]
 
         # block = getTextFromFile(header[0], self.stack_position)
@@ -1093,13 +1097,13 @@ class ChangeTracker:
         )
         print("\n" + "\n".join(output) + "\n")
 
-        block_id = getReference(self.figure)  # ty:ignore[invalid-argument-type]
-        block = getTextFromFile(block_id, stack_position)  # ty:ignore[unresolved-reference]
+        block_id = getReference(self.figure)
+        block = getTextFromFile(block_id, stack_position)
         if not block:
-            block_id = getReference(self.figure, allow_using_variable_names=False)  # ty:ignore[invalid-argument-type]
-            block = getTextFromFile(block_id, stack_position)  # ty:ignore[unresolved-reference]
+            block_id = getReference(self.figure, allow_using_variable_names=False)
+            block = getTextFromFile(block_id, stack_position)
         try:
-            insertTextToFile(output, stack_position, block_id)  # ty:ignore[invalid-argument-type, unresolved-reference]
+            insertTextToFile(output, stack_position, block_id)
         except FileNotFoundError:
             print(
                 "WARNING: no file to save the above changes was found, you are probably using pylustrator from a shell session.",
@@ -1115,7 +1119,7 @@ def getTextFromFile(block_id: str, stack_pos: traceback.FrameSummary):
 
     if not custom_stack_position:
         if not stack_pos.filename.endswith(".py") and not stack_pos.filename.startswith(
-            "<ipython-input-"
+                "<ipython-input-"
         ):
             return [], -1
 
@@ -1129,7 +1133,7 @@ def getTextFromFile(block_id: str, stack_pos: traceback.FrameSummary):
                 block.add(line)
                 # and see if we have found the end
                 if line.strip().startswith("#% end:") and line.strip().endswith(
-                    custom_append
+                        custom_append
                 ):
                     block.end()
             # if there is a new pylustrator block
@@ -1186,16 +1190,14 @@ def getIndent(line: str):
     return indent
 
 
-def addLineCounter(fp: IO):
-    """wrap a file pointer to store th line numbers"""
-    fp.lineno = 0  # ty:ignore[unresolved-attribute]
-    write = fp.write
+class LineNumberFilePointer:
+    def __init__(self, fp: IO):
+        self.fp = fp
+        self.lineno = 0
 
-    def write_with_linenumbers(line: str):
-        write(line)
-        fp.lineno += line.count("\n")  # ty:ignore[unresolved-attribute]
-
-    fp.write = write_with_linenumbers  # ty:ignore[invalid-assignment]
+    def write(self, line: str):
+        self.fp.write(line)
+        self.lineno += line.count("\n")
 
 
 def lineToId(line: str):
@@ -1203,12 +1205,12 @@ def lineToId(line: str):
     line = line.strip()
     line = line.split(".ax_dict")[0]
     if line.startswith("fig = "):
-        line = line[len("fig = ") :]
+        line = line[len("fig = "):]
     return line
 
 
 def insertTextToFile(
-    new_block: str, stack_pos: traceback.FrameSummary, figure_id_line: str
+        new_block: list[str], stack_pos: traceback.FrameSummary, figure_id_line: str
 ):
     """insert a text block into a file"""
     figure_id_line = lineToId(figure_id_line)
@@ -1218,7 +1220,7 @@ def insertTextToFile(
     lineno_stack = None
     # open a temporary file with the same name for writing
     with open(stack_pos.filename + ".tmp", "w", encoding="utf-8") as fp2:
-        addLineCounter(fp2)
+        fp2 = LineNumberFilePointer(fp2)
         # open the current python file for reading
         with open(stack_pos.filename, "r", encoding="utf-8") as fp1:
             # iterate over all lines and line numbers
@@ -1229,7 +1231,7 @@ def insertTextToFile(
                     block.add(line)
                     # and see if we have found the end
                     if line.strip().startswith("#% end:") and line.strip().endswith(
-                        custom_append
+                            custom_append
                     ):
                         block.end()
                         line = ""

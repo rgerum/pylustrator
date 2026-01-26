@@ -31,7 +31,7 @@ import matplotlib.pyplot as plt
 
 try:  # for matplotlib > 3.0
     from matplotlib.backends.backend_qtagg import (
-        FigureCanvas,  # ty:ignore[unresolved-import]
+        FigureCanvas,
         NavigationToolbar2QT as NavigationToolbar,
     )
 except ModuleNotFoundError:
@@ -141,8 +141,8 @@ def addChildren(color_artists: dict, parent: Artist):
 
             # convert to array
             if (
-                not (isinstance(colors, np.ndarray) and len(colors.shape) > 1)
-                and not isinstance(colors, list)
+                    not (isinstance(colors, np.ndarray) and len(colors.shape) > 1)
+                    and not isinstance(colors, list)
             ) or getattr(colors, "cmap", None) is not None:
                 colors = [colors]
 
@@ -162,8 +162,8 @@ def addChildren(color_artists: dict, parent: Artist):
 
                 # omit blacks and whites
                 if (
-                    mpl.colors.to_hex(color) == "#000000"
-                    or mpl.colors.to_hex(color) == "#ffffff"
+                        mpl.colors.to_hex(color) == "#000000"
+                        or mpl.colors.to_hex(color) == "#ffffff"
                 ):
                     continue
 
@@ -444,7 +444,7 @@ class ColorChooserWidget(QtWidgets.QWidget):
 
         # when the colors in the text edit changed
         for index, color in enumerate(
-            self.colors_text_widget.toPlainText().split("\n")
+                self.colors_text_widget.toPlainText().split("\n")
         ):
             try:
                 color = mpl.colors.to_hex(color.strip())
