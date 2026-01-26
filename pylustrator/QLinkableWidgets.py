@@ -28,6 +28,7 @@ from matplotlib.artist import Artist
 from matplotlib.text import Text
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
+from matplotlib.transforms import Transform
 
 if TYPE_CHECKING:
     from PyQt5 import QtCore, QtGui, QtWidgets
@@ -45,11 +46,11 @@ class Linkable:
     editingFinished = Signal()
 
     def link(
-        self,
-        property_name: str,
-        signal: pyqtBoundSignal | None = None,
-        condition: Optional[Callable] = None,
-        direct: bool = False,
+            self,
+            property_name: str,
+            signal: pyqtBoundSignal | None = None,
+            condition: Optional[Callable] = None,
+            direct: bool = False,
     ):
         self.element = None
         self.direct = direct
@@ -86,23 +87,23 @@ class Linkable:
                 # special treatment for the xylabels, as they are not directly the target objects
                 label_object = None
                 if (
-                    isinstance(self.element, Text)
-                    and len(main_figure(self.element).selection.targets)
-                    and isinstance(
-                        main_figure(self.element).selection.targets[0].target, Axes
-                    )
+                        isinstance(self.element, Text)
+                        and len(main_figure(self.element).selection.targets)
+                        and isinstance(
+                    main_figure(self.element).selection.targets[0].target, Axes
+                )
                 ):
                     for elm in main_figure(self.element).selection.targets:
                         elm = elm.target
                         if (
-                            self.element
-                            == getattr(getattr(elm, "get_xaxis")(), "get_label")()
+                                self.element
+                                == getattr(getattr(elm, "get_xaxis")(), "get_label")()
                         ):
                             label_object = "x"
                             break
                         if (
-                            self.element
-                            == getattr(getattr(elm, "get_yaxis")(), "get_label")()
+                                self.element
+                                == getattr(getattr(elm, "get_yaxis")(), "get_label")()
                         ):
                             label_object = "y"
                             break
@@ -133,23 +134,23 @@ class Linkable:
             def getAll():
                 label_object = None
                 if (
-                    isinstance(self.element, Text)
-                    and len(main_figure(self.element).selection.targets)
-                    and isinstance(
-                        main_figure(self.element).selection.targets[0].target, Axes
-                    )
+                        isinstance(self.element, Text)
+                        and len(main_figure(self.element).selection.targets)
+                        and isinstance(
+                    main_figure(self.element).selection.targets[0].target, Axes
+                )
                 ):
                     for elm in main_figure(self.element).selection.targets:
                         elm = elm.target
                         if (
-                            self.element
-                            == getattr(getattr(elm, "get_xaxis")(), "get_label")()
+                                self.element
+                                == getattr(getattr(elm, "get_xaxis")(), "get_label")()
                         ):
                             label_object = "x"
                             break
                         if (
-                            self.element
-                            == getattr(getattr(elm, "get_yaxis")(), "get_label")()
+                                self.element
+                                == getattr(getattr(elm, "get_yaxis")(), "get_label")()
                         ):
                             label_object = "y"
                             break
@@ -162,7 +163,7 @@ class Linkable:
                     )
                 ]
                 for index, elm in enumerate(
-                    main_figure(self.element).selection.targets
+                        main_figure(self.element).selection.targets
                 ):
                     elm = elm.target
                     # special treatment for the xylabels, as they are not directly the target objects
@@ -250,12 +251,11 @@ class Linkable:
                 )
 
         if (
-            self.property_name == "xlim"
-            or self.property_name == "ylim"
-            or self.property_name == "xlabel"
-            or self.property_name == "ylabel"
+                self.property_name == "xlim"
+                or self.property_name == "ylim"
+                or self.property_name == "xlabel"
+                or self.property_name == "ylabel"
         ):
-
             def save_change(element):
                 element.figure.change_tracker.addNewAxesChange(element)
 
@@ -349,12 +349,12 @@ class DimensionsWidget(QtWidgets.QWidget, Linkable):
     noSignal = False
 
     def __init__(
-        self,
-        layout: QtWidgets.QLayout,
-        text: str,
-        join: str,
-        unit: str,
-        free: bool = False,
+            self,
+            layout: QtWidgets.QLayout,
+            text: str,
+            join: str,
+            unit: str,
+            free: bool = False,
     ):
         """a widget that lets the user input a pair of dimensions (e.g. widh and height)
 
@@ -411,7 +411,7 @@ class DimensionsWidget(QtWidgets.QWidget, Linkable):
         self.input1.setSuffix(" " + unit)
         self.input2.setSuffix(" " + unit)
 
-    def setTransform(self, transform: mpl.transforms.Transform):  # ty:ignore[possibly-missing-attribute]
+    def setTransform(self, transform: Transform):
         """set the transform for the units"""
         self.transform = transform
 
@@ -472,12 +472,12 @@ class TextWidget(QtWidgets.QWidget, Linkable):
     last_text = None
 
     def __init__(
-        self,
-        layout: QtWidgets.QLayout,
-        text: str,
-        multiline: bool = False,
-        horizontal: bool = True,
-        allow_literal_decoding=False,
+            self,
+            layout: QtWidgets.QLayout,
+            text: str,
+            multiline: bool = False,
+            horizontal: bool = True,
+            allow_literal_decoding=False,
     ):
         """a text input widget with a label.
 
@@ -562,11 +562,11 @@ class NumberWidget(QtWidgets.QWidget, Linkable):
     noSignal = False
 
     def __init__(
-        self,
-        layout: QtWidgets.QLayout,
-        text: str,
-        min: float | None = None,
-        use_float: bool = True,
+            self,
+            layout: QtWidgets.QLayout,
+            text: str,
+            min: float | None = None,
+            use_float: bool = True,
     ):
         """A spin box with a label next to it.
 
@@ -801,10 +801,10 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
     valueChanged = Signal(str)
 
     def __init__(
-        self,
-        layout: QtWidgets.QLayout,
-        text: str | None = None,
-        value: str | None = None,
+            self,
+            layout: QtWidgets.QLayout,
+            text: str | None = None,
+            value: str | None = None,
     ):
         """A colored button what acts as an color input
 
@@ -836,7 +836,7 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
 
     def changeEvent(self, event):
         """when the widget is enabled"""
-        if event.type() == QtCore.QEvent.EnabledChange:  # ty:ignore[unresolved-attribute]
+        if event.type() == QtCore.QEvent.Type.EnabledChange:
             if not self.isEnabled():
                 self.button.setStyleSheet("background-color: #f0f0f0;")
             else:
@@ -844,14 +844,17 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
 
     def OpenDialog(self):
         """open a color chooser dialog"""
+        parent = self.parent()
+        if parent is None or not isinstance(parent, QtWidgets.QWidget):
+            raise TypeError("parent is None")
         # get new color from color picker
         self.current_color = QtGui.QColor(
             *tuple(int(x) for x in mpl.colors.to_rgba_array(self.getColor())[0] * 255)
         )
-        self.dialog = QtWidgets.QColorDialog(self.current_color, self.parent())  # ty:ignore[invalid-argument-type]
+        self.dialog = QtWidgets.QColorDialog(self.current_color, parent)
         self.dialog.setOptions(QtWidgets.QColorDialog.ShowAlphaChannel)
         for index, color in enumerate(
-            plt.rcParams["axes.prop_cycle"].by_key()["color"]
+                plt.rcParams["axes.prop_cycle"].by_key()["color"]
         ):
             self.dialog.setCustomColor(index, QtGui.QColor(color))
         self.dialog.open(self.dialog_finished)
