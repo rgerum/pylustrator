@@ -32,7 +32,7 @@ class Figure:
     patches: List[Patch]
     legends: List[Legend]
     subfigs: List[SubFigure]
-    number: str
+    number: int | float | str
 
     def text(self, x: float, y: float, *args: Any, **kwargs: Any) -> Text: ...
 
@@ -61,3 +61,5 @@ class SubFigure:
     transSubfigure: Transform
 
     dpi_scale_trans: Any
+
+    _parent: Figure

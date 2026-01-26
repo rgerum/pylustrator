@@ -22,7 +22,7 @@
 import re
 import sys
 import traceback
-from typing import IO, Optional, Dict, Tuple, Callable
+from typing import IO, Optional, Dict, Tuple, Callable, cast
 from packaging import version
 
 import numpy as np
@@ -35,6 +35,9 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.text import Text
 from matplotlib.legend import Legend
+from matplotlib.collections import Collection
+from matplotlib.patches import Patch
+from matplotlib.lines import Line2D
 
 try:
     from matplotlib.figure import SubFigure  # since matplotlib 3.4.0
@@ -65,6 +68,8 @@ class CustomStackPosition:
 custom_stack_position = None
 custom_prepend = ""
 custom_append = ""
+
+stack_position: traceback.FrameSummary | None = None
 
 escape_pairs = [
     ("\\", "\\\\"),
@@ -236,7 +241,7 @@ def add_axes_default(element):
     add_text_default(element.get_yaxis().get_label())
 
 
-def getReference(element: Artist | Figure, allow_using_variable_names=True):
+def getReference(element: Artist | Figure | SubFigure, allow_using_variable_names=True):
     """get the code string that represents the given Artist."""
     if element is None:
         return ""
@@ -255,20 +260,26 @@ def getReference(element: Artist | Figure, allow_using_variable_names=True):
     ):
         index = element._parent.subfigs.index(element)
         return getReference(element._parent) + ".subfigs[%d]" % index
-    if isinstance(element, matplotlib.lines.Line2D):
-        index = element.axes.lines.index(element)
-        return getReference(element.axes) + ".lines[%d]" % index
-    if isinstance(element, matplotlib.collections.Collection):
-        index = element.axes.collections.index(element)
-        return getReference(element.axes) + ".collections[%d]" % index
-    if isinstance(element, matplotlib.patches.Patch):
+    if isinstance(element, Line2D):
+        axes = element.axes
+        if not isinstance(axes, Axes):
+            raise ValueError("element must be a matplotlib.axes.Axes instance")
+        index = axes.lines.index(element)
+        return getReference(axes) + ".lines[%d]" % index
+    if isinstance(element, Collection):
+        axes = element.axes
+        if not isinstance(axes, Axes):
+            raise ValueError("element must be a matplotlib.axes.Axes instance")
+        index = axes.collections.index(element)
+        return getReference(axes) + ".collections[%d]" % index
+    if isinstance(element, Patch):
         if element.axes:
             index = element.axes.patches.index(element)
             return getReference(element.axes) + ".patches[%d]" % index
         index = element.figure.patches.index(element)
         return getReference(element.figure) + ".patches[%d]" % (index)
 
-    if isinstance(element, matplotlib.text.Text):
+    if isinstance(element, Text):
         if element.axes:
             try:
                 index = element.axes.texts.index(element)
@@ -337,7 +348,7 @@ def getReference(element: Artist | Figure, allow_using_variable_names=True):
                                 + ".get_yaxis().get_minor_ticks()[%d].label2" % index
                         )
 
-    if isinstance(element, matplotlib.axes._axes.Axes):
+    if isinstance(element, Axes):
         if element.get_label():
 
             def check_fig_has_label(fig):
@@ -353,7 +364,7 @@ def getReference(element: Artist | Figure, allow_using_variable_names=True):
         index = element.figure.axes.index(element)
         return getReference(element.figure) + ".axes[%d]" % index
 
-    if isinstance(element, matplotlib.legend.Legend):
+    if isinstance(element, Legend):
         return getReference(element.axes) + ".get_legend()"
     raise TypeError(str(type(element)) + " not found")
 
@@ -362,7 +373,7 @@ def setFigureVariableNames(figure: Figure):
     """get the global variable names that refer to the given figure"""
     import inspect
 
-    mpl_figure = _pylab_helpers.Gcf.figs[figure].canvas.figure
+    mpl_figure = _pylab_helpers.Gcf.figs[figure].canvas.figure  # ty:ignore[invalid-argument-type]
     calling_globals = inspect.stack()[2][0].f_globals
     fig_names = [
         name
@@ -396,7 +407,7 @@ class ChangeTracker:
         # make all the subplots pickable
         for index, axes in enumerate(self.figure.axes):
             # axes.set_title(index)
-            axes.number = index
+            setattr(axes, "_pylustrator_number", index)
 
             # store the position where StartPylustrator was called
         if custom_stack_position is None:
@@ -420,7 +431,11 @@ class ChangeTracker:
         if reference_obj is None:
             reference_obj = command_obj
         if reference_command is None:
-            (reference_command,) = re.match(r"(\.[^(=]*)", command).groups()
+            match = re.match(r"(\.[^(=]*)", command)
+            if match is not None:
+                (reference_command,) = match.groups()
+            else:
+                raise ValueError("command must start with .")
         self.changes[reference_obj, reference_command] = (command_obj, command)
         self.saved = False
         self.changeCountChanged()
@@ -517,7 +532,7 @@ class ChangeTracker:
                 return element, f".set({kwargs})"
         elif isinstance(element, Legend):
             ncols_name = "ncols"
-            if version.parse(mpl._get_version()) < version.parse("3.6.0"):
+            if version.parse(mpl.__version__) < version.parse("3.6.0"):
                 ncols_name = "ncol"
 
             property_names = [
@@ -779,11 +794,11 @@ class ChangeTracker:
                     for ax in element.figure.axes
                 ]
             )
-            if is_label:
+            if is_label and isinstance(element, Text):
                 text_content = element.get_text()
 
             def redo():
-                if is_label:
+                if is_label and isinstance(element, Text):
                     element.set_text("")
                 else:
                     element.set_visible(False)
@@ -793,7 +808,7 @@ class ChangeTracker:
                     self.addChange(element, ".set(visible=False)")
 
             def undo():
-                if is_label:
+                if is_label and isinstance(element, Text):
                     element.set_text(text_content)
                 else:
                     element.set_visible(True)
@@ -845,6 +860,8 @@ class ChangeTracker:
 
     def load(self):
         """load a set of changes from a script file. The changes are the code that pylustrator generated"""
+        if stack_position is None:
+            return
         regex = re.compile(r"(\.[^\(= ]*)(.*)")
         command_obj_regexes = [
             getReference(self.figure),
@@ -1068,6 +1085,10 @@ class ChangeTracker:
 
     def save(self):
         """save the changes to the .py file"""
+        global stack_position
+        if stack_position is None:
+            return
+
         # if saving is disabled
         if self.no_save is True:
             return

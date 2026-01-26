@@ -31,7 +31,7 @@ import matplotlib.pyplot as plt
 
 try:  # for matplotlib > 3.0
     from matplotlib.backends.backend_qtagg import (
-        FigureCanvas,
+        FigureCanvas,  # ty:ignore[unresolved-import]
         NavigationToolbar2QT as NavigationToolbar,
     )
 except ModuleNotFoundError:
