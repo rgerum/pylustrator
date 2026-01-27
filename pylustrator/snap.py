@@ -118,8 +118,8 @@ class TargetWrapper(object):
         elif isinstance(self.target, Axes):
             # and optionally have a fixed aspect ratio
             if (
-                self.target.get_aspect() != "auto"
-                and self.target.get_adjustable() != "datalim"
+                    self.target.get_aspect() != "auto"
+                    and self.target.get_adjustable() != "datalim"
             ):
                 self.fixed_aspect = True
             # old matplotlib version
@@ -144,16 +144,16 @@ class TargetWrapper(object):
                 self.label_factor = self.figure.dpi / 72.0
                 if getattr(self.target, "pad_offset", None) is None:
                     self.target.pad_offset = (
-                        self.target.get_position()[1]
-                        - checkXLabel(self.target).xaxis.labelpad * self.label_factor
+                            self.target.get_position()[1]
+                            - checkXLabel(self.target).xaxis.labelpad * self.label_factor
                     )
                 self.label_y = self.target.get_position()[1]
             elif checkYLabel(self.target):
                 self.label_factor = self.figure.dpi / 72.0
                 if getattr(self.target, "pad_offset", None) is None:
                     self.target.pad_offset = (
-                        self.target.get_position()[0]
-                        - checkYLabel(self.target).yaxis.labelpad * self.label_factor
+                            self.target.get_position()[0]
+                            - checkYLabel(self.target).yaxis.labelpad * self.label_factor
                     )
                 self.label_x = self.target.get_position()[0]
             self.get_transform = self.target.get_transform
@@ -163,7 +163,7 @@ class TargetWrapper(object):
             self.do_scale = False
 
     def get_positions(
-        self, use_previous_offset: bool = False, update_offset: bool = False
+            self, use_previous_offset: bool = False, update_offset: bool = False
     ) -> PointList:
         """get the current position of the target Artist"""
         points: PointList = []
@@ -217,8 +217,8 @@ class TargetWrapper(object):
                 points[1] = points[0] + offset
             else:
                 if (
-                    getattr(self.target, "_pylustrator_offset", None) is None
-                    or update_offset
+                        getattr(self.target, "_pylustrator_offset", None) is None
+                        or update_offset
                 ):
                     self.target._pylustrator_offset = points[1] - points[0]  # ty:ignore[invalid-assignment]
         elif isinstance(self.target, Axes):
@@ -251,8 +251,8 @@ class TargetWrapper(object):
                 points[1] = points[0] + offset
             else:
                 if (
-                    getattr(self.target, "_pylustrator_offset", None) is None
-                    or update_offset
+                        getattr(self.target, "_pylustrator_offset", None) is None
+                        or update_offset
                 ):
                     self.target._pylustrator_offset = points[1] - points[0]
         return self.transform_points(points)
@@ -271,7 +271,9 @@ class TargetWrapper(object):
             self.target.set_width(float(pts[1][0] - pts[0][0]))
             self.target.set_height(float(pts[1][1] - pts[0][1]))
             label = self.target.get_label()
-            if label is None or not label.startswith("_rect"):  # ty:ignore[unresolved-attribute]
+            if not isinstance(label, str):
+                raise TypeError("Label is not a string")
+            if label is None or not label.startswith("_rect"):
                 change_tracker.addChange(
                     self.target, ".set_xy([%f, %f])" % tuple(self.target.get_xy())
                 )
@@ -301,7 +303,7 @@ class TargetWrapper(object):
             if checkXLabel(self.target):
                 axes = checkXLabel(self.target)
                 axes.xaxis.labelpad = (
-                    -(pts[0][1] - self.target.pad_offset) / self.label_factor  # ty:ignore[unresolved-attribute]
+                        -(pts[0][1] - self.target.pad_offset) / self.label_factor  # ty:ignore[unresolved-attribute]
                 )
                 change_tracker.addChange(
                     axes, ".xaxis.labelpad = %f" % axes.xaxis.labelpad
@@ -312,7 +314,7 @@ class TargetWrapper(object):
             elif checkYLabel(self.target):
                 axes = checkYLabel(self.target)
                 axes.yaxis.labelpad = (
-                    -(pts[0][0] - self.target.pad_offset) / self.label_factor  # ty:ignore[unresolved-attribute]
+                        -(pts[0][0] - self.target.pad_offset) / self.label_factor  # ty:ignore[unresolved-attribute]
                 )
                 change_tracker.addChange(
                     axes, ".yaxis.labelpad = %f" % axes.yaxis.labelpad
@@ -350,9 +352,9 @@ class TargetWrapper(object):
             position = np.array([pts[0], pts[1] - pts[0]]).flatten()
             if self.fixed_aspect:
                 position[3] = (
-                    position[2]
-                    * self.target.get_position().height
-                    / self.target.get_position().width
+                        position[2]
+                        * self.target.get_position().height
+                        / self.target.get_position().width
                 )
             self.target.set_position(position)
             change_tracker.addNewAxesChange(self.target)
@@ -473,10 +475,11 @@ class SnapBase:
     def remove(self):
         """Remove the snap and its visualisation"""
         self.hide()
-        try:
-            self.draw_path.scene().removeItem(self.draw_path)  # ty:ignore[possibly-missing-attribute]
-        except ValueError:
-            pass
+
+        scene = self.draw_path.scene()
+        if scene is None:
+            return
+        scene.removeItem(self.draw_path)
 
 
 class SnapSameEdge(SnapBase):
@@ -604,16 +607,16 @@ class SnapSameBorder(SnapBase):
     """A snap that checks if tree axes share the space between them"""
 
     def __init__(
-        self, ax_source: Artist, ax_target: Artist, ax_target2: Artist, edge: int
+            self, ax_source: Artist, ax_target: Artist, ax_target2: Artist, edge: int
     ):
         super().__init__(ax_source, ax_target, edge)
         self.ax_target2 = TargetWrapper(ax_target2)
 
     def overlap(
-        self,
-        p1: Tuple[float, float, float, float],
-        p2: Tuple[float, float, float, float],
-        dir: int,
+            self,
+            p1: Tuple[float, float, float, float],
+            p2: Tuple[float, float, float, float],
+            dir: int,
     ):
         """Test if two objects have an overlapping x or y region"""
         if p1[dir + 2] < p2[dir] or p1[dir] > p2[dir + 2]:
@@ -621,9 +624,9 @@ class SnapSameBorder(SnapBase):
         return True
 
     def getBorders(
-        self,
-        p1: Tuple[float, float, float, float],
-        p2: Tuple[float, float, float, float],
+            self,
+            p1: Tuple[float, float, float, float],
+            p2: Tuple[float, float, float, float],
     ):
         borders = []
         for edge in [0, 1]:
@@ -651,9 +654,9 @@ class SnapSameBorder(SnapBase):
                 if p1[edge] > p2[edge + 2]:
                     continue
             if (p1[edge + 2] < p2[edge] or p1[edge] > p2[edge + 2]) and self.overlap(
-                p1,
-                p2,
-                1 - edge,
+                    p1,
+                    p2,
+                    1 - edge,
             ):
                 distances = np.array([p2[edge] - p1[edge + 2], p1[edge] - p2[edge + 2]])
                 index1 = np.argmax(distances)
@@ -667,7 +670,8 @@ class SnapSameBorder(SnapBase):
                     return deltas[index2] * (-1 + 2 * index1)
         return np.inf
 
-    def getConnection(self, p1: list, p2: list, dir: int):
+    def getConnection(self, p1: Tuple[float, float, float, float],
+                      p2: Tuple[float, float, float, float], dir: int):
         """return the coordinates of a line that spans the space between to axes"""
         # check which edge (e.g. x, y) and which direction (e.g. if to change the order of p1 and p2)
         edge, order = dir // 2, dir % 2
@@ -689,8 +693,8 @@ class SnapSameBorder(SnapBase):
         p2 = self.getPosition(self.ax_target)
         p3 = self.getPosition(self.ax_target2)
         # get the
-        x1, y1 = self.getConnection(p1, p2, self.dir1)  # ty:ignore[invalid-argument-type]
-        x2, y2 = self.getConnection(p2, p3, self.dir2)  # ty:ignore[invalid-argument-type]
+        x1, y1 = self.getConnection(p1, p2, self.dir1)
+        x2, y2 = self.getConnection(p2, p3, self.dir2)
         x1.extend(x2)
         y1.extend(y2)
         self.set_data(x1, y1)
@@ -699,12 +703,12 @@ class SnapSameBorder(SnapBase):
 class SnapCenterWith(SnapBase):
     """A snap that checks if a text is centered with an axes"""
 
-    def getPosition(self, text: TargetWrapper) -> np.ndarray:  # ty:ignore[invalid-method-override]
+    def getPosition(self, target: TargetWrapper) -> Tuple[float, float, float, float]:
         """get the position of the first object"""
-        target_text = text.target
+        target_text = target.target
         if not isinstance(target_text, Text):
             raise ValueError("SnapCenterWith can only be used with axes")
-        return np.array(text.get_transform().transform(target_text.get_position()))
+        return np.array(target.get_transform().transform(target_text.get_position()))
 
     def getPosition2(self, axes: TargetWrapper) -> np.ndarray:
         """get the position of the second object"""
@@ -807,9 +811,9 @@ def getSnaps(targets: List[TargetWrapper], dir: int, no_height=False) -> List[Sn
 
                 for axes2 in target.figure.axes:
                     if (
-                        axes2 != axes
-                        and axes2 not in target_artists
-                        and axes2.get_visible()
+                            axes2 != axes
+                            and axes2 not in target_artists
+                            and axes2.get_visible()
                     ):
                         snaps.append(SnapSameBorder(target, axes, axes2, dir))
     return snaps
