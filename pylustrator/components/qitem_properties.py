@@ -1443,10 +1443,12 @@ class QItemProperties(QtWidgets.QWidget):
         """when the button 'add rectangle' is clicked"""
         if not isinstance(self.element, Axes):
             return
+        y_min, y_max = self.element.get_ylim()
+        x_min, x_max = self.element.get_xlim()
         p = Rectangle(
-            (self.element.get_xlim()[0], self.element.get_ylim()[0]),
-            width=float(np.mean(self.element.get_xlim())),
-            height=float(np.mean(self.element.get_ylim())),
+            (x_min, y_min),
+            width=(x_max - x_min) / 2,
+            height=(y_max - y_min) / 2,
         )
         self.element.add_patch(p)
 
