@@ -920,6 +920,8 @@ class ChangeTracker:
                 match = regex.match(line)
                 if match:
                     command, parameter = match.groups()
+                else:
+                    raise ValueError("Could not parse line: %s" % line)
 
                 m = re.match(r".*# id=(.*)", line)
                 if m:
@@ -994,7 +996,7 @@ class ChangeTracker:
                     )
                     continue
             # this error can occur if there are old saved lines that reference objects that are not there anymore
-            except IndexError:
+            except (IndexError, ValueError):
                 continue
 
             self.get_reference_cached[reference_obj] = reference_obj_str
