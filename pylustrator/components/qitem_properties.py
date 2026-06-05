@@ -307,6 +307,7 @@ class TextPropertiesWidget2(QtWidgets.QWidget):
         ]
 
         self.properties = {}
+        self.changed_property_names = set()
         self.propertiesChanged.connect(
             lambda: self.target
                     and main_figure(
@@ -354,15 +355,19 @@ class TextPropertiesWidget2(QtWidgets.QWidget):
         font, x = QtWidgets.QFontDialog.getFont(font0, self)
 
         self.properties["fontname"] = font.family()
+        self.changed_property_names.add("fontname")
         if font.weight() != font0.weight():
             self.properties["fontweight"] = self.convertQtWeightToMplWeight(
                 font.weight()
             )
+            self.changed_property_names.add("fontweight")
         if font.pointSizeF() != font0.pointSizeF():
             self.properties["fontsize"] = font.pointSizeF()
+            self.changed_property_names.add("fontsize")
         if font.italic() != font0.italic():
             style = "italic" if font.italic() else "normal"
             self.properties["fontstyle"] = style
+            self.changed_property_names.add("fontstyle")
 
         self.propertiesChanged.emit()
         # main_figure(self.target).canvas.draw()
@@ -401,6 +406,7 @@ class TextPropertiesWidget2(QtWidgets.QWidget):
                 value = getattr(current_element, "get_" + name2)()
                 self.properties[name] = value
 
+            self.changed_property_names = set()
             self.target = current_element
         finally:
             self.noSignal = False
@@ -417,21 +423,25 @@ class TextPropertiesWidget2(QtWidgets.QWidget):
     def changeWeight(self, checked: bool):
         """set bold or normal"""
         self.properties["fontweight"] = "bold" if checked else "normal"
+        self.changed_property_names.add("fontweight")
         self.propertiesChanged.emit()
 
     def changeStyle(self, checked: bool):
         """set italic or normal"""
         self.properties["fontstyle"] = "italic" if checked else "normal"
+        self.changed_property_names.add("fontstyle")
         self.propertiesChanged.emit()
 
     def changeColor(self, color: str):
         """set the text color"""
         self.properties["color"] = color
+        self.changed_property_names.add("color")
         self.propertiesChanged.emit()
 
     def changeAlign(self, align: str):
         """set the text algin"""
         self.properties["horizontalalignment"] = align
+        self.changed_property_names.add("horizontalalignment")
         self.propertiesChanged.emit()
 
     def changeFontSize(self, value: int):
@@ -439,6 +449,7 @@ class TextPropertiesWidget2(QtWidgets.QWidget):
         if self.noSignal:
             return
         self.properties["fontsize"] = value
+        self.changed_property_names.add("fontsize")
         self.propertiesChanged.emit()
 
 
@@ -958,26 +969,40 @@ class QTickEdit(QtWidgets.QWidget):
     def getChangedFontProperties(self, element: Axes):
         labels = getattr(element, "get_" + self.axis + "ticklabels")()
         if len(labels) == 0:
-            return "", {}
+            return {}
         current_label = labels[0]
         changed_properties = {}
+        changed_property_names = self.input_font.changed_property_names
+        if not changed_property_names:
+            changed_property_names = {
+                name
+                for name, name2, type_, default_ in self.input_font.property_names
+                if (
+                    name in self.input_font.properties
+                    and getattr(current_label, "get_" + name)()
+                    != self.input_font.properties[name]
+                )
+            }
         for name, name2, type_, default_ in self.input_font.property_names:
-            if name not in self.input_font.properties:
+            if (
+                    name not in changed_property_names
+                    or name not in self.input_font.properties
+            ):
                 continue
             value = self.input_font.properties[name]
             if getattr(current_label, "get_" + name)() != value:
                 changed_properties[name] = value
 
+        return changed_properties
+
+    def getFontPropertyString(self, properties: dict):
         prop_copy = {}
-        for name, value in changed_properties.items():
+        for name, value in properties.items():
             if isinstance(value, str):
                 prop_copy[name] = '"' + value + '"'
             else:
                 prop_copy[name] = value
-        return (
-            ", ".join("%s=%s" % (k, v) for k, v in prop_copy.items()),
-            changed_properties,
-        )
+        return ", ".join("%s=%s" % (k, v) for k, v in prop_copy.items())
 
     def fontStateChanged(self):
         self.ticksChanged()
@@ -1001,8 +1026,6 @@ class QTickEdit(QtWidgets.QWidget):
     def ticksChanged(self):
         """when the major ticks changed"""
         ticks, labels = self.parseTicks(self.input_ticks.text())
-        font_properties, font_properties_dict = self.getFontProperties()
-        _, changed_font_properties_dict = self.getChangedFontProperties(self.element)
 
         elements = [self.element]
         elements += [
@@ -1010,9 +1033,12 @@ class QTickEdit(QtWidgets.QWidget):
             for element in main_figure(self.element).selection.targets
             if element.target != self.element and isinstance(element.target, Axes)
         ]
+        changed_font_properties = [
+            self.getChangedFontProperties(element) for element in elements
+        ]
 
         changed = False
-        for elem in elements:
+        for elem, font_properties in zip(elements, changed_font_properties):
             current_ticks = getattr(elem, "get_" + self.axis + "ticks")()
             current_ticklabels = [
                 t.get_text() for t in getattr(elem, "get_" + self.axis + "ticklabels")()
@@ -1022,13 +1048,13 @@ class QTickEdit(QtWidgets.QWidget):
                     or (current_ticks != ticks).any()
                     or len(current_ticklabels) != len(labels)
                     or current_ticklabels != labels
-                    or self.tickLabelFontChanged(elem, font_properties_dict)
+                    or bool(font_properties)
             ):
                 changed = True
         if changed is False:
             return
 
-        if changed_font_properties_dict == {}:
+        if not any(changed_font_properties):
             with UndoRedo(elements, "Axes Ticks"):
                 for element in elements:
                     kwargs = {}
@@ -1074,23 +1100,54 @@ class QTickEdit(QtWidgets.QWidget):
                     old_label_properties,
                 ) = properties
                 axis = getattr(element, "get_" + self.axis + "axis")()
-                axis.set_major_locator(locator)
-                axis.set_major_formatter(formatter)
-                getattr(element, "set_" + self.axis + "ticks")(old_ticks)
-                old_texts = getattr(element, "set_" + self.axis + "ticklabels")(
-                    old_labels
+                current_ticks = getattr(element, "get_" + self.axis + "ticks")()
+                current_ticklabels = [
+                    t.get_text()
+                    for t in getattr(element, "get_" + self.axis + "ticklabels")()
+                ]
+                font_only = (
+                    len(current_ticks) == len(old_ticks)
+                    and (current_ticks == old_ticks).all()
+                    and len(current_ticklabels) == len(old_labels)
+                    and current_ticklabels == old_labels
                 )
+                if font_only:
+                    old_texts = getattr(element, "get_" + self.axis + "ticklabels")()
+                else:
+                    getattr(element, "set_" + self.axis + "ticks")(old_ticks)
+                    old_texts = getattr(element, "set_" + self.axis + "ticklabels")(
+                        old_labels
+                    )
                 for text, properties in zip(old_texts, old_label_properties):
                     text.update(properties)
                 getattr(element, "set_" + self.axis + "lim")(lim)
+                axis.set_major_locator(locator)
+                axis.set_major_formatter(formatter)
                 self.fig.change_tracker.addNewAxesChange(element)
 
         def redo():
-            for element in elements:
-                getattr(element, "set_" + self.axis + "ticks")(ticks)
-                getattr(element, "set_" + self.axis + "ticklabels")(
-                    labels, **font_properties_dict
+            for element, properties in zip(elements, changed_font_properties):
+                current_ticks = getattr(element, "get_" + self.axis + "ticks")()
+                current_ticklabels = [
+                    t.get_text()
+                    for t in getattr(element, "get_" + self.axis + "ticklabels")()
+                ]
+                font_only = (
+                    len(current_ticks) == len(ticks)
+                    and (current_ticks == ticks).all()
+                    and len(current_ticklabels) == len(labels)
+                    and current_ticklabels == labels
                 )
+                if font_only and not properties:
+                    continue
+                if font_only:
+                    for text in getattr(element, "get_" + self.axis + "ticklabels")():
+                        text.update(properties)
+                else:
+                    getattr(element, "set_" + self.axis + "ticks")(ticks)
+                    getattr(element, "set_" + self.axis + "ticklabels")(
+                        labels, **properties
+                    )
                 getattr(element, "set_" + self.axis + "lim")(self.range)
                 min, max = getattr(element, "get_" + self.axis + "lim")()
                 if min != self.range[0] or max != self.range[1]:
@@ -1108,13 +1165,15 @@ class QTickEdit(QtWidgets.QWidget):
 
                 self.fig.change_tracker.addChange(
                     element,
-                    ".set_"
-                    + self.axis
-                    + "ticks([%s], [%s], %s)"
+                    ".set_" + self.axis + "ticks([%s], [%s]%s)"
                     % (
                         ", ".join(self.str(t) for t in ticks),
                         ", ".join('"' + label + '"' for label in labels),
-                        font_properties,
+                        (
+                            ", " + self.getFontPropertyString(properties)
+                            if properties
+                            else ""
+                        ),
                     ),
                 )
 

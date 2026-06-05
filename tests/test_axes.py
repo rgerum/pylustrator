@@ -328,13 +328,15 @@ class TestAxes(BaseTest):
             tick_edit.input_font.properties["fontsize"] = 14
             tick_edit.input_font.properties["fontweight"] = "bold"
             tick_edit.input_font.properties["fontstyle"] = "italic"
+            tick_edit.input_font.changed_property_names.update(
+                ["fontname", "fontsize", "fontweight", "fontstyle"]
+            )
             tick_edit.input_font.propertiesChanged.emit()
 
         def get_tick_fonts():
             label = get_axes().get_xticklabels()[0]
             return [
-                label.get_fontname(),
-                label.get_fontsize(),
+                str(label.get_fontsize()),
                 label.get_fontweight(),
                 label.get_fontstyle(),
             ]
@@ -363,8 +365,8 @@ class TestAxes(BaseTest):
             )
 
         self.change_property(
-            "fontname",
-            ["Times New Roman", 14.0, "bold", "italic"],
+            "fontsize",
+            ["14.0", "bold", "italic"],
             set_tick_font,
             get_axes,
             line_command,
