@@ -2165,7 +2165,7 @@ requires-dist = [
     { name = "qtpy", specifier = ">=2.4.3" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.14.11" },
     { name = "scikit-image", specifier = ">=0.7.0" },
-    { name = "ty", marker = "extra == 'dev'", specifier = ">=0.0.10" },
+    { name = "ty", marker = "extra == 'dev'", specifier = "==0.0.10" },
 ]
 provides-extras = ["dev", "test"]
 
