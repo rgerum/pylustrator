@@ -312,6 +312,69 @@ class TestAxes(BaseTest):
             "yscale", "log", set_ylog, get_axes, line_command, test_run
         )
 
+    def test_axis_tick_label_font(self):
+        fig, text = self.run_plot_script()
+
+        def get_axes():
+            return fig.axes[0]
+
+        test_run = "Change axes tick label font."
+        line_command = "plt.figure(1).axes[0].set_xticks("
+
+        def set_tick_font(_):
+            tick_edit = self.fig.window.input_properties.input_xaxis.tick_edit
+            tick_edit.setTarget(get_axes())
+            tick_edit.input_font.properties["fontname"] = "Times New Roman"
+            tick_edit.input_font.properties["fontsize"] = 14
+            tick_edit.input_font.properties["fontweight"] = "bold"
+            tick_edit.input_font.properties["fontstyle"] = "italic"
+            tick_edit.input_font.changed_property_names.update(
+                ["fontname", "fontsize", "fontweight", "fontstyle"]
+            )
+            tick_edit.input_font.propertiesChanged.emit()
+
+        def get_tick_fonts():
+            label = get_axes().get_xticklabels()[0]
+            return [
+                str(label.get_fontsize()),
+                label.get_fontweight(),
+                label.get_fontstyle(),
+            ]
+
+        def check_saved_property():
+            line, (args, kwargs) = self.check_line_in_file(line_command)
+            self.assertEqual(
+                kwargs["fontname"],
+                "Times New Roman",
+                f"Property 'fontname' not saved correctly. [{test_run}]",
+            )
+            self.assertEqual(
+                kwargs["fontsize"],
+                14,
+                f"Property 'fontsize' not saved correctly. [{test_run}]",
+            )
+            self.assertEqual(
+                kwargs["fontweight"],
+                "bold",
+                f"Property 'fontweight' not saved correctly. [{test_run}]",
+            )
+            self.assertEqual(
+                kwargs["fontstyle"],
+                "italic",
+                f"Property 'fontstyle' not saved correctly. [{test_run}]",
+            )
+
+        self.change_property(
+            "fontsize",
+            ["14.0", "bold", "italic"],
+            set_tick_font,
+            get_axes,
+            line_command,
+            test_run,
+            get_function=get_tick_fonts,
+            test_saved_value=check_saved_property,
+        )
+
     def test_minor_axis_ticks(self):
         # get the figure
         fig, text = self.run_plot_script()
