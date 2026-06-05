@@ -20,6 +20,7 @@
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
 from xml.dom import minidom
+from typing import Callable
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -96,7 +97,7 @@ def parseTransformation(transform_text: str) -> mtransforms.Transform:
     return base_trans
 
 
-def get_inline_style(node: minidom.Element, base_style: dict = None) -> dict:
+def get_inline_style(node: minidom.Element, base_style: dict | None = None) -> dict:
     """update the basestyle with the style defined by the style property of the node"""
     style = {}
     if base_style is not None:
@@ -273,8 +274,8 @@ def apply_style(style: dict, patch: mpatches.Patch) -> dict:
                     pass
             elif key == "stroke-linecap":
                 try:
-                    patch.set_dash_capstyle(value)
-                    patch.set_solid_capstyle(value)
+                    patch.set_dash_capstyle(value)  # ty:ignore[unresolved-attribute]
+                    patch.set_solid_capstyle(value)  # ty:ignore[unresolved-attribute]
                 except AttributeError:
                     pass
             elif key == "font-size":
@@ -332,10 +333,10 @@ def plt_patch(
     node: minidom.Element,
     trans_parent_trans: mtransforms.Transform,
     style: dict,
-    constructor: callable,
+    constructor: Callable,
     ids: dict,
     no_draw: bool = False,
-) -> mpatches.Patch:
+) -> list[mpatches.Patch]:
     """add a node to the figure by calling the provided constructor"""
     trans_node = parseTransformation(node.getAttribute("transform"))
     style = get_inline_style(node, get_css_style(node, ids["css"], style))
@@ -368,18 +369,21 @@ def clone_patch(patch: mpatches.Patch) -> mpatches.Patch:
             xy=patch.get_xy(), width=patch.get_width(), height=patch.get_height()
         )
     if isinstance(patch, mpatches.Circle):
-        return mpatches.Circle(xy=patch.get_xy(), radius=patch.get_radius())
+        return mpatches.Circle(xy=patch.center, radius=patch.get_radius())  # ty:ignore[invalid-argument-type] - matplotlib stubs incorrectly type center as float
     if isinstance(patch, mpatches.Ellipse):
         return mpatches.Ellipse(
-            xy=patch.get_xy(), width=patch.get_width(), height=patch.get_height()
+            xy=patch.center,  # ty:ignore[invalid-argument-type] - matplotlib stubs incorrectly type center as float
+            width=patch.get_width(),
+            height=patch.get_height(),
         )
     if isinstance(patch, mpatches.PathPatch):
         return mpatches.PathPatch(patch.get_path())
+    raise TypeError("unknown patch type")
 
 
 def patch_rect(
     node: minidom.Element, trans: mtransforms.Transform, style: dict, ids: dict
-) -> mpatches.Rectangle:
+) -> mpatches.Patch | list[mpatches.Patch]:
     """draw a svg rectangle node as a rectangle patch element into the figure (with the given transformation and style)"""
     if node.getAttribute("d") != "":
         return patch_path(node, trans, style, ids)
@@ -388,7 +392,9 @@ def patch_rect(
             xy=(float(node.getAttribute("x")), float(node.getAttribute("y"))),
             width=float(node.getAttribute("width")),
             height=float(node.getAttribute("height")),
-            boxstyle=mpatches.BoxStyle.Round(0, float(node.getAttribute("ry"))),
+            boxstyle=mpatches.BoxStyle.Round(
+                0, rounding_size=float(node.getAttribute("ry"))
+            ),
             transform=trans,
         )
     return mpatches.Rectangle(
@@ -401,7 +407,7 @@ def patch_rect(
 
 def patch_ellipse(
     node: minidom.Element, trans: mtransforms.Transform, style: dict, ids: dict
-) -> mpatches.Ellipse:
+) -> mpatches.Patch | list[mpatches.Patch]:
     """draw a svg ellipse node as a ellipse patch element into the figure (with the given transformation and style)"""
     if node.getAttribute("d") != "":
         return patch_path(node, trans, style, ids)
@@ -415,7 +421,7 @@ def patch_ellipse(
 
 def patch_circle(
     node: minidom.Element, trans: mtransforms.Transform, style: dict, ids: dict
-) -> mpatches.Circle:
+) -> mpatches.Patch | list[mpatches.Patch]:
     """draw a svg circle node as a circle patch element into the figure (with the given transformation and style)"""
     if node.getAttribute("d") != "":
         return patch_path(node, trans, style, ids)
@@ -470,7 +476,7 @@ def plt_draw_text(
             part_id = node.getAttribute("id")
             if child.firstChild is None:
                 continue
-            partial_content = child.firstChild.nodeValue
+            partial_content = child.firstChild.nodeValue or ""
             style_child = get_inline_style(
                 child, get_css_style(child, ids["css"], style)
             )
@@ -489,7 +495,9 @@ def plt_draw_text(
 
             text_content += partial_content
             path1 = TextPath(
-                pos_child, partial_content, prop=font_properties_from_style(style_child)
+                pos_child,
+                partial_content,
+                prop=font_properties_from_style(style_child),
             )
             patch = mpatches.PathPatch(path1, transform=trans)
 
@@ -611,7 +619,7 @@ def patch_path(
             # Smooth curve. First control point is the "reflection" of
             # the second control point in the previous path.
 
-            if last_command not in "cs":
+            if last_command not in "cs":  # ty:ignore[unsupported-operator]
                 # If there is no previous command or if the previous command
                 # was not an C, c, S or s, assume the first control point is
                 # coincident with the current point.
@@ -635,7 +643,7 @@ def patch_path(
             # Smooth curve. Control point is the "reflection" of
             # the second control point in the previous path.
 
-            if last_command not in "qt":
+            if last_command not in "qt":  # ty:ignore[unsupported-operator]
                 # If there is no previous command or if the previous command
                 # was not an Q, q, T or t, assume the first control point is
                 # coincident with the current point.
@@ -676,6 +684,7 @@ def patch_path(
             else:
                 parent_patch = element
                 patch = clone_patch(parent_patch)
+
                 apply_style(parent_patch.style, patch)
 
                 a = angles[i]
@@ -693,7 +702,7 @@ def patch_path(
                         mtransforms.Affine2D([[s, 0, 0], [0, s, 0], [0, 0, 1]]) + trans2
                     )
                 patch.set_transform(trans2)
-                patch.is_marker = True
+                patch.is_marker = True  # ty:ignore[unresolved-attribute]
                 patch_list.append(patch)
 
         add_list_elements(patches)
@@ -705,27 +714,27 @@ def patch_path(
     path = mpath.Path(verts, codes)
     patch_list.append(mpatches.PathPatch(path, transform=trans))
 
-    if style.get("marker-start"):
-        if style.get("marker-start").startswith("url(#"):
-            name = style.get("marker-start")[len("url(#") : -1]
-            if name in ids:
-                addMarker(0, name)
-    if style.get("marker-mid"):
-        if style.get("marker-mid").startswith("url(#"):
-            name = style.get("marker-mid")[len("url(#") : -1]
-            if name in ids:
-                for i in range(1, len(angles) - 1):
-                    addMarker(i, name)
-    if style.get("marker-end"):
-        if style.get("marker-end").startswith("url(#"):
-            name = style.get("marker-end")[len("url(#") : -1]
-            if name in ids:
-                addMarker(len(angles) - 1, name)
+    marker_start = style.get("marker-start")
+    if marker_start and marker_start.startswith("url(#"):
+        name = marker_start[len("url(#") : -1]
+        if name in ids:
+            addMarker(0, name)
+    marker_mid = style.get("marker-mid")
+    if marker_mid and marker_mid.startswith("url(#"):
+        name = marker_mid[len("url(#") : -1]
+        if name in ids:
+            for i in range(1, len(angles) - 1):
+                addMarker(i, name)
+    marker_end = style.get("marker-end")
+    if marker_end and marker_end.startswith("url(#"):
+        name = marker_end[len("url(#") : -1]
+        if name in ids:
+            addMarker(len(angles) - 1, name)
 
     return patch_list
 
 
-def svgUnitToMpl(unit: str, default=None) -> float:
+def svgUnitToMpl(unit: str, default: float = 0) -> float:
     """convert a unit text to svg pixels"""
     import re
 
@@ -738,16 +747,17 @@ def svgUnitToMpl(unit: str, default=None) -> float:
         if unit == "pt":
             value *= plt.gcf().dpi / 72
         elif unit == "pc":
-            value *= plt.gcf().dpi / 6
+            value *= getattr(plt.gcf(), "dpi", 100) / 6
         elif unit == "in":
-            value *= plt.gcf().dpi
+            value *= getattr(plt.gcf(), "dpi", 100)
         elif unit == "px":
             pass
         elif unit == "cm":
-            value *= plt.gcf().dpi / 2.5
+            value *= getattr(plt.gcf(), "dpi", 100) / 2.5
         elif unit == "mm":
-            value *= plt.gcf().dpi / 25
+            value *= getattr(plt.gcf(), "dpi", 100) / 25
         return value
+    return default
 
 
 def openImageFromLink(link: str) -> np.ndarray:
@@ -755,7 +765,10 @@ def openImageFromLink(link: str) -> np.ndarray:
     if link.startswith("file:///"):
         return plt.imread(link[len("file:///") :])
     else:
-        type, data = re.match(r"data:image/(\w*);base64,(.*)", link).groups()
+        match = re.match(r"data:image/(\w*);base64,(.*)", link)
+        if match is None:
+            raise ValueError(f"Invalid image link format: {link}")
+        type, data = match.groups()
 
         data = base64.decodebytes(bytes(data, "utf-8"))
 
@@ -805,6 +818,8 @@ def parseGroup(
     patch_list = []
     for child in node.childNodes:
         if child.nodeType == child.TEXT_NODE or child.nodeType == child.COMMENT_NODE:
+            continue
+        if not isinstance(child, minidom.Element):
             continue
         if child.tagName == "style":
             for childchild in child.childNodes:
@@ -927,7 +942,7 @@ def svgread(filename: str):
             plt.gcf().set_size_inches(width * f, height * f)
         else:
             plt.gcf().set_size_inches(width, height)
-    ax = plt.axes([0, 0, 1, 1], label=filename, frameon=False)
+    ax = plt.axes((0, 0, 1, 1), label=filename, frameon=False)
     plt.xticks([])
     plt.yticks([])
     for spine in ["left", "right", "top", "bottom"]:

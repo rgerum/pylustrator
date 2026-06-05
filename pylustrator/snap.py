@@ -19,9 +19,14 @@
 # You should have received a copy of the GNU General Public License
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional, Tuple, Any, Sequence, cast
 from packaging import version
-from qtpy import QtCore, QtGui, QtWidgets
+from numpy.typing import NDArray
+
+if TYPE_CHECKING:
+    from PyQt5 import QtCore, QtGui, QtWidgets
+else:
+    from qtpy import QtCore, QtGui, QtWidgets
 
 import matplotlib as mpl
 import numpy as np
@@ -30,17 +35,28 @@ from matplotlib.artist import Artist
 try:  # starting from mpl version 3.6.0
     from matplotlib.axes import Axes
 except ImportError:
-    from matplotlib.axes._subplots import Axes
+    from matplotlib.axes._subplots import Axes  # ty:ignore[unresolved-import]
 from matplotlib.legend import Legend
-from matplotlib.patches import Rectangle, Ellipse, FancyArrowPatch
+from matplotlib.patches import Patch, Rectangle, Ellipse, FancyArrowPatch
 from matplotlib.text import Text
 from matplotlib.figure import Figure
 
-try:
-    from matplotlib.figure import SubFigure  # since matplotlib 3.4.0
-except ImportError:
-    SubFigure = None
+from matplotlib.figure import SubFigure  # since matplotlib 3.4.0
 from .helper_functions import main_figure
+
+# Type alias for a 2D point - internally always a numpy array
+Point = NDArray[np.floating[Any]]
+PointList = List[Point]
+
+
+def _to_point(p: Tuple[float, float] | Sequence[float] | NDArray[Any]) -> Point:
+    """Convert any point-like input to our internal Point representation (numpy array)."""
+    return np.asarray(p, dtype=np.float64)
+
+
+def _to_tuple(p: Point) -> Tuple[float, float]:
+    """Convert internal Point to tuple for matplotlib API calls."""
+    return (float(p[0]), float(p[1]))
 
 
 DIR_X0 = 1
@@ -87,22 +103,23 @@ def cache_property(object, name):
 class TargetWrapper(object):
     """a wrapper to add unified set and get position methods for any matplotlib artist"""
 
-    target = None
-
     def __init__(self, target: Artist):
-        self.target = target
-        self.figure = target.figure
+        self.target: Artist = target
+        figure = target.figure
+        if figure is None or not isinstance(figure, Figure):
+            raise ValueError("TargetWrapper needs a figure")
+        self.figure: Figure = figure
         self.do_scale = True
         self.fixed_aspect = False
         # a patch uses the data_transform
-        if isinstance(self.target, mpl.patches.Patch):
+        if isinstance(self.target, Patch):
             self.get_transform = self.target.get_data_transform
         # axes use the figure_transform
         elif isinstance(self.target, Axes):
             # and optionally have a fixed aspect ratio
             if (
-                self.target.get_aspect() != "auto"
-                and self.target.get_adjustable() != "datalim"
+                    self.target.get_aspect() != "auto"
+                    and self.target.get_adjustable() != "datalim"
             ):
                 self.fixed_aspect = True
             # old matplotlib version
@@ -111,7 +128,7 @@ class TargetWrapper(object):
             else:
                 self.get_transform = (
                     lambda: self.target.figure.transSubfigure
-                    if self.target.figure.transSubfigure
+                    if isinstance(self.target.figure, SubFigure)
                     else self.target.figure.transFigure
                 )
 
@@ -127,16 +144,16 @@ class TargetWrapper(object):
                 self.label_factor = self.figure.dpi / 72.0
                 if getattr(self.target, "pad_offset", None) is None:
                     self.target.pad_offset = (
-                        self.target.get_position()[1]
-                        - checkXLabel(self.target).xaxis.labelpad * self.label_factor
+                            self.target.get_position()[1]
+                            - checkXLabel(self.target).xaxis.labelpad * self.label_factor
                     )
                 self.label_y = self.target.get_position()[1]
             elif checkYLabel(self.target):
                 self.label_factor = self.figure.dpi / 72.0
                 if getattr(self.target, "pad_offset", None) is None:
                     self.target.pad_offset = (
-                        self.target.get_position()[0]
-                        - checkYLabel(self.target).yaxis.labelpad * self.label_factor
+                            self.target.get_position()[0]
+                            - checkYLabel(self.target).yaxis.labelpad * self.label_factor
                     )
                 self.label_x = self.target.get_position()[0]
             self.get_transform = self.target.get_transform
@@ -146,71 +163,71 @@ class TargetWrapper(object):
             self.do_scale = False
 
     def get_positions(
-        self, use_previous_offset=False, update_offset=False
-    ) -> (int, int, int, int):
+            self, use_previous_offset: bool = False, update_offset: bool = False
+    ) -> PointList:
         """get the current position of the target Artist"""
-        points = []
+        points: PointList = []
         if isinstance(self.target, Rectangle):
-            points.append(self.target.get_xy())
+            points.append(_to_point(self.target.get_xy()))
             p2 = (
                 self.target.get_x() + self.target.get_width(),
                 self.target.get_y() + self.target.get_height(),
             )
-            points.append(p2)
+            points.append(_to_point(p2))
         elif isinstance(self.target, Ellipse):
-            c = self.target.center
+            c = cast(Tuple[float, float], self.target.center)
             w = self.target.width
             h = self.target.height
-            points.append((c[0] - w / 2, c[1] - h / 2))
-            points.append((c[0] + w / 2, c[1] + h / 2))
+            points.append(_to_point((c[0] - w / 2, c[1] - h / 2)))
+            points.append(_to_point((c[0] + w / 2, c[1] + h / 2)))
         elif isinstance(self.target, FancyArrowPatch):
-            points.append(self.target._posA_posB[0])
-            points.append(self.target._posA_posB[1])
-            points.extend(self.target.get_path().vertices)
+            points.append(_to_point(self.target._posA_posB[0]))  # ty:ignore[unresolved-attribute]
+            points.append(_to_point(self.target._posA_posB[1]))  # ty:ignore[unresolved-attribute]
+            for vertex in self.target.get_path().vertices:
+                points.append(_to_point(vertex))
         elif isinstance(self.target, Text):
-            points.append(self.target.get_position())
+            points.append(_to_point(self.target.get_position()))
             if checkXLabel(self.target):
-                points[0] = (points[0][0], self.label_y)
+                points[0] = _to_point((points[0][0], self.label_y))
             elif checkYLabel(self.target):
-                points[0] = (self.label_x, points[0][1])
+                points[0] = _to_point((self.label_x, points[0][1]))
             if getattr(self.target, "xy", None) is not None:
-                points.append(self.target.xy)
+                points.append(_to_point(self.target.xy))  # ty:ignore[unresolved-attribute]
             bbox = self.target.get_bbox_patch()
             if bbox:
                 points.append(
-                    bbox.get_transform().transform((bbox.get_x(), bbox.get_y()))
+                    _to_point(
+                        bbox.get_transform().transform((bbox.get_x(), bbox.get_y()))
+                    )
                 )
                 points.append(
-                    bbox.get_transform().transform(
-                        (
-                            bbox.get_x() + bbox.get_width(),
-                            bbox.get_y() + bbox.get_height(),
+                    _to_point(
+                        bbox.get_transform().transform(
+                            (
+                                bbox.get_x() + bbox.get_width(),
+                                bbox.get_y() + bbox.get_height(),
+                            )
                         )
                     )
                 )
             points[-2:] = self.transform_inverted_points(points[-2:])
             if use_previous_offset is True:
-                points[2] = (
-                    points[0] + self.target._pylustrator_offset + points[2] - points[1]
-                )
-                points[1] = points[0] + self.target._pylustrator_offset
+                offset = getattr(self.target, "_pylustrator_offset", _to_point((0, 0)))
+                points[2] = points[0] + offset + points[2] - points[1]
+                points[1] = points[0] + offset
             else:
                 if (
-                    getattr(self.target, "_pylustrator_offset", None) is None
-                    or update_offset
+                        getattr(self.target, "_pylustrator_offset", None) is None
+                        or update_offset
                 ):
-                    self.target._pylustrator_offset = np.array(points[1]) - np.array(
-                        points[0]
-                    )
+                    self.target._pylustrator_offset = points[1] - points[0]  # ty:ignore[invalid-assignment]
         elif isinstance(self.target, Axes):
             p1, p2 = np.array(self.target.get_position())
-            points.append(p1)
-            points.append(p2)
+            points.append(_to_point(p1))
+            points.append(_to_point(p2))
         elif isinstance(self.target, SubFigure):
-            p1 = [self.target.bbox.x0, self.target.bbox.y0]
-            p2 = [self.target.bbox.x1, self.target.bbox.y1]
-            points.append(p1)
-            points.append(p2)
+            points.append(_to_point((self.target.bbox.x0, self.target.bbox.y0)))
+            points.append(_to_point((self.target.bbox.x1, self.target.bbox.y1)))
         elif isinstance(self.target, Legend):
             bbox = self.target.get_frame().get_bbox()
             if isinstance(self.target.axes, Axes):
@@ -224,26 +241,25 @@ class TargetWrapper(object):
                 self.target._set_loc(
                     tuple(transform.inverted().transform(tuple([bbox.x0, bbox.y0])))
                 )
-            points.append(transform.transform(self.target._get_loc()))
+            points.append(_to_point(transform.transform(self.target._get_loc())))
             # add points to span bounding box around the frame
-            points.append([bbox.x0, bbox.y0])
-            points.append([bbox.x1, bbox.y1])
+            points.append(_to_point((bbox.x0, bbox.y0)))
+            points.append(_to_point((bbox.x1, bbox.y1)))
             if use_previous_offset is True:
-                points[2] = (
-                    points[0] + self.target._pylustrator_offset + points[2] - points[1]
-                )
-                points[1] = points[0] + self.target._pylustrator_offset
+                offset = getattr(self.target, "_pylustrator_offset", _to_point((0, 0)))
+                points[2] = points[0] + offset + points[2] - points[1]
+                points[1] = points[0] + offset
             else:
                 if (
-                    getattr(self.target, "_pylustrator_offset", None) is None
-                    or update_offset
+                        getattr(self.target, "_pylustrator_offset", None) is None
+                        or update_offset
                 ):
                     self.target._pylustrator_offset = points[1] - points[0]
         return self.transform_points(points)
 
-    def set_positions(self, points: (int, int)):
+    def set_positions(self, points: Sequence[Point]) -> None:
         """set the position of the target Artist"""
-        points = self.transform_inverted_points(points)
+        pts = self.transform_inverted_points(points)
 
         if self.figure.figure is not None:
             change_tracker = self.figure.figure.change_tracker
@@ -251,13 +267,13 @@ class TargetWrapper(object):
             change_tracker = self.figure.change_tracker
 
         if isinstance(self.target, Rectangle):
-            self.target.set_xy(points[0])
-            self.target.set_width(points[1][0] - points[0][0])
-            self.target.set_height(points[1][1] - points[0][1])
-            if (
-                self.target.get_label() is None
-                or not self.target.get_label().startswith("_rect")
-            ):
+            self.target.set_xy(_to_tuple(pts[0]))
+            self.target.set_width(float(pts[1][0] - pts[0][0]))
+            self.target.set_height(float(pts[1][1] - pts[0][1]))
+            label = self.target.get_label()
+            if not isinstance(label, str):
+                raise TypeError("Label is not a string")
+            if label is None or not label.startswith("_rect"):
                 change_tracker.addChange(
                     self.target, ".set_xy([%f, %f])" % tuple(self.target.get_xy())
                 )
@@ -268,45 +284,46 @@ class TargetWrapper(object):
                     self.target, ".set_height(%f)" % self.target.get_height()
                 )
         elif isinstance(self.target, Ellipse):
-            self.target.center = np.mean(points, axis=0)
-            self.target.width = points[1][0] - points[0][0]
-            self.target.height = points[1][1] - points[0][1]
+            self.target.center = _to_tuple(np.mean(pts, axis=0))
+            self.target.width = float(pts[1][0] - pts[0][0])
+            self.target.height = float(pts[1][1] - pts[0][1])
             change_tracker.addChange(
-                self.target, ".center = (%f, %f)" % tuple(self.target.center)
+                self.target,
+                ".center = (%f, %f)" % self.target.center,
             )
             change_tracker.addChange(self.target, ".width = %f" % self.target.width)
             change_tracker.addChange(self.target, ".height = %f" % self.target.height)
         elif isinstance(self.target, FancyArrowPatch):
-            self.target.set_positions(points[0], points[1])
+            self.target.set_positions(_to_tuple(pts[0]), _to_tuple(pts[1]))
             change_tracker.addChange(
                 self.target,
-                ".set_positions(%s, %s)" % (tuple(points[0]), tuple(points[1])),
+                ".set_positions(%s, %s)" % (_to_tuple(pts[0]), _to_tuple(pts[1])),
             )
         elif isinstance(self.target, Text):
             if checkXLabel(self.target):
                 axes = checkXLabel(self.target)
                 axes.xaxis.labelpad = (
-                    -(points[0][1] - self.target.pad_offset) / self.label_factor
+                        -(pts[0][1] - self.target.pad_offset) / self.label_factor  # ty:ignore[unresolved-attribute]
                 )
                 change_tracker.addChange(
                     axes, ".xaxis.labelpad = %f" % axes.xaxis.labelpad
                 )
 
-                self.target.set_position(points[0])
-                self.label_y = points[0][1]
+                self.target.set_position(_to_tuple(pts[0]))
+                self.label_y = float(pts[0][1])
             elif checkYLabel(self.target):
                 axes = checkYLabel(self.target)
                 axes.yaxis.labelpad = (
-                    -(points[0][0] - self.target.pad_offset) / self.label_factor
+                        -(pts[0][0] - self.target.pad_offset) / self.label_factor  # ty:ignore[unresolved-attribute]
                 )
                 change_tracker.addChange(
                     axes, ".yaxis.labelpad = %f" % axes.yaxis.labelpad
                 )
 
-                self.target.set_position(points[0])
-                self.label_x = points[0][0]
+                self.target.set_position(_to_tuple(pts[0]))
+                self.label_x = float(pts[0][0])
             else:
-                self.target.set_position(points[0])
+                self.target.set_position(_to_tuple(pts[0]))
                 if isinstance(self.target, Text):
                     change_tracker.addNewTextChange(self.target)
                 else:
@@ -315,9 +332,10 @@ class TargetWrapper(object):
                         ".set_position([%f, %f])" % self.target.get_position(),
                     )
                 if getattr(self.target, "xy", None) is not None:
-                    self.target.xy = points[1]
+                    self.target.xy = _to_tuple(pts[1])  # ty:ignore[invalid-assignment]
                     change_tracker.addChange(
-                        self.target, ".xy = (%f, %f)" % tuple(self.target.xy)
+                        self.target,
+                        ".xy = (%f, %f)" % self.target.xy,  # ty:ignore[unresolved-attribute]
                     )
         elif isinstance(self.target, Legend):
             if isinstance(self.target.axes, Axes):
@@ -326,27 +344,25 @@ class TargetWrapper(object):
                 transform = self.target.figure.transFigure
             else:
                 transform = self.target.figure.transSubfigure
-            point = transform.inverted().transform(
-                self.transform_inverted_points(points)[0]
-            )
-            self.target._loc = tuple(point)
+            point = transform.inverted().transform(pts[0])
+            self.target._loc = tuple(point)  # ty:ignore[invalid-assignment]
             change_tracker.addNewLegendChange(self.target)
             # change_tracker.addChange(self.target, "._set_loc((%f, %f))" % tuple(point))
         elif isinstance(self.target, Axes):
-            position = np.array([points[0], points[1] - points[0]]).flatten()
+            position = np.array([pts[0], pts[1] - pts[0]]).flatten()
             if self.fixed_aspect:
                 position[3] = (
-                    position[2]
-                    * self.target.get_position().height
-                    / self.target.get_position().width
+                        position[2]
+                        * self.target.get_position().height
+                        / self.target.get_position().width
                 )
             self.target.set_position(position)
             change_tracker.addNewAxesChange(self.target)
             # change_tracker.addChange(self.target, ".set_position([%f, %f, %f, %f])" % tuple(
-            #    np.array([points[0], points[1] - points[0]]).flatten()))
+            #    np.array([pts[0], pts[1] - pts[0]]).flatten()))
         setattr(self.target, "_pylustrator_cached_get_extend", None)
 
-    def get_extent(self):
+    def get_extent(self) -> Tuple[float, float, float, float]:
         # get get_extent as it can be called very frequently when checking snap conditions
         if getattr(self.target, "_pylustrator_cached_get_extend_added", False):
             setattr(self.target, "_pylustrator_cached_get_extend_added", True)
@@ -354,25 +370,25 @@ class TargetWrapper(object):
             setattr(self.target, "_pylustrator_cached_get_extend", self.do_get_extent())
         return getattr(self.target, "_pylustrator_cached_get_extend")
 
-    def do_get_extent(self) -> (int, int, int, int):
+    def do_get_extent(self) -> Tuple[float, float, float, float]:
         """get the extent of the target"""
         points = np.array(self.get_positions())
-        return [
+        return (
             np.min(points[:, 0]),
             np.min(points[:, 1]),
             np.max(points[:, 0]),
             np.max(points[:, 1]),
-        ]
+        )
 
-    def transform_points(self, points: (int, int)) -> (int, int):
+    def transform_points(self, points: Sequence[Point]) -> PointList:
         """transform points from the targets local coordinate system to the figure coordinate system"""
         transform = self.get_transform()
-        return [transform.transform(p) for p in points]
+        return [_to_point(transform.transform(p)) for p in points]
 
-    def transform_inverted_points(self, points: (int, int)) -> (int, int):
+    def transform_inverted_points(self, points: Sequence[Point]) -> PointList:
         """transform points from the figure coordinate system to the targets local coordinate system"""
         transform = self.get_transform()
-        return [transform.inverted().transform(p) for p in points]
+        return [_to_point(transform.inverted().transform(p)) for p in points]
 
 
 class SnapBase:
@@ -390,21 +406,23 @@ class SnapBase:
         parent = main_figure(ax_source)._pyl_graphics_scene_snapparent
         parent.scene().addItem(self.draw_path)
         pen1 = QtGui.QPen(QtGui.QColor("red"), 2)
-        pen1.setStyle(QtCore.Qt.DashLine)
+        pen1.setStyle(QtCore.Qt.PenStyle.DashLine)
         self.draw_path.setPen(pen1)
 
-    def getPosition(self, target: TargetWrapper):
+    def getPosition(self, target: TargetWrapper) -> Tuple[float, float, float, float]:
         """get the position of a target"""
         try:
             return target.get_extent()
         except AttributeError:
-            return np.array(
-                target.figure.transFigure.transform(target.get_position())
-            ).flatten()
+            pos = target.figure.transFigure.transform(
+                cast(Any, target.target).get_position()
+            )
+            x, y = float(pos[0]), float(pos[1])
+            return (x, y, x, y)
 
-    def getDistance(self, index: int) -> (int, int):
+    def getDistance(self, index: int) -> float:
         """Calculate the distance of the snap to its target"""
-        return 0, 0
+        return 0.0
 
     def checkSnap(self, index: int) -> Optional[float]:
         """Return the distance to the targets or None"""
@@ -457,16 +475,17 @@ class SnapBase:
     def remove(self):
         """Remove the snap and its visualisation"""
         self.hide()
-        try:
-            self.draw_path.scene().removeItem(self.draw_path)
-        except ValueError:
-            pass
+
+        scene = self.draw_path.scene()
+        if scene is None:
+            return
+        scene.removeItem(self.draw_path)
 
 
 class SnapSameEdge(SnapBase):
     """a snap that checks if two objects share an edge"""
 
-    def getDistance(self, index: int) -> (int, int):
+    def getDistance(self, index: int) -> float:
         """Calculate the distance of the snap to its target"""
         # only if the right edge index (x or y) is queried, if not the distance is infinite
         if self.edge % 2 != index:
@@ -475,7 +494,7 @@ class SnapSameEdge(SnapBase):
         p1 = self.getPosition(self.ax_source)
         p2 = self.getPosition(self.ax_target)
         # and return the difference in the target dimension
-        return p1[self.edge] - p2[self.edge]
+        return float(p1[self.edge] - p2[self.edge])
 
     def show(self):
         """A visualisation of the snap, e.g. lines to indicate what objects are snapped to what"""
@@ -509,7 +528,7 @@ class SnapSameEdge(SnapBase):
 class SnapSameDimension(SnapBase):
     """a snap that checks if two objects have the same width or height"""
 
-    def getDistance(self, index: int) -> (int, int):
+    def getDistance(self, index: int) -> float:
         """Calculate the distance of the snap to its target"""
         # only if the right edge index (x or y) is queried, if not the distance is infinite
         if self.edge % 2 != index:
@@ -518,7 +537,9 @@ class SnapSameDimension(SnapBase):
         p1 = self.getPosition(self.ax_source)
         p2 = self.getPosition(self.ax_target)
         # and the difference of the widths (or heights) of the objects
-        return (p2[self.edge - 2] - p2[self.edge]) - (p1[self.edge - 2] - p1[self.edge])
+        return float(
+            (p2[self.edge - 2] - p2[self.edge]) - (p1[self.edge - 2] - p1[self.edge])
+        )
 
     def show(self):
         """A visualisation of the snap, e.g. lines to indicate what objects are snapped to what"""
@@ -554,11 +575,15 @@ class SnapSameDimension(SnapBase):
 class SnapSamePos(SnapBase):
     """a snap that checks if two objects have the same position"""
 
-    def getPosition(self, text: TargetWrapper) -> (int, int):
+    def getPosition(self, target: TargetWrapper) -> Tuple[float, float, float, float]:
         # get the position of an object
-        return np.array(text.get_transform().transform(text.target.get_position()))
+        if not isinstance(target.target, Text):
+            raise ValueError("SnapSamePos can only be used with text")
+        pos = target.get_transform().transform(target.target.get_position())
+        x, y = float(pos[0]), float(pos[1])
+        return (x, y, x, y)
 
-    def getDistance(self, index: int) -> int:
+    def getDistance(self, index: int) -> float:
         """Calculate the distance of the snap to its target"""
         # only if the right edge index (x or y) is queried, if not the distance is infinite
         if self.edge % 2 != index:
@@ -567,10 +592,10 @@ class SnapSamePos(SnapBase):
         p1 = self.getPosition(self.ax_source)
         p2 = self.getPosition(self.ax_target)
         # get the distance of the two objects in the target dimension
-        return p1[self.edge] - p2[self.edge]
+        return float(p1[self.edge] - p2[self.edge])
 
     def show(self):
-        """A visualisation of the snap, e.g. lines to indicate what objects are snapped to what"""
+        """A visualization of the snap, e.g. lines to indicate what objects are snapped to what"""
         # get the position of both objects
         p1 = self.getPosition(self.ax_source)
         p2 = self.getPosition(self.ax_target)
@@ -582,18 +607,27 @@ class SnapSameBorder(SnapBase):
     """A snap that checks if tree axes share the space between them"""
 
     def __init__(
-        self, ax_source: Artist, ax_target: Artist, ax_target2: Artist, edge: int
+            self, ax_source: Artist, ax_target: Artist, ax_target2: Artist, edge: int
     ):
         super().__init__(ax_source, ax_target, edge)
-        self.ax_target2 = ax_target2
+        self.ax_target2 = TargetWrapper(ax_target2)
 
-    def overlap(self, p1: list, p2: list, dir: int):
+    def overlap(
+            self,
+            p1: Tuple[float, float, float, float],
+            p2: Tuple[float, float, float, float],
+            dir: int,
+    ):
         """Test if two objects have an overlapping x or y region"""
         if p1[dir + 2] < p2[dir] or p1[dir] > p2[dir + 2]:
             return False
         return True
 
-    def getBorders(self, p1: list, p2: list):
+    def getBorders(
+            self,
+            p1: Tuple[float, float, float, float],
+            p2: Tuple[float, float, float, float],
+    ):
         borders = []
         for edge in [0, 1]:
             if self.overlap(p1, p2, 1 - edge):
@@ -620,7 +654,9 @@ class SnapSameBorder(SnapBase):
                 if p1[edge] > p2[edge + 2]:
                     continue
             if (p1[edge + 2] < p2[edge] or p1[edge] > p2[edge + 2]) and self.overlap(
-                p1, p2, 1 - edge
+                    p1,
+                    p2,
+                    1 - edge,
             ):
                 distances = np.array([p2[edge] - p1[edge + 2], p1[edge] - p2[edge + 2]])
                 index1 = np.argmax(distances)
@@ -634,7 +670,8 @@ class SnapSameBorder(SnapBase):
                     return deltas[index2] * (-1 + 2 * index1)
         return np.inf
 
-    def getConnection(self, p1: list, p2: list, dir: int):
+    def getConnection(self, p1: Tuple[float, float, float, float],
+                      p2: Tuple[float, float, float, float], dir: int):
         """return the coordinates of a line that spans the space between to axes"""
         # check which edge (e.g. x, y) and which direction (e.g. if to change the order of p1 and p2)
         edge, order = dir // 2, dir % 2
@@ -666,18 +703,24 @@ class SnapSameBorder(SnapBase):
 class SnapCenterWith(SnapBase):
     """A snap that checks if a text is centered with an axes"""
 
-    def getPosition(self, text: TargetWrapper) -> (int, int):
+    def getPosition(self, target: TargetWrapper) -> Tuple[float, float, float, float]:
         """get the position of the first object"""
-        return np.array(text.get_transform().transform(text.target.get_position()))
+        target_text = target.target
+        if not isinstance(target_text, Text):
+            raise ValueError("SnapCenterWith can only be used with axes")
+        return np.array(target.get_transform().transform(target_text.get_position()))
 
-    def getPosition2(self, axes: TargetWrapper) -> int:
+    def getPosition2(self, axes: TargetWrapper) -> np.ndarray:
         """get the position of the second object"""
-        pos = np.array(axes.figure.transFigure.transform(axes.target.get_position()))
+        target_axes = axes.target
+        if not isinstance(target_axes, Axes):
+            raise ValueError("SnapCenterWith can only be used with axes")
+        pos = np.array(axes.figure.transFigure.transform(target_axes.get_position()))
         p = pos[0, :]
         p[self.edge] = np.mean(pos, axis=0)[self.edge]
         return p
 
-    def getDistance(self, index: int) -> int:
+    def getDistance(self, index: int) -> float:
         """Calculate the distance of the snap to its target"""
         # only if the right edge index (x or y) is queried, if not the distance is infinite
         if self.edge % 2 != index:
@@ -686,7 +729,7 @@ class SnapCenterWith(SnapBase):
         p1 = self.getPosition(self.ax_source)
         p2 = self.getPosition2(self.ax_target)
         # get the distance of the two objects in the target dimension
-        return p1[self.edge] - p2[self.edge]
+        return float(p1[self.edge] - p2[self.edge])
 
     def show(self):
         """A visualisation of the snap, e.g. lines to indicate what objects are snapped to what"""
@@ -697,9 +740,9 @@ class SnapCenterWith(SnapBase):
         self.set_data((p1[0], p2[0]), (p1[1], p2[1]))
 
 
-def checkSnaps(snaps: List[SnapBase]) -> (int, int):
+def checkSnaps(snaps: List[SnapBase]) -> list[float]:
     """get the x and y offsets the snaps suggest"""
-    result = [0, 0]
+    result: list[float] = [0, 0]
     # iterate over x and y
     for index in range(2):
         # find the best snap
@@ -724,8 +767,8 @@ def checkSnapsActive(snaps: List[SnapBase]):
 def getSnaps(targets: List[TargetWrapper], dir: int, no_height=False) -> List[SnapBase]:
     """get all snap objects for the target and the direction"""
     snaps = []
-    targets = [t.target for t in targets]
-    for target in targets:
+    target_artists: List[Artist] = [t.target for t in targets]
+    for target in target_artists:
         if isinstance(target, Legend):
             continue
         if isinstance(target, Text):
@@ -736,7 +779,7 @@ def getSnaps(targets: List[TargetWrapper], dir: int, no_height=False) -> List[Sn
             for ax in target.figure.axes + [target.figure]:
                 for txt in ax.texts:
                     # for other texts
-                    if txt in targets or not txt.get_visible():
+                    if txt in target_artists or not txt.get_visible():
                         continue
                     # snap to the x and the y coordinate
                     x, y = txt.get_transform().transform(txt.get_position())
@@ -744,7 +787,7 @@ def getSnaps(targets: List[TargetWrapper], dir: int, no_height=False) -> List[Sn
                     snaps.append(SnapSamePos(target, txt, 1))
             continue
         for index, axes in enumerate(target.figure.axes):
-            if axes not in targets and axes.get_visible():
+            if axes not in target_artists and axes.get_visible():
                 # axes edged
                 if dir & DIR_X0:
                     snaps.append(SnapSameEdge(target, axes, 0))
@@ -767,6 +810,10 @@ def getSnaps(targets: List[TargetWrapper], dir: int, no_height=False) -> List[Sn
                         snaps.append(SnapSameDimension(target, axes, 3))
 
                 for axes2 in target.figure.axes:
-                    if axes2 != axes and axes2 not in targets and axes2.get_visible():
+                    if (
+                            axes2 != axes
+                            and axes2 not in target_artists
+                            and axes2.get_visible()
+                    ):
                         snaps.append(SnapSameBorder(target, axes, axes2, dir))
     return snaps

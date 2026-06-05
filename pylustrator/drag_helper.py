@@ -25,9 +25,14 @@ from matplotlib.figure import Figure, SubFigure
 from matplotlib.axes import Axes
 from matplotlib.text import Text
 from matplotlib.patches import Rectangle
-from matplotlib.backend_bases import MouseEvent, KeyEvent
-from typing import Sequence
-from qtpy import QtCore, QtGui, QtWidgets
+from matplotlib.backend_bases import MouseEvent, KeyEvent, Event
+from typing import TYPE_CHECKING, Sequence, Callable, Tuple, List, Any, cast, Type
+
+if TYPE_CHECKING:
+    from PyQt5 import QtCore, QtGui, QtWidgets
+    from .components.plot_layout import GraphicsRectItemWithView
+else:
+    from qtpy import QtCore, QtGui, QtWidgets
 
 from .snap import TargetWrapper, getSnaps, checkSnaps, checkSnapsActive, SnapBase
 from .change_tracker import ChangeTracker
@@ -45,22 +50,28 @@ blit = False
 class GrabFunctions(object):
     """basic functionality used by all grabbers"""
 
-    figure = None
+    figure: Figure
     target = None
-    dir = None
-    snaps = None
+    dir: int
+    snaps: list[SnapBase]
+    targets: list[TargetWrapper]
 
     got_artist = False
 
     def __init__(self, parent, dir: int, no_height=False):
-        self.figure = parent.figure
+        figure: Figure = parent.figure
+        if not isinstance(figure, Figure):
+            raise TypeError()
+        self.figure = figure
         self.parent = parent
         self.dir = dir
         self.snaps = []
         self.no_height = no_height
 
-    def on_motion(self, evt: MouseEvent):
+    def on_motion(self, evt: Event):
         """callback when the object is moved"""
+        if not isinstance(evt, MouseEvent):
+            raise TypeError()
         if self.got_artist:
             self.movedEvent(evt)
             self.moved = True
@@ -152,13 +163,15 @@ class GrabFunctions(object):
 
 
 class GrabbableRectangleSelection(GrabFunctions):
-    grabbers = None
+    grabbers: list["GrabberGeneric"]
 
-    def addGrabber(self, x: float, y: float, dir: int, GrabberClass: object):
+    def addGrabber(
+        self, x: float, y: float, dir: int, GrabberClass: Type["GrabberGeneric"]
+    ):
         # add a grabber object at the given coordinates
         self.grabbers.append(GrabberClass(self, x, y, dir, self.graphics_scene))
 
-    def __init__(self, figure: Figure, graphics_scene=None):
+    def __init__(self, figure: Figure, graphics_scene: "GraphicsRectItemWithView"):
         self.grabbers = []
         pos = [0, 0, 0, 0]
         self.positions = np.array(pos, dtype=float)
@@ -189,20 +202,20 @@ class GrabbableRectangleSelection(GrabFunctions):
 
         self.c4 = self.figure.canvas.mpl_connect("key_press_event", self.keyPressEvent)
 
-        self.targets = []
-        self.targets_rects = []
+        self.targets: list[TargetWrapper] = []
+        self.targets_rects: list[QtWidgets.QGraphicsRectItem] = []
 
         self.hide_grabber()
 
     def add_target(self, target: Artist):
         """add an artist to the selection"""
-        target = TargetWrapper(target)
+        target_wrapped = TargetWrapper(target)
 
-        new_points = np.array(target.get_positions())
+        new_points = np.array(target_wrapped.get_positions())
         if len(new_points) == 0:
             return
 
-        self.targets.append(target)
+        self.targets.append(target_wrapped)
 
         if new_points.shape[0] == 3:
             x0, y0, x1, y1 = (
@@ -250,7 +263,7 @@ class GrabbableRectangleSelection(GrabFunctions):
         else:
             pen1 = QtGui.QPen(QtGui.QColor("white"), 2)
             pen2 = QtGui.QPen(QtGui.QColor("black"), 2)
-            pen2.setStyle(QtCore.Qt.DashLine)
+            pen2.setStyle(QtCore.Qt.PenStyle.DashLine)
             # pen3 = QtGui.QPen(QtGui.QColor("black"), 2)
             # brush1 = QtGui.QBrush(QtGui.QColor("red"))
 
@@ -333,7 +346,7 @@ class GrabbableRectangleSelection(GrabFunctions):
                     track_changes=False,
                 )
 
-        def align(y: int, func: callable):
+        def align(y: int, func: Callable):
             self.start_move()
             centers = []
             for target in self.targets:
@@ -446,8 +459,12 @@ class GrabbableRectangleSelection(GrabFunctions):
         self.targets.pop(index)
         rect1 = self.targets_rects.pop(index * 2)
         rect2 = self.targets_rects.pop(index * 2)
-        rect1.scene().removeItem(rect1)
-        rect2.scene().removeItem(rect2)
+        rect1_scene = rect1.scene()
+        if rect1_scene is not None:
+            rect1_scene.removeItem(rect1)
+        rect2_scene = rect1.scene()
+        if rect2_scene is not None:
+            rect2_scene.removeItem(rect2)
         # self.figure.patches.remove(rect1)
         # self.figure.patches.remove(rect2)
         if len(self.targets) == 0:
@@ -471,7 +488,9 @@ class GrabbableRectangleSelection(GrabFunctions):
     def clear_targets(self):
         """remove all elements from the selection"""
         for rect in self.targets_rects:
-            self.graphics_scene.scene().removeItem(rect)
+            scene = self.graphics_scene.scene()
+            if scene is not None:
+                scene.removeItem(rect)
             # self.figure.patches.remove(rect)
         self.targets_rects = []
         self.targets = []
@@ -480,11 +499,11 @@ class GrabbableRectangleSelection(GrabFunctions):
 
     def do_target_scale(self) -> bool:
         """if any of the elements in the selection allows scaling"""
-        return np.any([target.do_scale for target in self.targets])
+        return any([target.do_scale for target in self.targets])
 
     def do_change_aspect_ratio(self) -> bool:
         """if any of the element sin the selection wants to perserve its aspect ratio"""
-        return np.any([target.fixed_aspect for target in self.targets])
+        return any([target.fixed_aspect for target in self.targets])
 
     def width(self) -> float:
         """the width of the current selection"""
@@ -494,7 +513,7 @@ class GrabbableRectangleSelection(GrabFunctions):
         """the height of the current selection"""
         return (self.p2 - self.p1)[1]
 
-    def size(self) -> (float, float):
+    def size(self) -> Tuple[float, float]:
         """the size of the current selection (width and height)"""
         return self.p2 - self.p1
 
@@ -524,7 +543,7 @@ class GrabbableRectangleSelection(GrabFunctions):
         """transform a point"""
         return self.transform(pos)
 
-    def get_save_point(self) -> callable:
+    def get_save_point(self) -> Callable:
         """gather the current positions in a restore point for the undo function"""
         targets = [target.target for target in self.targets]
         positions = [target.get_positions() for target in self.targets]
@@ -618,7 +637,7 @@ class GrabbableRectangleSelection(GrabFunctions):
         self,
         pos: Sequence[float],
         dir: int,
-        snaps: Sequence[SnapBase],
+        snaps: List[SnapBase],
         keep_aspect_ratio: bool = False,
         ignore_snaps: bool = False,
     ):
@@ -630,7 +649,7 @@ class GrabbableRectangleSelection(GrabFunctions):
             offx, offy = checkSnaps(snaps)
             self.addOffset((pos[0] - offx, pos[1] - offy), dir, keep_aspect_ratio)
 
-            offx, offy = checkSnaps(self.snaps)
+            checkSnaps(self.snaps)
 
         checkSnapsActive(snaps)
 
@@ -705,15 +724,19 @@ class DragManager:
         self.figure = figure
         self.figure.figure_dragger = self
 
-        self.figure.canvas.mpl_disconnect(
-            self.figure.canvas.manager.key_press_handler_id
-        )
+        manager = getattr(self.figure.canvas, "manager", None)
+        cid = getattr(manager, "key_press_handler_id", None)
+        if isinstance(cid, int):
+            self.figure.canvas.mpl_disconnect(cid)
 
         self.activate()
 
         self.make_figure_draggable(self.figure)
         self.make_axes_draggable(self.figure.axes)
-        self.selection = GrabbableRectangleSelection(figure, figure._pyl_scene)
+        graphics_scene = cast(
+            "GraphicsRectItemWithView", getattr(figure, "_pyl_scene", None)
+        )
+        self.selection = GrabbableRectangleSelection(figure, graphics_scene)
         self.figure.selection = self.selection
         self.change_tracker = ChangeTracker(figure, no_save)
         self.figure.change_tracker = self.change_tracker
@@ -764,7 +787,7 @@ class DragManager:
             self.make_draggable(ax.xaxis.get_label())
             self.make_draggable(ax.yaxis.get_label())
             self.make_draggable(ax)
-            self.make_axes_draggable(ax.child_axes)
+            self.make_axes_draggable([a for a in ax.child_axes if isinstance(a, Axes)])
 
     def make_figure_draggable(self, fig: Figure | SubFigure) -> None:
         for text in fig.texts:
@@ -779,29 +802,37 @@ class DragManager:
     def get_picked_element(
         self,
         event: MouseEvent,
-        element: Artist = None,
-        picked_element: Artist = None,
-        last_selected: Artist = None,
+        element: Artist | Figure | None = None,
+        picked_element: Artist | None = None,
+        last_selected: Artist | None = None,
     ):
         """get the picked element that an event refers to.
         To implement selection of elements at the back with multiple clicks.
         """
-        # start with the figure
-        if element is None:
+        if not isinstance(element, (Artist, Figure)):
             element = self.figure
+        if not isinstance(element, (Artist, Figure)):
+            raise ValueError("element must be an Artist or Figure")
+
         finished = False
         # iterate over all children
-        for child in sorted(element.get_children(), key=lambda x: x.get_zorder()):
+        for child in sorted(
+            cast(Artist, element).get_children(), key=lambda x: x.get_zorder()
+        ):
             # check if the element is contained in the event and has an active dragger
             # if child.contains(event)[0] and ((getattr(child, "_draggable", None) and getattr(child, "_draggable",
             #                                                                               None).connected) or isinstance(child, GrabberGeneric) or isinstance(child, GrabbableRectangleSelection)):
+            child_label = child.get_label()
+            is_underscored = (
+                child_label is not None
+                and isinstance(child_label, str)
+                and child_label.startswith("_")
+            )
             if (
                 child.get_visible()
                 and child.contains(event)[0]
                 and (child.pickable() or isinstance(child, GrabberGeneric))
-                and not (
-                    child.get_label() is not None and child.get_label().startswith("_")
-                )
+                and not is_underscored
             ):
                 # if the element is the last selected, finish the search
                 if child == last_selected:
@@ -817,8 +848,9 @@ class DragManager:
                 break
         return picked_element, finished
 
-    def button_release_event0(self, event: MouseEvent):
+    def button_release_event0(self, event: Event):
         """when the mouse button is released"""
+        event = cast(MouseEvent, event)
         # release the grabber
         if self.grab_element:
             self.grab_element.button_release_event(event)
@@ -827,8 +859,9 @@ class DragManager:
         elif len(self.selection.targets):
             self.selection.button_release_event(event)
 
-    def button_press_event0(self, event: MouseEvent):
+    def button_press_event0(self, event: Event):
         """when the mouse button is pressed"""
+        event = cast(MouseEvent, event)
         if event.button == 1:
             last = self.selection.targets[-1] if len(self.selection.targets) else None
             contained = np.any(
@@ -837,7 +870,10 @@ class DragManager:
 
             # recursively iterate over all elements
             picked_element, _ = self.get_picked_element(
-                event, last_selected=last if event.dblclick else None
+                event,
+                last_selected=(
+                    last.target if (event.dblclick and last is not None) else None
+                ),
             )
 
             # if the element is a grabber, store it
@@ -855,7 +891,7 @@ class DragManager:
             elif contained:
                 self.selection.button_press_event(event)
 
-    def select_element(self, element: Artist, event: MouseEvent = None):
+    def select_element(self, element: Artist, event: MouseEvent | None = None):
         """select an artist in a figure"""
         # do nothing if it is already selected
         if element == self.selected_element:
@@ -868,7 +904,7 @@ class DragManager:
         self.on_select(element, event)
         self.selected_element = element
 
-    def on_deselect(self, event: MouseEvent):
+    def on_deselect(self, event: MouseEvent | None):
         """deselect currently selected artists"""
         modifier = (
             "shift" in event.key.split("+")
@@ -879,7 +915,7 @@ class DragManager:
         if not modifier:
             self.selection.clear_targets()
 
-    def on_select(self, element: Artist, event: MouseEvent):
+    def on_select(self, element: Artist | None, event: MouseEvent | None):
         """when an artist is selected"""
         if element is not None:
             self.selection.add_target(element)
@@ -900,8 +936,9 @@ class DragManager:
         self.on_select(None, None)
         self.figure.canvas.draw()
 
-    def key_press_event(self, event: KeyEvent):
+    def key_press_event(self, event: Event):
         """when a key is pressed"""
+        event = cast(KeyEvent, event)
         # space: print code to restore current configuration
         if event.key == "ctrl+s":
             self.figure.change_tracker.save()
@@ -922,7 +959,12 @@ class GrabberGeneric(GrabFunctions):
     _no_save = True
 
     def __init__(
-        self, parent: GrabbableRectangleSelection, x: float, y: float, dir: int
+        self,
+        parent: "GrabbableRectangleSelection",
+        x: float,
+        y: float,
+        dir: int,
+        scene: Any | None = None,
     ):
         self._animated = True
         GrabFunctions.__init__(self, parent, dir)
@@ -932,18 +974,18 @@ class GrabberGeneric(GrabFunctions):
     def get_xy(self):
         return self.center
 
-    def set_xy(self, xy: (float, float)):
+    def set_xy(self, xy: tuple[float, float]):
         self.center = xy
 
     def getPos(self):
         x, y = self.get_xy()
-        return self.transform.transform((x, y))
+        t = getattr(self, "transform", None)
+        if t is None:
+            return x, y
+        return t.transform((x, y))
 
     def updatePos(self):
         self.set_xy(self.parent.get_pos(self.pos))
-
-    def applyOffset(self, pos: (float, float), event: MouseEvent):
-        self.set_xy((self.ox + pos[0], self.oy + pos[1]))
 
 
 class GrabberGenericRound(GrabberGeneric):
@@ -953,7 +995,12 @@ class GrabberGenericRound(GrabberGeneric):
     shape = "round"
 
     def __init__(
-        self, parent: GrabbableRectangleSelection, x: float, y: float, dir: int, scene
+        self,
+        parent: GrabbableRectangleSelection,
+        x: float,
+        y: float,
+        dir: int,
+        scene: "GraphicsRectItemWithView",
     ):
         pen3 = QtGui.QPen(QtGui.QColor("black"), 2)
         brush1 = QtGui.QBrush(QtGui.QColor("red"))
@@ -967,8 +1014,9 @@ class GrabberGenericRound(GrabberGeneric):
 
         GrabberGeneric.__init__(self, parent, x, y, dir)
 
-    def set_xy(self, xy: (float, float)):
+    def set_xy(self, xy: tuple[float, float]):
         self.xy = xy
+        self.ellipse.setRect(xy[0] - 5, xy[1] - 5, 10, 10)
         self.ellipse.setRect(xy[0] - 5, xy[1] - 5, 10, 10)
 
 
@@ -979,7 +1027,12 @@ class GrabberGenericRectangle(GrabberGeneric):
     shape = "rect"
 
     def __init__(
-        self, parent: GrabbableRectangleSelection, x: float, y: float, dir: int, scene
+        self,
+        parent: GrabbableRectangleSelection,
+        x: float,
+        y: float,
+        dir: int,
+        scene: "GraphicsRectItemWithView",
     ):
         # somehow the original "self" rectangle does not show up in the current matplotlib version, therefore this doubling
         # self.rect = Rectangle((0, 0), self.d, self.d, figure=parent.figure, edgecolor="k", facecolor="r", zorder=1000, label="grabber")
@@ -1009,7 +1062,7 @@ class GrabberGenericRectangle(GrabberGeneric):
         xy = Rectangle.get_xy(self)
         return xy[0] + self.d / 2, xy[1] + self.d / 2
 
-    def set_xy(self, xy: (float, float)):
+    def set_xy(self, xy: Tuple[float, float]):
         self.xy = xy
 
         self.ellipse.setRect(xy[0] - 5, xy[1] - 5, 10, 10)
@@ -1020,27 +1073,38 @@ class GrabberGenericRectangle(GrabberGeneric):
 
 class MyItem:
     w = 10
+    view: Any
+    grabber: Any
+    scene: Callable[[], Any]
 
     def mousePressEvent(self, e):
-        super().mousePressEvent(e)
-        self.view.grabber_found = True
+        cast(Any, super()).mousePressEvent(e)
+        cast(Any, self).view.grabber_found = True
         p = e.scenePos()
         self.scene().grabber_pressed = self
-        self.grabber.button_press_event(MyEvent(p.x(), self.view.h - p.y()))
+        cast(Any, self).grabber.button_press_event(
+            MyEvent(p.x(), cast(Any, self).view.h - p.y())
+        )
 
     def mouseReleaseEvent(self, e):
-        super().mouseReleaseEvent(e)
+        cast(Any, super()).mouseReleaseEvent(e)
         self.scene().grabber_pressed = None
-        self.view.grabber_found = True
+        cast(Any, self).view.grabber_found = True
         p = e.scenePos()
-        self.grabber.button_release_event(MyEvent(p.x(), self.view.h - p.y()))
+        cast(Any, self).grabber.button_release_event(
+            MyEvent(p.x(), cast(Any, self).view.h - p.y())
+        )
 
 
 class MyRect(MyItem, QtWidgets.QGraphicsRectItem):
+    view = None
+    grabber = None
     pass
 
 
 class MyEllipse(MyItem, QtWidgets.QGraphicsEllipseItem):
+    view = None
+    grabber = None
     pass
 
 

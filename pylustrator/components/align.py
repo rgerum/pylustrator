@@ -1,5 +1,10 @@
 import os
-from qtpy import QtGui, QtWidgets
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from PyQt5 import QtGui, QtWidgets
+else:
+    from qtpy import QtGui, QtWidgets
 
 
 class Align(QtWidgets.QWidget):

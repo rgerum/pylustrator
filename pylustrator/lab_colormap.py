@@ -22,7 +22,7 @@
 """Colormap"""
 
 import numpy as np
-from typing import Sequence, Union
+from typing import Sequence, Union, List, Optional
 from matplotlib.colors import Colormap, ListedColormap, to_rgb
 
 
@@ -51,7 +51,7 @@ def convert_lab2rgb(colors):
 class LabColormap(ListedColormap):
     """a custom colormap that blends between N custom colors"""
 
-    init_colors = None
+    init_colors: Optional[List]
 
     def __init__(self, colors: Sequence, N: int, stops=None):
         """initialize with the given colors and stops"""
@@ -64,6 +64,9 @@ class LabColormap(ListedColormap):
 
     def _init(self):
         """generate the colormap from the given colors (used by ListedColormap)"""
+        assert self.init_colors is not None, (
+            "init_colors must be set before calling _init"
+        )
         # convert to lab
         lab_colors = convert_rgb2lab(self.init_colors)
         # initialize new list
@@ -79,9 +82,9 @@ class LabColormap(ListedColormap):
         # convert back to rgb
         self.colors = convert_lab2rgb(colors)
         # initialize a listed colormap
-        ListedColormap._init(self)
+        ListedColormap._init(self)  # ty:ignore[unresolved-attribute]
 
-    def __call__(self, value: float, *args, **kwargs):
+    def __call__(self, value: float, *args, **kwargs):  # ty:ignore[invalid-method-override]
         """get the color associated with the given value from the colormap"""
         # get the color
         result = Colormap.__call__(self, value, *args, **kwargs)
@@ -91,15 +94,15 @@ class LabColormap(ListedColormap):
         # return the color
         return result
 
-    def get_color(self) -> Sequence:
+    def get_color(self) -> list | None:
         """return all the colors"""
         # return the colors
         return self.init_colors
 
-    def set_color(self, color: Union[str, Sequence], index: int = None):
+    def set_color(self, color: Union[str, Sequence], index: Optional[int] = None):
         """set a color to the given index"""
         # update the color according to the index
-        if index is not None:
+        if index is not None and self.init_colors is not None:
             self.init_colors[index] = to_rgb(color)
         # or update the whole list
         else:
@@ -116,12 +119,14 @@ class LabColormap(ListedColormap):
         stops = self.stops
         # if they are not defined, interpolate from 0 to 1
         if stops is None:
+            assert self.init_colors is not None, "init_colors must be set"
             stops = np.linspace(0, 1, len(self.init_colors))
         # return the stops
         return stops
 
     def linearize_lightness(self):
         """linearize the lightness of the colors in the colormap"""
+        assert self.init_colors is not None, "init_colors must be set"
         # convert to lab
         lab_colors = convert_rgb2lab(self.init_colors)
         # define start and end lightness

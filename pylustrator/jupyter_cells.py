@@ -27,7 +27,7 @@ the file is instead of a normal file a jupyter notebook and redirects writes acc
 
 def setJupyterCellText(text: str):
     """the function replaces the text in the current jupyter cell with the given text"""
-    from IPython.display import Javascript, display
+    from IPython.display import Javascript, display  # ty:ignore[unresolved-import]
 
     text = text.replace("\n", "\\n").replace("'", "\\'")
     js = (
@@ -73,11 +73,11 @@ def open(filename: str, *args, **kwargs):
     if filename.startswith("<ipython") or "ipykernel" in filename:
 
         class IPythonCell:
-            text = None
-            write_text = None
-            is_cell = False
+            text: str | None = None
+            write_text: str | None = None
+            is_cell: bool = False
 
-            def __init__(self, filename, mode, **kwargs):
+            def __init__(self, filename: str, mode: str, **kwargs):
                 self.filename = filename.strip()
 
                 if mode == "r":
@@ -93,6 +93,8 @@ def open(filename: str, *args, **kwargs):
 
             def __iter__(self):
                 text = self.text
+                if text is None:
+                    return
                 while len(text):
                     pos = text.find("\n")
                     if pos == -1:
