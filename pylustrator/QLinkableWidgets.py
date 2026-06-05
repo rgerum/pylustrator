@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Pylustrator. If not, see <http://www.gnu.org/licenses/>
 
-from typing import Optional, Sequence
+from typing import TYPE_CHECKING, Optional, Sequence, Callable
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -27,21 +27,30 @@ import numpy as np
 from matplotlib.artist import Artist
 from matplotlib.text import Text
 from matplotlib.axes import Axes
-from qtpy import QtCore, QtGui, QtWidgets
+from matplotlib.figure import Figure
+from matplotlib.transforms import Transform
+
+if TYPE_CHECKING:
+    from PyQt5 import QtCore, QtGui, QtWidgets
+    from PyQt5.QtCore import pyqtSignal as Signal
+else:
+    from qtpy import QtCore, QtGui, QtWidgets
+    from qtpy.QtCore import Signal
+from PyQt5.QtCore import pyqtBoundSignal
 from .helper_functions import main_figure
 
 
 class Linkable:
     """a class that automatically links a widget with the property of a matplotlib artist"""
 
-    editingFinished = QtCore.Signal()
+    editingFinished = Signal()
 
     def link(
-        self,
-        property_name: str,
-        signal: QtCore.Signal = None,
-        condition: callable = None,
-        direct: bool = False,
+            self,
+            property_name: str,
+            signal: pyqtBoundSignal | None = None,
+            condition: Optional[Callable] = None,
+            direct: bool = False,
     ):
         self.element = None
         self.direct = direct
@@ -78,23 +87,23 @@ class Linkable:
                 # special treatment for the xylabels, as they are not directly the target objects
                 label_object = None
                 if (
-                    isinstance(self.element, Text)
-                    and len(main_figure(self.element).selection.targets)
-                    and isinstance(
-                        main_figure(self.element).selection.targets[0].target, Axes
-                    )
+                        isinstance(self.element, Text)
+                        and len(main_figure(self.element).selection.targets)
+                        and isinstance(
+                    main_figure(self.element).selection.targets[0].target, Axes
+                )
                 ):
                     for elm in main_figure(self.element).selection.targets:
                         elm = elm.target
                         if (
-                            self.element
-                            == getattr(getattr(elm, "get_xaxis")(), "get_label")()
+                                self.element
+                                == getattr(getattr(elm, "get_xaxis")(), "get_label")()
                         ):
                             label_object = "x"
                             break
                         if (
-                            self.element
-                            == getattr(getattr(elm, "get_yaxis")(), "get_label")()
+                                self.element
+                                == getattr(getattr(elm, "get_yaxis")(), "get_label")()
                         ):
                             label_object = "y"
                             break
@@ -125,23 +134,23 @@ class Linkable:
             def getAll():
                 label_object = None
                 if (
-                    isinstance(self.element, Text)
-                    and len(main_figure(self.element).selection.targets)
-                    and isinstance(
-                        main_figure(self.element).selection.targets[0].target, Axes
-                    )
+                        isinstance(self.element, Text)
+                        and len(main_figure(self.element).selection.targets)
+                        and isinstance(
+                    main_figure(self.element).selection.targets[0].target, Axes
+                )
                 ):
                     for elm in main_figure(self.element).selection.targets:
                         elm = elm.target
                         if (
-                            self.element
-                            == getattr(getattr(elm, "get_xaxis")(), "get_label")()
+                                self.element
+                                == getattr(getattr(elm, "get_xaxis")(), "get_label")()
                         ):
                             label_object = "x"
                             break
                         if (
-                            self.element
-                            == getattr(getattr(elm, "get_yaxis")(), "get_label")()
+                                self.element
+                                == getattr(getattr(elm, "get_yaxis")(), "get_label")()
                         ):
                             label_object = "y"
                             break
@@ -154,7 +163,7 @@ class Linkable:
                     )
                 ]
                 for index, elm in enumerate(
-                    main_figure(self.element).selection.targets
+                        main_figure(self.element).selection.targets
                 ):
                     elm = elm.target
                     # special treatment for the xylabels, as they are not directly the target objects
@@ -194,7 +203,8 @@ class Linkable:
             self.condition = condition
 
         self.editingFinished.connect(self.updateLink)
-        signal.connect(self.setTarget)
+        if signal is not None:
+            signal.connect(self.setTarget)
 
     def setTarget(self, element: Artist):
         """set the target for the widget"""
@@ -228,7 +238,7 @@ class Linkable:
         new_value = self.getLinkedPropertyAll()
 
         def save_change(element):
-            if isinstance(element, mpl.figure.Figure):
+            if isinstance(element, Figure):
                 fig = element
             else:
                 fig = main_figure(element)
@@ -241,12 +251,11 @@ class Linkable:
                 )
 
         if (
-            self.property_name == "xlim"
-            or self.property_name == "ylim"
-            or self.property_name == "xlabel"
-            or self.property_name == "ylabel"
+                self.property_name == "xlim"
+                or self.property_name == "ylim"
+                or self.property_name == "xlabel"
+                or self.property_name == "ylabel"
         ):
-
             def save_change(element):
                 element.figure.change_tracker.addNewAxesChange(element)
 
@@ -261,7 +270,7 @@ class Linkable:
                 save_change(elem)
 
         element = elements[0]
-        if isinstance(element, mpl.figure.Figure):
+        if isinstance(element, Figure):
             fig = element
         else:
             fig = main_figure(element)
@@ -286,7 +295,7 @@ class Linkable:
 
 class FreeNumberInput(QtWidgets.QLineEdit):
     send_signal = True
-    valueChanged = QtCore.Signal(float)
+    valueChanged = Signal(float)
 
     def __init__(self):
         """Like a QSpinBox for number import, but without min or max range or a fixed resolution.
@@ -333,19 +342,19 @@ class FreeNumberInput(QtWidgets.QLineEdit):
 
 
 class DimensionsWidget(QtWidgets.QWidget, Linkable):
-    valueChanged = QtCore.Signal(tuple)
-    valueChangedX = QtCore.Signal(float)
-    valueChangedY = QtCore.Signal(float)
+    valueChanged = Signal(tuple)
+    valueChangedX = Signal(float)
+    valueChangedY = Signal(float)
     transform = None
     noSignal = False
 
     def __init__(
-        self,
-        layout: QtWidgets.QLayout,
-        text: str,
-        join: str,
-        unit: str,
-        free: bool = False,
+            self,
+            layout: QtWidgets.QLayout,
+            text: str,
+            join: str,
+            unit: str,
+            free: bool = False,
     ):
         """a widget that lets the user input a pair of dimensions (e.g. widh and height)
 
@@ -358,10 +367,10 @@ class DimensionsWidget(QtWidgets.QWidget, Linkable):
         """
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
-        self.layout = QtWidgets.QHBoxLayout(self)
+        self.layout_main = QtWidgets.QHBoxLayout(self)
         self.text = QtWidgets.QLabel(text)
-        self.layout.addWidget(self.text)
-        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout_main.addWidget(self.text)
+        self.layout_main.setContentsMargins(0, 0, 0, 0)
 
         if free:
             self.input1 = FreeNumberInput()
@@ -373,11 +382,11 @@ class DimensionsWidget(QtWidgets.QWidget, Linkable):
             self.input1.setMinimum(-99999)
             self.input1.setMaximumWidth(100)
         self.input1.valueChanged.connect(self.onValueChangedX)
-        self.layout.addWidget(self.input1)
+        self.layout_main.addWidget(self.input1)
 
         self.text2 = QtWidgets.QLabel(join)
         self.text2.setMaximumWidth(self.text2.fontMetrics().width(join))
-        self.layout.addWidget(self.text2)
+        self.layout_main.addWidget(self.text2)
 
         if free:
             self.input2 = FreeNumberInput()
@@ -389,7 +398,7 @@ class DimensionsWidget(QtWidgets.QWidget, Linkable):
             self.input2.setMinimum(-99999)
             self.input2.setMaximumWidth(100)
         self.input2.valueChanged.connect(self.onValueChangedY)
-        self.layout.addWidget(self.input2)
+        self.layout_main.addWidget(self.input2)
 
         self.editingFinished = self.valueChanged
 
@@ -402,7 +411,7 @@ class DimensionsWidget(QtWidgets.QWidget, Linkable):
         self.input1.setSuffix(" " + unit)
         self.input2.setSuffix(" " + unit)
 
-    def setTransform(self, transform: mpl.transforms.Transform):
+    def setTransform(self, transform: Transform):
         """set the transform for the units"""
         self.transform = transform
 
@@ -458,17 +467,17 @@ class DimensionsWidget(QtWidgets.QWidget, Linkable):
 
 
 class TextWidget(QtWidgets.QWidget, Linkable):
-    editingFinished = QtCore.Signal()
+    editingFinished = Signal()
     noSignal = False
     last_text = None
 
     def __init__(
-        self,
-        layout: QtWidgets.QLayout,
-        text: str,
-        multiline: bool = False,
-        horizontal: bool = True,
-        allow_literal_decoding=False,
+            self,
+            layout: QtWidgets.QLayout,
+            text: str,
+            multiline: bool = False,
+            horizontal: bool = True,
+            allow_literal_decoding=False,
     ):
         """a text input widget with a label.
 
@@ -482,12 +491,14 @@ class TextWidget(QtWidgets.QWidget, Linkable):
         layout.addWidget(self)
         self.allow_literal_decoding = allow_literal_decoding
         if horizontal:
-            self.layout = QtWidgets.QHBoxLayout(self)
+            layout_obj = QtWidgets.QHBoxLayout(self)
         else:
-            self.layout = QtWidgets.QVBoxLayout(self)
+            layout_obj = QtWidgets.QVBoxLayout(self)
+        self.setLayout(layout_obj)
+        self.layout_main = layout_obj
         self.label = QtWidgets.QLabel(text)
-        self.layout.addWidget(self.label)
-        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout_main.addWidget(self.label)
+        self.layout_main.setContentsMargins(0, 0, 0, 0)
 
         self.multiline = multiline
         if multiline:
@@ -497,7 +508,7 @@ class TextWidget(QtWidgets.QWidget, Linkable):
         else:
             self.input1 = QtWidgets.QLineEdit()
             self.input1.editingFinished.connect(self.valueChangeEvent)
-        self.layout.addWidget(self.input1)
+        self.layout_main.addWidget(self.input1)
 
     def valueChangeEvent(self):
         """an event that is triggered when the text in the input field is changed"""
@@ -547,15 +558,15 @@ class TextWidget(QtWidgets.QWidget, Linkable):
 
 
 class NumberWidget(QtWidgets.QWidget, Linkable):
-    editingFinished = QtCore.Signal()
+    editingFinished = Signal()
     noSignal = False
 
     def __init__(
-        self,
-        layout: QtWidgets.QLayout,
-        text: str,
-        min: float | None = None,
-        use_float: bool = True,
+            self,
+            layout: QtWidgets.QLayout,
+            text: str,
+            min: float | None = None,
+            use_float: bool = True,
     ):
         """A spin box with a label next to it.
 
@@ -567,10 +578,10 @@ class NumberWidget(QtWidgets.QWidget, Linkable):
         """
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
-        self.layout = QtWidgets.QHBoxLayout(self)
+        self.layout_main = QtWidgets.QHBoxLayout(self)
         self.label = QtWidgets.QLabel(text)
-        self.layout.addWidget(self.label)
-        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout_main.addWidget(self.label)
+        self.layout_main.setContentsMargins(0, 0, 0, 0)
 
         self.type = float if use_float else int
         if use_float is False:
@@ -580,7 +591,7 @@ class NumberWidget(QtWidgets.QWidget, Linkable):
         if min is not None:
             self.input1.setMinimum(min)
         self.input1.valueChanged.connect(self.valueChangeEvent)
-        self.layout.addWidget(self.input1)
+        self.layout_main.addWidget(self.input1)
 
     def valueChangeEvent(self):
         """when the value of the spin box changes"""
@@ -618,7 +629,7 @@ class NumberWidget(QtWidgets.QWidget, Linkable):
 
 
 class ComboWidget(QtWidgets.QWidget, Linkable):
-    editingFinished = QtCore.Signal()
+    editingFinished = Signal()
     noSignal = False
 
     def __init__(self, layout: QtWidgets.QLayout, text: str, values: Sequence):
@@ -631,19 +642,19 @@ class ComboWidget(QtWidgets.QWidget, Linkable):
         """
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
-        self.layout = QtWidgets.QHBoxLayout(self)
+        self.layout_main = QtWidgets.QHBoxLayout(self)
         self.label = QtWidgets.QLabel(text)
-        self.layout.addWidget(self.label)
-        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout_main.addWidget(self.label)
+        self.layout_main.setContentsMargins(0, 0, 0, 0)
 
         self.values = values
 
         self.input1 = QtWidgets.QComboBox()
         self.input1.addItems(values)
-        self.layout.addWidget(self.input1)
+        self.layout_main.addWidget(self.input1)
 
         self.input1.currentIndexChanged.connect(self.valueChangeEvent)
-        self.layout.addWidget(self.input1)
+        self.layout_main.addWidget(self.input1)
 
     def valueChangeEvent(self):
         """called when the value has changed"""
@@ -682,11 +693,11 @@ class ComboWidget(QtWidgets.QWidget, Linkable):
 
 
 class CheckWidget(QtWidgets.QWidget, Linkable):
-    editingFinished = QtCore.Signal()
-    stateChanged = QtCore.Signal(int)
+    editingFinished = Signal()
+    stateChanged = Signal(int)
     noSignal = False
 
-    def __init__(self, layout: QtWidgets.QLabel, text: str):
+    def __init__(self, layout: QtWidgets.QLayout, text: str):
         """a widget that contains a checkbox with a label
 
         Args:
@@ -695,15 +706,15 @@ class CheckWidget(QtWidgets.QWidget, Linkable):
         """
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
-        self.layout = QtWidgets.QHBoxLayout(self)
+        self.layout_main = QtWidgets.QHBoxLayout(self)
         self.label = QtWidgets.QLabel(text)
-        self.layout.addWidget(self.label)
-        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout_main.addWidget(self.label)
+        self.layout_main.setContentsMargins(0, 0, 0, 0)
 
         self.input1 = QtWidgets.QCheckBox()
         self.input1.setTristate(False)
         self.input1.stateChanged.connect(self.onStateChanged)
-        self.layout.addWidget(self.input1)
+        self.layout_main.addWidget(self.input1)
 
     def onStateChanged(self):
         """when the state of the checkbox changes"""
@@ -738,7 +749,7 @@ class CheckWidget(QtWidgets.QWidget, Linkable):
 
 
 class RadioWidget(QtWidgets.QWidget):
-    stateChanged = QtCore.Signal(int, str)
+    stateChanged = Signal(int, str)
     noSignal = False
 
     def __init__(self, layout: QtWidgets.QLayout, texts: Sequence[str]):
@@ -750,8 +761,8 @@ class RadioWidget(QtWidgets.QWidget):
         """
         QtWidgets.QWidget.__init__(self)
         layout.addWidget(self)
-        self.layout = QtWidgets.QHBoxLayout(self)
-        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout_main = QtWidgets.QHBoxLayout(self)
+        self.layout_main.setContentsMargins(0, 0, 0, 0)
 
         self.radio_buttons = []
 
@@ -760,7 +771,7 @@ class RadioWidget(QtWidgets.QWidget):
         for name in texts:
             radio = QtWidgets.QRadioButton(name)
             radio.toggled.connect(self.onToggled)
-            self.layout.addWidget(radio)
+            self.layout_main.addWidget(radio)
             self.radio_buttons.append(radio)
         self.radio_buttons[0].setChecked(True)
 
@@ -787,13 +798,13 @@ class RadioWidget(QtWidgets.QWidget):
 
 
 class QColorWidget(QtWidgets.QWidget, Linkable):
-    valueChanged = QtCore.Signal(str)
+    valueChanged = Signal(str)
 
     def __init__(
-        self,
-        layout: QtWidgets.QLayout,
-        text: str | None = None,
-        value: str | None = None,
+            self,
+            layout: QtWidgets.QLayout,
+            text: str | None = None,
+            value: str | None = None,
     ):
         """A colored button what acts as an color input
 
@@ -803,16 +814,16 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
             value: the value of the color widget
         """
         super().__init__()
-        self.layout = QtWidgets.QHBoxLayout(self)
-        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout_main = QtWidgets.QHBoxLayout(self)
+        self.layout_main.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self)
 
         if text is not None:
             self.label = QtWidgets.QLabel(text)
-            self.layout.addWidget(self.label)
+            self.layout_main.addWidget(self.label)
 
         self.button = QtWidgets.QPushButton()
-        self.layout.addWidget(self.button)
+        self.layout_main.addWidget(self.button)
 
         self.button.clicked.connect(self.OpenDialog)
         # default value for the color
@@ -825,7 +836,7 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
 
     def changeEvent(self, event):
         """when the widget is enabled"""
-        if event.type() == QtCore.QEvent.EnabledChange:
+        if event.type() == QtCore.QEvent.Type.EnabledChange:
             if not self.isEnabled():
                 self.button.setStyleSheet("background-color: #f0f0f0;")
             else:
@@ -833,14 +844,17 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
 
     def OpenDialog(self):
         """open a color chooser dialog"""
+        parent = self.parent()
+        if parent is None or not isinstance(parent, QtWidgets.QWidget):
+            raise TypeError("parent is None")
         # get new color from color picker
         self.current_color = QtGui.QColor(
             *tuple(int(x) for x in mpl.colors.to_rgba_array(self.getColor())[0] * 255)
         )
-        self.dialog = QtWidgets.QColorDialog(self.current_color, self.parent())
+        self.dialog = QtWidgets.QColorDialog(self.current_color, parent)
         self.dialog.setOptions(QtWidgets.QColorDialog.ShowAlphaChannel)
         for index, color in enumerate(
-            plt.rcParams["axes.prop_cycle"].by_key()["color"]
+                plt.rcParams["axes.prop_cycle"].by_key()["color"]
         ):
             self.dialog.setCustomColor(index, QtGui.QColor(color))
         self.dialog.open(self.dialog_finished)
@@ -878,7 +892,9 @@ class QColorWidget(QtWidgets.QWidget, Linkable):
         # display and save the new color
         if value is None:
             value = "#FF0000FF"
-        self.button.setAttribute(QtCore.Qt.WA_TranslucentBackground, True)
+        self.button.setAttribute(
+            QtCore.Qt.WidgetAttribute.WA_TranslucentBackground, True
+        )
         if len(value) == 9:
             self.button.setStyleSheet(
                 "background-color: rgba(%d, %d, %d, %d%%);"

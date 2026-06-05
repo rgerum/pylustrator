@@ -43,7 +43,7 @@ class SaveList(list):
     def __init__(self, target):
         list.__init__(self, target)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item):  # ty:ignore[invalid-method-override]
         try:
             return list.__getitem__(self, item)
         except IndexError:
@@ -67,9 +67,9 @@ class SaveTuple(tuple):
     """a tuple that returns dummy objects when an invalid item is requested"""
 
     def __init__(self, target):
-        tuple.__init__(self, target)
+        tuple.__init__(self, target)  # ty:ignore[too-many-positional-arguments]
 
-    def __getitem__(self, item):
+    def __getitem__(self, item):  # ty:ignore[invalid-method-override]
         try:
             return tuple.__getitem__(self, item)
         except IndexError:
@@ -120,12 +120,12 @@ def swallow_get_exceptions():
     this is to ensure that the pylustrator generated code does not fail, even if the user removes some elements
     from the figure.
     """
-    Figure._get_axes = get_axes
-    Figure.axes = property(fget=get_axes)
-    Figure.ax_dict = SaveListDescriptor("ax_dict")
-    _AxesBase.texts = SaveListDescriptor("texts")
-    _AxesBase.lines = SaveListDescriptor("lines")
-    _AxesBase.patches = SaveListDescriptor("patches")
+    Figure._get_axes = get_axes  # ty:ignore[unresolved-attribute]
+    Figure.axes = property(fget=get_axes)  # ty:ignore[invalid-assignment]
+    Figure.ax_dict = SaveListDescriptor("ax_dict")  # ty:ignore[unresolved-attribute]
+    _AxesBase.texts = SaveListDescriptor("texts")  # ty:ignore[invalid-assignment]
+    _AxesBase.lines = SaveListDescriptor("lines")  # ty:ignore[invalid-assignment]
+    _AxesBase.patches = SaveListDescriptor("patches")  # ty:ignore[invalid-assignment]
     Axis.get_minor_ticks = return_save_list(Axis.get_minor_ticks)
     Axis.get_major_ticks = return_save_list(Axis.get_major_ticks)
     get_legend_orig = _AxesBase.get_legend
@@ -136,4 +136,4 @@ def swallow_get_exceptions():
             return Dummy()
         return leg
 
-    _AxesBase.get_legend = get_legend
+    _AxesBase.get_legend = get_legend  # ty:ignore[invalid-assignment]

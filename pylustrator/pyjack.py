@@ -267,7 +267,7 @@ def _get_self():
     global _func_code_map
 
     frame = _inspect.currentframe()
-    code = frame.f_back.f_code
+    code = frame.f_back.f_code  # ty:ignore[possibly-missing-attribute]
     return _func_code_map[code]
 
 
@@ -282,15 +282,15 @@ class _PyjackFuncCode(_PyjackFunc):
         self._fn, self._proxyfn = fn, proxyfn
 
         def proxy(*args, **kwargs):
-            import pyjack
+            import pyjack  # ty:ignore[unresolved-import]
 
             self = pyjack._get_self()
             return self._process_fn(args, kwargs)
 
-        _func_code_map[proxy.func_code] = self
+        _func_code_map[proxy.func_code] = self  # ty:ignore[unresolved-attribute]
         self._org_func_code = fn.func_code
-        self._proxy_func_code = proxy.func_code
-        fn.func_code = proxy.func_code
+        self._proxy_func_code = proxy.func_code  # ty:ignore[unresolved-attribute]
+        fn.func_code = proxy.func_code  # ty:ignore[unresolved-attribute]
 
         fn.restore = self.restore
 

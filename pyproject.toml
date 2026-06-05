@@ -2,7 +2,7 @@
 name = "pylustrator"
 version = "1.3.0"
 description = "Adds interactivity to arrange panels in matplotlib."
-authors = [{ name = "rgerum", email = "14153051+rgerum@users.noreply.github.com" }]
+authors = [{ name = "Richard Gerum", email = "pypi.org.zookeeper162@passmail.net" }]
 license = "GPL-3.0-or-later"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -15,6 +15,12 @@ dependencies = [
     "scikit-image>=0.7.0",
     "qtpy>=2.4.3",
 ]
+
+[project.urls]
+Homepage = "https://github.com/rgerum/pylustrator"
+Repository = "https://github.com/rgerum/pylustrator"
+Issues = "https://github.com/rgerum/pylustrator/issues"
+Documentation = "https://pylustrator.readthedocs.io/en/latest/"
 
 [project.optional-dependencies]
 dev = ["ruff>=0.14.11", "ty>=0.0.10"]
@@ -37,4 +43,5 @@ docs = [
 
 [tool.setuptools]
 packages = ["pylustrator", "pylustrator.components"]
+include-package-data = true
 

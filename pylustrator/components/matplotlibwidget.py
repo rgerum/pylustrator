@@ -35,20 +35,27 @@ Copyright © 2005 Florent Rougon, 2006 Darren Dale
 __version__ = "1.0.0"
 
 import time
+from typing import TYPE_CHECKING
 
 import qtawesome as qta
-from qtpy import QtWidgets, QtCore
+
+if TYPE_CHECKING:
+    from PyQt5 import QtWidgets, QtCore
+    from PyQt5.QtCore import pyqtSignal as Signal
+else:
+    from qtpy import QtWidgets, QtCore
+    from qtpy.QtCore import Signal
 
 try:  # for matplotlib > 3.0
     from matplotlib.backends.backend_qtagg import (
-        FigureCanvas,
-        FigureManager,
+        FigureCanvas,  # ty:ignore[unresolved-import]
+        FigureManager,  # ty:ignore[unresolved-import]
         NavigationToolbar2QT as NavigationToolbar,
     )
 except ModuleNotFoundError:
     from matplotlib.backends.backend_qt5agg import (
-        FigureCanvas,
-        FigureManager,
+        FigureCanvas,  # ty:ignore[unresolved-import]
+        FigureManager,  # ty:ignore[unresolved-import]
         NavigationToolbar2QT as NavigationToolbar,
     )
 from matplotlib.figure import Figure
@@ -56,12 +63,11 @@ from matplotlib.figure import Figure
 
 class MatplotlibWidget(FigureCanvas):
     quick_draw = True
+    window_pylustrator = None  # "PlotLayout" | None = None
 
-    def __init__(
-        self, parent=None, num=1, size=None, dpi=100, figure=None, *args, **kwargs
-    ):
+    def __init__(self, parent=None, figure=None, *args, **kwargs):
         if figure is None:
-            self.figure = Figure(figsize=size, dpi=dpi, *args, **kwargs)
+            self.figure = Figure(*args, **kwargs)
         else:
             self.figure = figure
 
@@ -78,16 +84,17 @@ class MatplotlibWidget(FigureCanvas):
         self.timer.setInterval(300)
         self.timer.timeout.connect(self.draw)
 
-    timer = None
+    timer: QtCore.QTimer | None = None
 
     def schedule_draw(self):
         if self.quick_draw is True:
             return super().draw()
-        if not self.timer.isActive():
+        if self.timer and not self.timer.isActive():
             self.timer.start()
 
     def draw(self):
-        self.timer.stop()
+        if self.timer:
+            self.timer.stop()
         # import traceback
         # print(traceback.print_stack())
         t = time.time()
@@ -129,20 +136,20 @@ except AttributeError:
 
 
 class CanvasWindow(QtWidgets.QWidget):
-    signal = QtCore.Signal()
+    signal = Signal()
 
     def __init__(self, num="", *args, **kwargs):
         QtWidgets.QWidget.__init__(self)
         self.setWindowTitle("Figure %s" % num)
         self.setWindowIcon(qta.icon("fa5s.bar-chart"))
-        self.layout = QtWidgets.QVBoxLayout(self)
-        self.layout.setContentsMargins(0, 0, 0, 0)
-        self.layout.setSpacing(0)
+        self.layout_main = QtWidgets.QVBoxLayout(self)
+        self.layout_main.setContentsMargins(0, 0, 0, 0)
+        self.layout_main.setSpacing(0)
         self.canvas = MatplotlibWidget(self, *args, **kwargs)
         self.canvas.window = self
-        self.layout.addWidget(self.canvas)
+        self.layout_main.addWidget(self.canvas)
         self.toolbar = NavigationToolbar(self.canvas, self)
-        self.layout.addWidget(self.toolbar)
+        self.layout_main.addWidget(self.toolbar)
 
         self.signal.connect(self.show)
 

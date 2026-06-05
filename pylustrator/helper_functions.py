@@ -27,7 +27,7 @@ from .parse_svg import svgread
 try:  # starting from mpl version 3.6.0
     from matplotlib.axes import Axes
 except ImportError:
-    from matplotlib.axes._subplots import Axes
+    from matplotlib.axes._subplots import Axes  # ty:ignore[unresolved-import]
 from matplotlib.figure import Figure
 from .pyjack import replace_all_refs
 import os
@@ -64,7 +64,7 @@ def add_axes(dim: Sequence, unit: str = "cm", *args, **kwargs):
         x += 1
     if y < 0:
         y += 1
-    return plt.axes([x, y, w, h], *args, **kwargs)
+    return plt.axes((x, y, w, h), *args, **kwargs)
 
 
 def add_image(filename: str):
@@ -79,7 +79,7 @@ def changeFigureSize(
     h: float,
     cut_from_top: bool = False,
     cut_from_left: bool = False,
-    fig: Figure = None,
+    fig: Figure | None = None,
 ):
     """change the figure size to the given dimensions. Optionally define if to remove or add space at the top or bottom
     and left or right.
@@ -94,53 +94,53 @@ def changeFigureSize(
         if cut_from_top:
             if cut_from_left:
                 axe.set_position(
-                    [
+                    (
                         1 - (1 - box.x0) * fx,
                         box.y0 * fy,
                         (box.x1 - box.x0) * fx,
                         (box.y1 - box.y0) * fy,
-                    ]
+                    )
                 )
             else:
                 axe.set_position(
-                    [
+                    (
                         box.x0 * fx,
                         box.y0 * fy,
                         (box.x1 - box.x0) * fx,
                         (box.y1 - box.y0) * fy,
-                    ]
+                    )
                 )
         else:
             if cut_from_left:
                 axe.set_position(
-                    [
+                    (
                         1 - (1 - box.x0) * fx,
                         1 - (1 - box.y0) * fy,
                         (box.x1 - box.x0) * fx,
                         (box.y1 - box.y0) * fy,
-                    ]
+                    )
                 )
             else:
                 axe.set_position(
-                    [
+                    (
                         box.x0 * fx,
                         1 - (1 - box.y0) * fy,
                         (box.x1 - box.x0) * fx,
                         (box.y1 - box.y0) * fy,
-                    ]
+                    )
                 )
     for text in fig.texts:
         x0, y0 = text.get_position()
         if cut_from_top:
             if cut_from_left:
-                text.set_position([1 - (1 - x0) * fx, y0 * fy])
+                text.set_position((1 - (1 - x0) * fx, y0 * fy))
             else:
-                text.set_position([x0 * fx, y0 * fy])
+                text.set_position((x0 * fx, y0 * fy))
         else:
             if cut_from_left:
-                text.set_position([1 - (1 - x0) * fx, 1 - (1 - y0) * fy])
+                text.set_position((1 - (1 - x0) * fx, 1 - (1 - y0) * fy))
             else:
-                text.set_position([x0 * fx, 1 - (1 - y0) * fy])
+                text.set_position((x0 * fx, 1 - (1 - y0) * fy))
     fig.set_size_inches(w, h, forward=True)
 
 
@@ -186,14 +186,20 @@ def get_unique_label(fig1, label_base):
     return label
 
 
-def imShowFullFigure(im: np.ndarray, filename: str, fig1: Figure, dpi: int, label: str):
+def imShowFullFigure(
+    im: np.ndarray,
+    filename: str,
+    fig1: Figure,
+    dpi: int | None,
+    label: str | None = None,
+):
     """create a new axes and display an image in this axes"""
     from matplotlib import rcParams
 
     if dpi is None:
         dpi = rcParams["figure.dpi"]
     fig1.set_size_inches(im.shape[1] / dpi, im.shape[0] / dpi)
-    ax = plt.axes([0, 0, 1, 1], label=label)
+    ax = plt.axes((0, 0, 1, 1), label=label)
     plt.imshow(im, cmap="gray")
     plt.xticks([])
     plt.yticks([])
@@ -220,9 +226,9 @@ class changeFolder:
 
 def loadFigureFromFile(
     filename: str,
-    figure: Figure = None,
-    offset: list = None,
-    dpi: int = None,
+    figure: Figure | None = None,
+    offset: list | None = None,
+    dpi: int | None = None,
     cache: bool = False,
     label: str = "",
 ):
@@ -278,8 +284,8 @@ def loadFigureFromFile(
                     pass
 
                 # set the show function to the empty function
-                plt.show = empty
-                pylustrator.start = empty
+                plt.show = empty  # ty:ignore[invalid-assignment]
+                pylustrator.start = empty  # ty:ignore[invalid-assignment]
 
             def __exit__(self, type, value, traceback):
                 # restore the old show function
@@ -303,7 +309,7 @@ def loadFigureFromFile(
                         fig.set_size_inches(figsize[0], figsize[1], forward=True)
                     return fig
 
-                plt.figure = figure
+                plt.figure = figure  # ty:ignore[invalid-assignment]
 
             def __exit__(self, type, value, traceback):
                 plt.figure = self.fig
@@ -365,7 +371,8 @@ def loadFigureFromFile(
                             )
                             replace_all_refs(fig2.bbox, figure.bbox)
                             replace_all_refs(
-                                fig2.dpi_scale_trans, figure.dpi_scale_trans
+                                fig2.dpi_scale_trans,
+                                figure.dpi_scale_trans,
                             )
                             replace_all_refs(fig2, figure)
                     else:
@@ -443,16 +450,18 @@ def mark_inset(
         BboxConnector,
     )
 
-    try:
-        loc1a, loc1b = loc1
-    except TypeError:
+    if isinstance(loc1, int):
         loc1a = loc1
         loc1b = loc1
-    try:
-        loc2a, loc2b = loc2
-    except TypeError:
+    else:
+        loc1a, loc1b = loc1
+
+    if isinstance(loc2, int):
         loc2a = loc2
         loc2b = loc2
+    else:
+        loc2a, loc2b = loc2
+
     rect = TransformedBbox(inset_axes.viewLim, parent_axes.transData)
 
     pp = BboxPatch(rect, fill=False, **kwargs)
@@ -515,9 +524,9 @@ def mark_inset_pos(
     point: Sequence,
     **kwargs,
 ):
-    """add a box connector where the second axis is shrinked to a point"""
+    """add a box connector where the second axis is shrunk to a point"""
     kwargs["lw"] = 0.8
-    ax_new = plt.axes(inset_axes.get_position())
+    ax_new = plt.axes(inset_axes.get_position().bounds)
     ax_new.set_xlim(point[0], point[0])
     ax_new.set_ylim(point[1], point[1])
     mark_inset(parent_axes, ax_new, loc1, loc2, **kwargs)
@@ -529,8 +538,8 @@ def mark_inset_pos(
 def VoronoiPlot(
     points: Sequence,
     values: Sequence,
-    vmin: float = None,
-    vmax: float = None,
+    vmin: float | None = None,
+    vmax: float | None = None,
     cmap=None,
 ):
     """plot the voronoi regions of the poins with the given colormap"""
@@ -561,14 +570,14 @@ def VoronoiPlot(
             excluded_indices.append(index)
             continue
         region = np.array([vor.vertices[i] for i in reg])
-        polygon = Polygon(region, True)
+        polygon = Polygon(region, True)  # ty:ignore[too-many-positional-arguments]
         patches.append(polygon)
         dists = values[index]
         dist_list.append(dists)
         # plt.plot(p[0], p[1], 'ok', alpha=0.3, ms=1)
 
     p = PatchCollection(patches, cmap=cmap)
-    p.set_clim([vmin, vmax])
+    p.set_clim((vmin, vmax))  # ty:ignore[invalid-argument-type] - matplotlib accepts None for auto-calculation
     p.set_array(np.array(dist_list))
     p.set_linewidth(10)
 
@@ -616,7 +625,10 @@ letter_index = 0
 
 
 def add_letter(
-    ax: Axes = None, offset: float = 0, offset2: float = 0, letter: str = None
+    ax: Axes = None,
+    offset: float = 0,
+    offset2: float = 0,
+    letter: str | None = None,
 ):
     """add a letter indicating which subplot it is to the given figure"""
     global letter_index
@@ -646,7 +658,7 @@ def add_letter(
     transform = (
         Affine2D().scale(1 / 2.54, 1 / 2.54)
         + fig.dpi_scale_trans
-        + ScaledTranslation(0, 1, ax.transAxes)
+        + ScaledTranslation(0, 1, fig.dpi_scale_trans)
     )
 
     # add a text a the given position
@@ -670,7 +682,7 @@ def get_letter_font_prop():
     font.set_family("C:\\WINDOWS\\Fonts\\HelveticaNeue-CondensedBold.ttf")
     font.set_weight("heavy")
     font.set_size(10)
-    font.letter_format = "a"
+    font.letter_format = "a"  # ty:ignore[unresolved-attribute]
     return font
 
 

@@ -25,4 +25,7 @@ jobs:
         run: uv sync --locked --all-extras --dev
 
       - name: Run Ruff
-        run: uvx ruff check --output-format=github .
+        run: uv run ruff check --output-format=github .
+
+      - name: Run Ty
+        run: uv run ty check
