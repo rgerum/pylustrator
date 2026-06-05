@@ -23,7 +23,7 @@ Issues = "https://github.com/rgerum/pylustrator/issues"
 Documentation = "https://pylustrator.readthedocs.io/en/latest/"
 
 [project.optional-dependencies]
-dev = ["ruff>=0.14.11", "ty==0.0.10"]
+dev = ["ruff>=0.14.11", "ty>=0.0.10"]
 test = ["pytest>=7.2.0,<8.0.0"]
 
 [tool.ruff]

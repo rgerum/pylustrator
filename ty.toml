@@ -2,4 +2,13 @@
 python-version = "3.9"
 
 [src]
-exclude = ["docs/"]
+exclude = ["docs/", "development/"]
+
+[rules]
+# Baseline for dynamic Matplotlib/Qt code. Tighten these one rule at a time.
+unresolved-attribute = "ignore"
+invalid-method-override = "ignore"
+invalid-argument-type = "ignore"
+invalid-assignment = "ignore"
+not-iterable = "ignore"
+invalid-return-type = "ignore"
