@@ -946,6 +946,39 @@ class QTickEdit(QtWidgets.QWidget):
             prop_copy2[name] = value
         return (", ".join("%s=%s" % (k, v) for k, v in prop_copy.items())), prop_copy2
 
+    def tickLabelFontChanged(self, element: Axes, properties: dict):
+        """check if the current major tick labels differ from the requested font"""
+        for label in getattr(element, "get_" + self.axis + "ticklabels")():
+            for name, value in properties.items():
+                getter = getattr(label, "get_" + name)
+                if getter() != value:
+                    return True
+        return False
+
+    def getChangedFontProperties(self, element: Axes):
+        labels = getattr(element, "get_" + self.axis + "ticklabels")()
+        if len(labels) == 0:
+            return "", {}
+        current_label = labels[0]
+        changed_properties = {}
+        for name, name2, type_, default_ in self.input_font.property_names:
+            if name not in self.input_font.properties:
+                continue
+            value = self.input_font.properties[name]
+            if getattr(current_label, "get_" + name)() != value:
+                changed_properties[name] = value
+
+        prop_copy = {}
+        for name, value in changed_properties.items():
+            if isinstance(value, str):
+                prop_copy[name] = '"' + value + '"'
+            else:
+                prop_copy[name] = value
+        return (
+            ", ".join("%s=%s" % (k, v) for k, v in prop_copy.items()),
+            changed_properties,
+        )
+
     def fontStateChanged(self):
         self.ticksChanged()
         # fig.change_tracker.addChange(axes, ".legend(%s)" % (", ".join("%s=%s" % (k, v) for k, v in prop_copy.items())))
@@ -968,6 +1001,8 @@ class QTickEdit(QtWidgets.QWidget):
     def ticksChanged(self):
         """when the major ticks changed"""
         ticks, labels = self.parseTicks(self.input_ticks.text())
+        font_properties, font_properties_dict = self.getFontProperties()
+        _, changed_font_properties_dict = self.getChangedFontProperties(self.element)
 
         elements = [self.element]
         elements += [
@@ -987,19 +1022,105 @@ class QTickEdit(QtWidgets.QWidget):
                     or (current_ticks != ticks).any()
                     or len(current_ticklabels) != len(labels)
                     or current_ticklabels != labels
+                    or self.tickLabelFontChanged(elem, font_properties_dict)
             ):
                 changed = True
         if changed is False:
             return
 
-        with UndoRedo(elements, "Axes Ticks"):
-            for element in elements:
-                kwargs = {}
-                kwargs[f"{self.axis}ticks"] = ticks
-                kwargs[f"{self.axis}ticklabels"] = labels
-                kwargs[f"{self.axis}lim"] = self.range
-                element.set(**kwargs)
+        if changed_font_properties_dict == {}:
+            with UndoRedo(elements, "Axes Ticks"):
+                for element in elements:
+                    kwargs = {}
+                    kwargs[f"{self.axis}ticks"] = ticks
+                    kwargs[f"{self.axis}ticklabels"] = labels
+                    kwargs[f"{self.axis}lim"] = self.range
+                    element.set(**kwargs)
+            return
 
+        old_properties = []
+        for element in elements:
+            axis = getattr(element, "get_" + self.axis + "axis")()
+            ticklabels = [
+                t.get_text()
+                for t in getattr(element, "get_" + self.axis + "ticklabels")()
+            ]
+            ticklabel_properties = [
+                {
+                    name: getattr(t, "get_" + name)()
+                    for name, name2, type_, default_ in self.input_font.property_names
+                }
+                for t in getattr(element, "get_" + self.axis + "ticklabels")()
+            ]
+            old_properties.append(
+                [
+                    axis.major.locator,
+                    axis.major.formatter,
+                    getattr(element, "get_" + self.axis + "lim")(),
+                    getattr(element, "get_" + self.axis + "ticks")(),
+                    ticklabels,
+                    ticklabel_properties,
+                ]
+            )
+
+        def undo():
+            for element, properties in zip(elements, old_properties):
+                (
+                    locator,
+                    formatter,
+                    lim,
+                    old_ticks,
+                    old_labels,
+                    old_label_properties,
+                ) = properties
+                axis = getattr(element, "get_" + self.axis + "axis")()
+                axis.set_major_locator(locator)
+                axis.set_major_formatter(formatter)
+                getattr(element, "set_" + self.axis + "ticks")(old_ticks)
+                old_texts = getattr(element, "set_" + self.axis + "ticklabels")(
+                    old_labels
+                )
+                for text, properties in zip(old_texts, old_label_properties):
+                    text.update(properties)
+                getattr(element, "set_" + self.axis + "lim")(lim)
+                self.fig.change_tracker.addNewAxesChange(element)
+
+        def redo():
+            for element in elements:
+                getattr(element, "set_" + self.axis + "ticks")(ticks)
+                getattr(element, "set_" + self.axis + "ticklabels")(
+                    labels, **font_properties_dict
+                )
+                getattr(element, "set_" + self.axis + "lim")(self.range)
+                min, max = getattr(element, "get_" + self.axis + "lim")()
+                if min != self.range[0] or max != self.range[1]:
+                    self.fig.change_tracker.addChange(
+                        element,
+                        ".set_" + self.axis + "lim(%s, %s)" % (str(min), str(max)),
+                    )
+                else:
+                    self.fig.change_tracker.addChange(
+                        element,
+                        ".set_"
+                        + self.axis
+                        + "lim(%s, %s)" % (str(self.range[0]), str(self.range[1])),
+                    )
+
+                self.fig.change_tracker.addChange(
+                    element,
+                    ".set_"
+                    + self.axis
+                    + "ticks([%s], [%s], %s)"
+                    % (
+                        ", ".join(self.str(t) for t in ticks),
+                        ", ".join('"' + label + '"' for label in labels),
+                        font_properties,
+                    ),
+                )
+
+        self.fig.change_tracker.addEdit([undo, redo, "ticks"])
+        redo()
+        self.fig.canvas.draw()
         return
         if 0:
             getattr(element, "set_" + self.axis + "lim")(self.range)
