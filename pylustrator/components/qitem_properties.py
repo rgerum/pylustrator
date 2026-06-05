@@ -970,19 +970,10 @@ class QTickEdit(QtWidgets.QWidget):
         labels = getattr(element, "get_" + self.axis + "ticklabels")()
         if len(labels) == 0:
             return {}
-        current_label = labels[0]
         changed_properties = {}
         changed_property_names = self.input_font.changed_property_names
         if not changed_property_names:
-            changed_property_names = {
-                name
-                for name, name2, type_, default_ in self.input_font.property_names
-                if (
-                    name in self.input_font.properties
-                    and getattr(current_label, "get_" + name)()
-                    != self.input_font.properties[name]
-                )
-            }
+            return {}
         for name, name2, type_, default_ in self.input_font.property_names:
             if (
                     name not in changed_property_names
@@ -990,7 +981,7 @@ class QTickEdit(QtWidgets.QWidget):
             ):
                 continue
             value = self.input_font.properties[name]
-            if getattr(current_label, "get_" + name)() != value:
+            if any(getattr(label, "get_" + name)() != value for label in labels):
                 changed_properties[name] = value
 
         return changed_properties
