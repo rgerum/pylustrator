@@ -162,6 +162,23 @@ class GrabFunctions(object):
             self.figure.canvas.schedule_draw()
 
 
+def selection_bounds(target: Artist, points: np.ndarray) -> Tuple[float, float, float, float]:
+    """The rectangle to draw around a target, as x0, y0, x1, y1.
+
+    A text's last two points are the box around its glyphs. The ones before them
+    are its position and, for an annotation, its anchor, which sits wherever the
+    annotation points -- so a rectangle around every point does not sit on the
+    text at all, and it changes shape as the text is dragged.
+    """
+    corners = points[-2:] if isinstance(target, Text) and points.shape[0] >= 3 else points
+    return (
+        float(np.min(corners[:, 0])),
+        float(np.min(corners[:, 1])),
+        float(np.max(corners[:, 0])),
+        float(np.max(corners[:, 1])),
+    )
+
+
 class GrabbableRectangleSelection(GrabFunctions):
     grabbers: list["GrabberGeneric"]
 
@@ -217,20 +234,7 @@ class GrabbableRectangleSelection(GrabFunctions):
 
         self.targets.append(target_wrapped)
 
-        if new_points.shape[0] == 3:
-            x0, y0, x1, y1 = (
-                np.min(new_points[1:, 0]),
-                np.min(new_points[1:, 1]),
-                np.max(new_points[1:, 0]),
-                np.max(new_points[1:, 1]),
-            )
-        else:
-            x0, y0, x1, y1 = (
-                np.min(new_points[:, 0]),
-                np.min(new_points[:, 1]),
-                np.max(new_points[:, 0]),
-                np.max(new_points[:, 1]),
-            )
+        x0, y0, x1, y1 = selection_bounds(target, new_points)
         if 0:
             rect1 = Rectangle(
                 (x0, y0),
@@ -286,7 +290,13 @@ class GrabbableRectangleSelection(GrabFunctions):
         """updates the extend of the selection to all the selected elements"""
         points = None
         for target in self.targets:
-            new_points = np.array(target.get_positions())
+            # The corners each target contributes, not every point it holds, so
+            # an annotation's anchor does not stretch the selection towards
+            # whatever the annotation points at.
+            x0, y0, x1, y1 = selection_bounds(
+                target.target, np.array(target.get_positions())
+            )
+            new_points = np.array([[x0, y0], [x1, y1]])
 
             if points is None:
                 points = new_points
@@ -431,20 +441,7 @@ class GrabbableRectangleSelection(GrabFunctions):
                 new_points = np.array(
                     target.get_positions(use_previous_offset, update_offset=True)
                 )
-                if new_points.shape[0] == 3:
-                    x0, y0, x1, y1 = (
-                        np.min(new_points[1:, 0]),
-                        np.min(new_points[1:, 1]),
-                        np.max(new_points[1:, 0]),
-                        np.max(new_points[1:, 1]),
-                    )
-                else:
-                    x0, y0, x1, y1 = (
-                        np.min(new_points[:, 0]),
-                        np.min(new_points[:, 1]),
-                        np.max(new_points[:, 0]),
-                        np.max(new_points[:, 1]),
-                    )
+                x0, y0, x1, y1 = selection_bounds(target.target, new_points)
                 w0, h0 = x1 - x0, y1 - y0
                 for i in range(2):
                     rect = self.targets_rects[index * 2 + i]

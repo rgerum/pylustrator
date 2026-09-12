@@ -29,6 +29,7 @@ else:
     from qtpy import QtCore, QtGui, QtWidgets
 
 import matplotlib as mpl
+from matplotlib.transforms import IdentityTransform
 import numpy as np
 from matplotlib.artist import Artist
 
@@ -39,7 +40,7 @@ except ImportError:
 from matplotlib.legend import Legend
 from matplotlib.patches import Patch, Rectangle, Ellipse, FancyArrowPatch
 from matplotlib.text import Text
-from matplotlib.figure import Figure
+from matplotlib.figure import Figure, FigureBase
 
 from matplotlib.figure import SubFigure  # since matplotlib 3.4.0
 from .helper_functions import main_figure
@@ -63,6 +64,17 @@ DIR_X0 = 1
 DIR_Y0 = 2
 DIR_X1 = 4
 DIR_Y1 = 8
+
+
+def _label_factor(figure: FigureBase, away_from_origin: bool) -> float:
+    """Points-to-pixels for an axis label, signed by the side the label is on.
+
+    Matplotlib applies `labelpad` away from the axis, so the label's coordinate
+    falls as the pad grows on the bottom and the left, and rises as it grows on
+    the top and the right. Carrying that direction in the factor lets the
+    position and the pad convert into each other with one expression per axis.
+    """
+    return (1.0 if away_from_origin else -1.0) * figure.dpi / 72.0
 
 
 def checkXLabel(target: Artist):
@@ -106,9 +118,12 @@ class TargetWrapper(object):
     def __init__(self, target: Artist):
         self.target: Artist = target
         figure = target.figure
-        if figure is None or not isinstance(figure, Figure):
+        # An artist drawn on a subfigure reports the subfigure here, which is a
+        # FigureBase but not a Figure. Requiring a Figure turned away every
+        # artist of every figure built with `Figure.subfigures`.
+        if not isinstance(figure, FigureBase):
             raise ValueError("TargetWrapper needs a figure")
-        self.figure: Figure = figure
+        self.figure: FigureBase = figure
         self.do_scale = True
         self.fixed_aspect = False
         # a patch uses the data_transform
@@ -136,27 +151,68 @@ class TargetWrapper(object):
             cache_property(self.target, "position")
         # texts use get_transform
         elif isinstance(self.target, Text):
-            if getattr(self.target, "xy", None) is not None:
-                self.do_scale = True
-            else:
-                self.do_scale = False
+            # No text scales with its selection: the rectangle carries the
+            # position and, for an annotation, the anchor, and dragging a corner
+            # moves those apart without changing the type size, which the font
+            # controls own. An annotation was scalable, so its box grew as it
+            # was dragged and its corners did nothing visible.
+            self.do_scale = False
+            # An axis label is placed by its labelpad, which matplotlib applies
+            # away from the axis, so which way the label travels depends on the
+            # side it is on: a larger pad puts a bottom x label further below and
+            # a left y label further to the left, and the coordinate falls as the
+            # pad grows, while a top or right label moves the other way and the
+            # coordinate rises. `label_factor` carries that direction as its
+            # sign, so one expression serves all four sides.
+            #
+            # `pad_offset` is where the label would sit at a pad of zero, and the
+            # pad that puts it at a given coordinate follows from it. The offset
+            # was stored with the opposite sign and cached on the artist, so
+            # writing a label back at the position it already had returned the
+            # pad negated -- 4 points became -4 -- and the label jumped to the
+            # other side of the axis. It is recomputed here instead of cached,
+            # because the zero-pad position moves whenever the axes or the tick
+            # labels do.
             if checkXLabel(self.target):
-                self.label_factor = self.figure.dpi / 72.0
-                if getattr(self.target, "pad_offset", None) is None:
-                    self.target.pad_offset = (
-                            self.target.get_position()[1]
-                            - checkXLabel(self.target).xaxis.labelpad * self.label_factor
-                    )
+                axis = checkXLabel(self.target).xaxis
+                self.label_factor = _label_factor(
+                    self.figure, axis.get_label_position() == "top"
+                )
+                self.target.pad_offset = (
+                        self.target.get_position()[1]
+                        - axis.labelpad * self.label_factor
+                )
                 self.label_y = self.target.get_position()[1]
             elif checkYLabel(self.target):
-                self.label_factor = self.figure.dpi / 72.0
-                if getattr(self.target, "pad_offset", None) is None:
-                    self.target.pad_offset = (
-                            self.target.get_position()[0]
-                            - checkYLabel(self.target).yaxis.labelpad * self.label_factor
-                    )
+                axis = checkYLabel(self.target).yaxis
+                self.label_factor = _label_factor(
+                    self.figure, axis.get_label_position() == "right"
+                )
+                self.target.pad_offset = (
+                        self.target.get_position()[0]
+                        - axis.labelpad * self.label_factor
+                )
                 self.label_x = self.target.get_position()[0]
             self.get_transform = self.target.get_transform
+            # An annotation carries two points in two different systems: the
+            # anchor in its xycoords, data by default, and the text position in
+            # its textcoords, which for `textcoords="offset points"` is an
+            # offset in points from that anchor. There is no system the two
+            # share, and the offset's own system moves whenever the anchor does,
+            # so a drag that set both from one transform moved the text twice
+            # and then drifted further with every motion event. This target
+            # therefore works in display coordinates, and each point is
+            # converted through the transform that belongs to it.
+            if getattr(self.target, "xy", None) is not None:
+                self.anchor_transform = self.target._get_xy_transform(  # ty:ignore[unresolved-attribute]
+                    None, self.target.xycoords  # ty:ignore[unresolved-attribute]
+                )
+                self.text_transform = self.target.get_transform
+                self.get_transform = IdentityTransform
+                self.anchor_offset_scale = {
+                    "offset points": self.figure.dpi / 72.0,
+                    "offset pixels": 1.0,
+                }.get(self.target.anncoords)  # ty:ignore[unresolved-attribute]
         # the default is to use get_transform
         else:
             self.get_transform = self.target.get_transform
@@ -192,7 +248,23 @@ class TargetWrapper(object):
             elif checkYLabel(self.target):
                 points[0] = _to_point((self.label_x, points[0][1]))
             if getattr(self.target, "xy", None) is not None:
-                points.append(_to_point(self.target.xy))  # ty:ignore[unresolved-attribute]
+                anchor = _to_point(
+                    self.anchor_transform.transform(
+                        self.target.xy  # ty:ignore[unresolved-attribute]
+                    )
+                )
+                if self.anchor_offset_scale is not None:
+                    # The annotation's own transform is rebuilt from the anchor
+                    # when the figure is drawn, so reading the text through it
+                    # after the anchor has moved and before the next draw would
+                    # report the text at its old place, and the next motion
+                    # event would then move it from there. The offset is added
+                    # to the anchor here instead, which is what that transform
+                    # does and is true the moment either changes.
+                    points[0] = anchor + points[0] * self.anchor_offset_scale
+                else:
+                    points[0] = _to_point(self.text_transform().transform(points[0]))
+                points.append(anchor)
             bbox = self.target.get_bbox_patch()
             if bbox:
                 points.append(
@@ -303,7 +375,7 @@ class TargetWrapper(object):
             if checkXLabel(self.target):
                 axes = checkXLabel(self.target)
                 axes.xaxis.labelpad = (
-                        -(pts[0][1] - self.target.pad_offset) / self.label_factor  # ty:ignore[unresolved-attribute]
+                        (pts[0][1] - self.target.pad_offset) / self.label_factor  # ty:ignore[unresolved-attribute]
                 )
                 change_tracker.addChange(
                     axes, ".xaxis.labelpad = %f" % axes.xaxis.labelpad
@@ -314,7 +386,7 @@ class TargetWrapper(object):
             elif checkYLabel(self.target):
                 axes = checkYLabel(self.target)
                 axes.yaxis.labelpad = (
-                        -(pts[0][0] - self.target.pad_offset) / self.label_factor  # ty:ignore[unresolved-attribute]
+                        (pts[0][0] - self.target.pad_offset) / self.label_factor  # ty:ignore[unresolved-attribute]
                 )
                 change_tracker.addChange(
                     axes, ".yaxis.labelpad = %f" % axes.yaxis.labelpad
@@ -322,6 +394,31 @@ class TargetWrapper(object):
 
                 self.target.set_position(_to_tuple(pts[0]))
                 self.label_x = float(pts[0][0])
+            elif getattr(self.target, "xy", None) is not None:
+                # Both points arrive in display coordinates, so each is written
+                # back through its own transform and the result does not depend
+                # on where the anchor was before. A drag reports the same target
+                # points on every motion event, and setting them twice is
+                # therefore a no-op rather than a second move.
+                text_point, anchor_point = _to_point(pts[0]), _to_point(pts[1])
+                self.target.xy = _to_tuple(  # ty:ignore[invalid-assignment]
+                    self.anchor_transform.inverted().transform(anchor_point)
+                )
+                if self.anchor_offset_scale is not None:
+                    position = (text_point - anchor_point) / self.anchor_offset_scale
+                else:
+                    # Any other text coordinates are absolute, so the text is
+                    # placed through its own transform and the anchor does not
+                    # enter into it.
+                    position = self.text_transform().inverted().transform(text_point)
+                self.target.set_position(_to_tuple(position))
+                # `addNewTextChange` drops every earlier change to this element,
+                # so the anchor is recorded after it rather than before.
+                change_tracker.addNewTextChange(self.target)
+                change_tracker.addChange(
+                    self.target,
+                    ".xy = (%f, %f)" % self.target.xy,  # ty:ignore[unresolved-attribute]
+                )
             else:
                 self.target.set_position(_to_tuple(pts[0]))
                 if isinstance(self.target, Text):
@@ -330,12 +427,6 @@ class TargetWrapper(object):
                     change_tracker.addChange(
                         self.target,
                         ".set_position([%f, %f])" % self.target.get_position(),
-                    )
-                if getattr(self.target, "xy", None) is not None:
-                    self.target.xy = _to_tuple(pts[1])  # ty:ignore[invalid-assignment]
-                    change_tracker.addChange(
-                        self.target,
-                        ".xy = (%f, %f)" % self.target.xy,  # ty:ignore[unresolved-attribute]
                     )
         elif isinstance(self.target, Legend):
             if isinstance(self.target.axes, Axes):
