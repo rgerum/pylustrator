@@ -39,7 +39,7 @@ except ImportError:
 from matplotlib.legend import Legend
 from matplotlib.patches import Patch, Rectangle, Ellipse, FancyArrowPatch
 from matplotlib.text import Text
-from matplotlib.figure import Figure
+from matplotlib.figure import Figure, FigureBase
 
 from matplotlib.figure import SubFigure  # since matplotlib 3.4.0
 from .helper_functions import main_figure
@@ -106,9 +106,12 @@ class TargetWrapper(object):
     def __init__(self, target: Artist):
         self.target: Artist = target
         figure = target.figure
-        if figure is None or not isinstance(figure, Figure):
+        # An artist drawn on a subfigure reports the subfigure here, which is a
+        # FigureBase but not a Figure. Requiring a Figure turned away every
+        # artist of every figure built with `Figure.subfigures`.
+        if not isinstance(figure, FigureBase):
             raise ValueError("TargetWrapper needs a figure")
-        self.figure: Figure = figure
+        self.figure: FigureBase = figure
         self.do_scale = True
         self.fixed_aspect = False
         # a patch uses the data_transform
