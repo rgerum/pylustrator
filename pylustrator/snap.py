@@ -39,7 +39,7 @@ except ImportError:
 from matplotlib.legend import Legend
 from matplotlib.patches import Patch, Rectangle, Ellipse, FancyArrowPatch
 from matplotlib.text import Text
-from matplotlib.figure import Figure
+from matplotlib.figure import Figure, FigureBase
 
 from matplotlib.figure import SubFigure  # since matplotlib 3.4.0
 from .helper_functions import main_figure
@@ -79,6 +79,38 @@ def checkYLabel(target: Artist):
             return axes
 
 
+def checkTitle(target: Artist):
+    """checks if the target is one of the titles of an axis"""
+    for axes in target.figure.axes:
+        if target in (axes.title, axes._left_title, axes._right_title):
+            return axes
+
+
+def anchor_free_legend_loc(legend: Legend):
+    """Fold an explicit anchor box into the legend's location, and return it.
+
+    Matplotlib places a legend given a fractional location at
+    ``bbox.x0 + bbox.width * loc[0]`` of its anchor box. A ``bbox_to_anchor``
+    passed as a point has zero width and height, so *every* location maps to the
+    same pixel and moving the legend does nothing at all: the selection follows
+    the drag and the legend stays where it was. The anchor is therefore dropped
+    and the location restated as a fraction of the parent, which is what the
+    parent transform below already speaks. The legend does not move: the value
+    returned is the one that keeps it where it is.
+    """
+    if getattr(legend, "_bbox_to_anchor", None) is None:
+        return legend._get_loc()
+    frame = legend.get_frame().get_bbox()
+    legend.set_bbox_to_anchor(None)
+    parent = legend.get_bbox_to_anchor()
+    if parent.width == 0 or parent.height == 0:
+        return legend._get_loc()
+    return (
+        (frame.x0 - parent.x0) / parent.width,
+        (frame.y0 - parent.y0) / parent.height,
+    )
+
+
 def cache_property(object, name):
     if getattr(object, f"_pylustrator_cached_{name}", False) is True:
         return
@@ -106,9 +138,12 @@ class TargetWrapper(object):
     def __init__(self, target: Artist):
         self.target: Artist = target
         figure = target.figure
-        if figure is None or not isinstance(figure, Figure):
+        # An artist drawn on a subfigure reports the subfigure here, which is a
+        # FigureBase but not a Figure. Requiring a Figure turned away every
+        # artist of every figure built with `Figure.subfigures`.
+        if not isinstance(figure, FigureBase):
             raise ValueError("TargetWrapper needs a figure")
-        self.figure: Figure = figure
+        self.figure: FigureBase = figure
         self.do_scale = True
         self.fixed_aspect = False
         # a patch uses the data_transform
@@ -236,11 +271,14 @@ class TargetWrapper(object):
                 transform = self.target.figure.transFigure
             else:
                 transform = self.target.figure.transSubfigure
-            if isinstance(self.target._get_loc(), int):
+            location = anchor_free_legend_loc(self.target)
+            if isinstance(location, int):
                 # if the legend doesn't have a location yet, use the left bottom corner of the bounding box
                 self.target._set_loc(
                     tuple(transform.inverted().transform(tuple([bbox.x0, bbox.y0])))
                 )
+            else:
+                self.target._set_loc(tuple(location))
             points.append(_to_point(transform.transform(self.target._get_loc())))
             # add points to span bounding box around the frame
             points.append(_to_point((bbox.x0, bbox.y0)))
@@ -323,6 +361,16 @@ class TargetWrapper(object):
                 self.target.set_position(_to_tuple(pts[0]))
                 self.label_x = float(pts[0][0])
             else:
+                axes = checkTitle(self.target)
+                if axes is not None:
+                    # `Axes._update_title_position` recomputes a title's y on
+                    # every draw from the tick labels and the top spine, and
+                    # returns early only when the position was set by hand. So a
+                    # dragged title snapped back the moment the canvas redrew.
+                    # This is the flag Matplotlib itself sets when a title is
+                    # given an explicit y.
+                    axes._autotitlepos = False
+                    change_tracker.addChange(axes, "._autotitlepos = False")
                 self.target.set_position(_to_tuple(pts[0]))
                 if isinstance(self.target, Text):
                     change_tracker.addNewTextChange(self.target)
@@ -344,6 +392,7 @@ class TargetWrapper(object):
                 transform = self.target.figure.transFigure
             else:
                 transform = self.target.figure.transSubfigure
+            anchor_free_legend_loc(self.target)
             point = transform.inverted().transform(pts[0])
             self.target._loc = tuple(point)  # ty:ignore[invalid-assignment]
             change_tracker.addNewLegendChange(self.target)
